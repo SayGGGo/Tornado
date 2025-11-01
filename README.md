@@ -1,1 +1,1 @@
-![https://i.ibb.co/bRrZpsrW/main.png](main)
+!(https://i.ibb.co/bRrZpsrW/main.png)[main]
