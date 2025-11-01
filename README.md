@@ -1,6 +1,7 @@
 <img src="/for_readme/main.png" alt="TORNADO">
 <hr>
 
+> **Предупреждение** На данный момент нет рабочей версии проекта. Следите за новостями.
 
 > **Инфо** Проект находится в alpha тесте. Если вы наткнулись на баг - пожалуйста, 
 > свяжитесь со мной [тут](https://t.me/SayGG_Go).
@@ -68,7 +69,11 @@ python main.py
 <hr>
 <h3>DEMO</h3>
 
-Протестируйте проект по ссылке: ```Временно недоступно```
+<img src="/for_readme/demo_screen1.png" alt="Screen 1">
+<img src="/for_readme/demo_screen2.png" alt="Screen 2">
+<img src="/for_readme/demo_screen3.png" alt="Screen 3">
+
+Протестировать самому: ```Временно недоступно```
 
 > **Внимание** Данный сайт создан только для демонстрации и не имеет backend'а.
 
@@ -81,4 +86,4 @@ python main.py
 <hr>
 <h3>CREDITS</h3>
 
-Андрей Сайгин ИИ-71
+Андрей Сайгин ИИ-71 - [**GitHub**](https://github.com/SayGGGo).
