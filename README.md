@@ -11,9 +11,13 @@
 
 <h3>Содержание</h3>
 - <a href="#install">Установка</a>
+
 - <a href="#func">Функционал</a>
+
 - <a href="#demo">Демонстрация</a>
+
 - <a href="#credits">Создатели</a>
+
 
 <br><br><br>
 
