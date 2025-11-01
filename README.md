@@ -10,14 +10,12 @@
 > использовать его в продакшен.
 
 <h3>Содержание</h3>
-- <a href="#install">Установка</a>
-
-- <a href="#func">Функционал</a>
-
-- <a href="#demo">Демонстрация</a>
-
-- <a href="#credits">Создатели</a>
-
+<ul>
+    <li><a href="#install">Установка</a></li>
+    <li><a href="#func">Функционал</a></li>
+    <li><a href="#demo">Демонстрация</a></li>
+    <li><a href="#credits">Создатели</a></li>
+</ul>
 
 <br><br><br>
 
