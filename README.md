@@ -9,12 +9,19 @@
 > **Инфо** Данный проект создан как итоговый для учебного заведения. Я не собираюсь 
 > использовать его в продакшен.
 
+<h3>Содержание</h3>
+- [Установка](#install)
+- [Функционал](#func)
+- [Демонстрация](#demo)
+- [Создатели](#credits)
+
 <br><br><br>
 
 <img src="/for_readme/install.png" alt="INSTALL">
 
 <hr>
-<h3>INSTALL</h3>
+<a name="install"></a>
+<h3>Установка</h3>
 
 1. Скопируйте репозиторий:
 ``` commandline
@@ -58,7 +65,8 @@ python main.py
 <img src="/for_readme/functional.png" alt="FUNCTIONAL">
 
 <hr>
-<h3>FUNCTIONAL</h3>
+<a name="func"></a>
+<h3>Функционал</h3>
 
 В разработке...
 
@@ -67,7 +75,8 @@ python main.py
 <img src="/for_readme/demo.png" alt="DEMO">
 
 <hr>
-<h3>DEMO</h3>
+<a name="demo"></a>
+<h3>Демонстрация</h3>
 
 <img src="/for_readme/demo_screen1.png" alt="Screen 1">
 <img src="/for_readme/demo_screen2.png" alt="Screen 2">
@@ -84,6 +93,7 @@ python main.py
 <img src="/for_readme/credits.png" alt="CREDITS">
 
 <hr>
-<h3>CREDITS</h3>
+<a name="credits"></a>
+<h3>Создатели</h3>
 
 Андрей Сайгин ИИ-71 - [**GitHub**](https://github.com/SayGGGo).
