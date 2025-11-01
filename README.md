@@ -11,7 +11,9 @@
 <br><br><br>
 
 <img src="/for_readme/install.png" alt="INSTALL">
+
 <hr>
+<h3>INSTALL</h3>
 
 1. Скопируйте репозиторий:
 ``` commandline
@@ -53,16 +55,20 @@ python main.py
 <br><br><br>
 
 <img src="/for_readme/functional.png" alt="FUNCTIONAL">
+
 <hr>
+<h3>FUNCTIONAL</h3>
 
 В разработке...
 
 <br><br><br>
 
 <img src="/for_readme/demo.png" alt="DEMO">
-<hr>
 
-<h3>Протестируйте проект по ссылке: ```Временно недоступно```</h3>
+<hr>
+<h3>DEMO</h3>
+
+Протестируйте проект по ссылке: ```Временно недоступно```
 
 > **Внимание** Данный сайт создан только для демонстрации и не имеет backend'а.
 
@@ -71,6 +77,8 @@ python main.py
 <br><br><br>
 
 <img src="/for_readme/credits.png" alt="CREDITS">
-<hr>
 
-<h3>Андрей Сайгин ИИ-71</h3>
+<hr>
+<h3>CREDITS</h3>
+
+Андрей Сайгин ИИ-71
