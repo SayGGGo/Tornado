@@ -58,7 +58,7 @@ ADMIN_PASSWORD="Ваш пароль от админки"
 
 7. Запустите скрипт
 ```commandline
-python main.py
+python app.py
 ```
 
 8. Откройте http://localhost:2000 в браузере
