@@ -1,0 +1,259 @@
+.preloader {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.9);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    transition: opacity 0.3s ease;
+}
+
+.preloader.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.preloader svg {
+    width: 3.25em;
+    transform-origin: center;
+    animation: rotate4 2s linear infinite;
+}
+
+.preloader circle {
+    fill: none;
+    stroke: hsl(214, 97%, 59%);
+    stroke-width: 2;
+    stroke-dasharray: 1, 200;
+    stroke-dashoffset: 0;
+    stroke-linecap: round;
+    animation: dash4 1.5s ease-in-out infinite;
+}
+
+@keyframes rotate4 {
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes dash4 {
+    0% {
+        stroke-dasharray: 1, 200;
+        stroke-dashoffset: 0;
+    }
+
+    50% {
+        stroke-dasharray: 90, 200;
+        stroke-dashoffset: -35px;
+    }
+
+    100% {
+        stroke-dashoffset: -125px;
+    }
+}
+
+@import url('https://fonts.googleapis.com/css2?family=Montserrat+Alternates:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap');
+
+body {
+    background: white;
+    margin: 0;
+    padding-top: 60px;
+}
+
+/* --- HEADER --- */
+header {
+    border: 1px solid rgba(232, 228, 239, 1);
+    backdrop-filter: blur(50px);
+    background: rgba(255, 255, 255, 0.6);
+    width: 100%;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 100;
+}
+
+.smooth-scroll {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+}
+
+.smooth-scroll > section {
+  font-size: 2rem;
+  padding: 15px;
+}
+
+
+.smooth-scrollbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+}
+
+button {
+    border: none;
+    border-radius: 15px;
+    background: rgba(232, 228, 239, 1);
+    color: rgba(27, 36, 44, 1);
+    font-family: Montserrat;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 17px;
+    letter-spacing: 0px;
+    text-align: center;
+    min-width: 125px;
+    min-height: 42px;
+    transition: all 0.2s ease-in-out;
+    cursor: pointer;
+}
+
+button:hover {
+    background: rgba(71, 66, 81, 1);
+    color: rgba(232, 228, 239, 1);
+}
+
+button:active {
+    background: rgba(71, 66, 81, 1);
+    color: rgba(232, 228, 239, 1);
+    transform: scale(0.95, 0.95);
+}
+
+button.activate {
+    background: rgba(84, 76, 100, 1);
+    color: rgba(232, 228, 239, 1);
+}
+
+.btn42 {
+    min-width: 42px;
+}
+
+.container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    overflow: hidden;
+    white-space: nowrap;
+    gap: 10px;
+    padding: 10px 20px;
+    box-sizing: border-box;
+}
+
+.left-section {
+    display: flex;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.right-section {
+    display: flex;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.item {
+    flex-shrink: 0;
+    padding: 8px 12px;
+    background: #f0f0f0;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.left-section .item:nth-child(n+6) {
+    display: none;
+}
+
+.right-section .item:nth-child(n+4) {
+    display: none;
+}
+
+.logo-container {
+    width: 23px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    transition: 0.3s ease;
+    cursor: pointer;
+}
+
+.logo-container:hover {
+    width: 183px;
+}
+
+.logo-container:active {
+    width: 183px;
+    transform: scale(0.95, 0.95);
+}
+
+.logo {
+    width: 183px;
+    object-fit: cover;
+    object-position: left;
+}
+
+.dropdown-menu {
+    display: none;
+    position: absolute;
+    top: 62px;
+    left: 20px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(232, 228, 239, 1);
+    border-radius: 15px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    z-index: 99;
+    padding: 5px;
+    min-width: 180px;
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: opacity 0.3s ease, transform 0.3s eыыыыыыыse;
+    width: fit-content;
+}
+
+.dropdown-menu.active {
+    display: flex;
+    flex-direction: column;
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.dropdown-menu a {
+    padding: 10px 15px;
+    text-decoration: none;
+    color: rgba(27, 36, 44, 1);
+    font-family: Montserrat;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 17px;
+
+    border-radius: 10px;
+    transition: all 0.2s ease-in-out;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.dropdown-menu a:hover {
+    background: rgba(71, 66, 81, 1);
+    color: rgba(232, 228, 239, 1);
+}
+
+.dropdown-menu a:hover i {
+    color: rgba(232, 228, 239, 1);
+}
+
+.dropdown-menu a i {
+    color: rgba(71, 66, 81, 1);
+    transition: color 0.2s ease-in-out;
+}
+
+/* MAIN */

@@ -6,27 +6,60 @@
     <title>{{ title }} | Tornado</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/swiper/swiper-bundle.min.css" />
 </head>
 <body>
+    <div class="preloader" id="preloader">
+        <svg viewBox="25 25 50 50">
+            <circle r="20" cy="50" cx="50"></circle>
+        </svg>
+    </div>
+
     <header class="header">
-        <button>
-            <i class="fa-solid fa-bars"></i>
-        </button>
-        <img src="{{ url_for('static', filename='images/logo.svg') }}" alt="Логотип Tornado">
-
-        <button>Доставка</button>
-        <button>Самовывоз</button>
-
-        <div class="address">
-            <i class="fa-solid fa-location-dot"></i>
-            <span class="address_name">Кемерово, улица Пушкина, дом 9</span>
-            <span class="address_info">08:00 - 23:00 • Открыто • Скидка на самовывоз</span>
+        <div class="container">
+            <div class="left-section">
+                <button class="btn42" id="menu-btn">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+                <div class="logo-container">
+                    <img class="logo" src="{{ url_for('static', filename='images/logo.svg') }}" alt="Логотип Tornado">
+                </div>
+            </div>
+            <div class="right-section">
+                <button class="btn42"><i class="fa-solid fa-moon"></i></button>
+                <button id="user"><i class="fa-solid fa-user"></i> Профиль</button>
+                <button id="cart"><i class="fa-solid fa-cart-shopping"></i> Корзина</button>
+            </div>
         </div>
-
-        <button><i class="fa-solid fa-moon"></i></button>
-        <button><i class="fa-solid fa-user"></i> Профиль</button>
-        <button><i class="fa-solid fa-cart-shopping"></i> Корзина</button>
+        <div class="dropdown-menu" id="dropdown-menu">
+            <a href="/"><i class="fa-solid fa-home"></i> Главная</a>
+            <a href="/actions"><i class="fa-solid fa-percent"></i> Акции</a>
+            <a href="/support"><i class="fa-solid fa-comment"></i> Поддержка</a>
+            <a href="https://github.com/SayGGGo/tornado/"><i class="fa-brands fa-github"></i> Github</a>
+        </div>
     </header>
-    {% block content %}{% endblock %}
+
+    <main>
+        <div class="smooth-scroll">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <div class="smooth-scrollbar"></div>
+
+    <script>
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                const preloader = document.getElementById('preloader');
+                preloader.classList.add('hidden');
+
+                setTimeout(function() {
+                    preloader.remove();
+                }, 100);
+            }, 100);
+        });
+    </script>
+    <script src="{{ url_for('static', filename='js/scroll.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>
 </html>
