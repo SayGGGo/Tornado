@@ -31,7 +31,16 @@
             </div>
             <div class="right-section">
                 <button class="btn42"><i class="fa-solid fa-moon"></i></button>
-                <button id="user"><i class="fa-solid fa-user"></i> Профиль</button>
+                <button id="user"><i class="fa-solid fa-user"></i> User</button>
+                <a href="{{ url_for('balance') }}" class="balance-btn" id="balance-link">
+                    <span class="balance-info">
+                        <i class="fa-solid fa-wallet"></i>
+                        960 ₽
+                    </span>
+                    <span class="balance-add">
+                        <i class="fa-solid fa-plus"></i>
+                    </span>
+                </a>
                 <button id="cart"><i class="fa-solid fa-cart-shopping"></i> Корзина</button>
             </div>
         </div>

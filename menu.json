@@ -10,6 +10,16 @@
         "rating": 10.0
     },
     {
+        "product_id": "9242",
+        "name": "ЧТ-пицца Филадельфия",
+        "category": "Блюдо дня",
+        "description": "Пицца с лососем и сыром моцарелла на сливочном соусе. Украшена творожным сыром и соусом Унаги (30 см)",
+        "image_url": "https://atamansushi.ru/__/images/menuProduct/69157e4f81a59_w900_png.webp",
+        "weight": "540",
+        "price_rub": 646.0,
+        "rating": null
+    },
+    {
         "product_id": "9051",
         "name": "Филадельфия Фьюжн ролл",
         "category": "Авторские роллы",
@@ -18,26 +28,6 @@
         "weight": "370гр",
         "price_rub": 518.0,
         "rating": 10.0
-    },
-    {
-        "product_id": "9020",
-        "name": "Филадельфия с манго ролл",
-        "category": "Авторские роллы",
-        "description": "Изысканный ролл, покрытый слабосоленым лососем, таит в себе сочный манго и нежнейший сыр. Украшен соусом \"унаги\" и микрозеленью",
-        "image_url": "https://atamansushi.ru/__/images/menuProduct/66af71e9bc771_w900_jpg.webp",
-        "weight": "310гр",
-        "price_rub": 419.0,
-        "rating": null
-    },
-    {
-        "product_id": "9043",
-        "name": "Феникс Креветка ролл",
-        "category": "Авторские роллы",
-        "description": "Ролл с нежным творожным сыром, окутанный лососем. Украшен \"шапочкой\" из тигровой креветки, соуса \"спайси\" и икры \"масаго\". С микрозеленью и золотистым кунжутом",
-        "image_url": "https://atamansushi.ru/__/images/menuProduct/66b098be9cc94_w900_jpg.webp",
-        "weight": "360гр",
-        "price_rub": 518.0,
-        "rating": 9.8
     },
     {
         "product_id": "9047",
@@ -50,33 +40,13 @@
         "rating": null
     },
     {
-        "product_id": "9050",
-        "name": "Филадельфия Тропикана ролл",
+        "product_id": "9020",
+        "name": "Филадельфия с манго ролл",
         "category": "Авторские роллы",
-        "description": "Ролл с нежным творожным сыром, обернут слабосоленым лососем. Украшен \"шапочкой\" из сочного манго, соуса манго-чили, икрой \"масаго\" и микрозеленью",
-        "image_url": "https://atamansushi.ru/__/images/menuProduct/66b0a08827580_w900_jpg.webp",
-        "weight": "370гр",
-        "price_rub": 518.0,
-        "rating": null
-    },
-    {
-        "product_id": "9039",
-        "name": "Канада ролл",
-        "category": "Авторские роллы",
-        "description": "Ролл, покрытый подкопченным угрем. Внутри кусочки копченной семги, перья зеленого лука и нежный творожный сыр. Украшен соусом \"унаги\" и золотистым кунжутом",
-        "image_url": "https://atamansushi.ru/__/images/menuProduct/66b095594243f_w900_jpg.webp",
-        "weight": "280гр",
-        "price_rub": 458.0,
-        "rating": null
-    },
-    {
-        "product_id": "9042",
-        "name": "Ролл с угрем и миндалем ролл",
-        "category": "Авторские роллы",
-        "description": "Нежный ролл с творожным сыром, сочным манго и икрой \"масаго\", покрытый подкопченным угрем. Украшен соусом \"унаги\", микрозеленью и лепестками миндаля",
-        "image_url": "https://atamansushi.ru/__/images/menuProduct/66b097ee56e39_w900_jpg.webp",
-        "weight": "270гр",
-        "price_rub": 448.0,
+        "description": "Изысканный ролл, покрытый слабосоленым лососем, таит в себе сочный манго и нежнейший сыр. Украшен соусом \"унаги\" и микрозеленью",
+        "image_url": "https://atamansushi.ru/__/images/menuProduct/66af71e9bc771_w900_jpg.webp",
+        "weight": "310гр",
+        "price_rub": 419.0,
         "rating": null
     },
     {
@@ -90,23 +60,13 @@
         "rating": null
     },
     {
-        "product_id": "9044",
-        "name": "Феникс Лосось ролл",
+        "product_id": "9048",
+        "name": "Филадельфия Грин ролл",
         "category": "Авторские роллы",
-        "description": "Ролл с нежным творожным сыром, окутанный лососем. Украшен \"шапочкой\" из слабосоленого лосося, соуса \"спайси\" и икры \"масаго\". С микрозеленью и золотистым кунжутом",
-        "image_url": "https://atamansushi.ru/__/images/menuProduct/66b099e45926b_w900_jpg.webp",
-        "weight": "370гр",
-        "price_rub": 518.0,
-        "rating": null
-    },
-    {
-        "product_id": "9049",
-        "name": "Филадельфия Дуэт Люкс ролл",
-        "category": "Авторские роллы",
-        "description": "Ролл с нежным творожным сыром, поделен на две половинки. Одна половинка окутана подкопченным угрем и украшена творожным сыром, соусом \"унаги\" и кунжутом. Другая половинка окутана слабосоленым лососем и украшена творожным сыром и красной икрой",
-        "image_url": "https://atamansushi.ru/__/images/menuProduct/66b09fcf9063c_w900_jpg.webp",
-        "weight": "355гр",
-        "price_rub": 518.0,
+        "description": "Сочный ролл с жареной креветкой и творожным сыром, покрыт авокадо. Украшен соусом \"спайси\", соусом \"унаги\", микрозеленью и кунжутом",
+        "image_url": "https://atamansushi.ru/__/images/menuProduct/66b09e9862d2c_w900_jpg.webp",
+        "weight": "305гр",
+        "price_rub": 398.0,
         "rating": null
     },
     {
@@ -117,6 +77,26 @@
         "image_url": "https://atamansushi.ru/__/images/menuProduct/66af6c9d26f14_w900_jpg.webp",
         "weight": "300гр",
         "price_rub": 388.0,
+        "rating": null
+    },
+    {
+        "product_id": "9038",
+        "name": "Искушение ролл",
+        "category": "Авторские роллы",
+        "description": "Ролл с хрустящим листом салата и нежным сыром, обернут в тигровую креветку. Украшен творожным сыром, сочным киви, микрозеленью и цветочком",
+        "image_url": "https://atamansushi.ru/__/images/menuProduct/66b094bc6147b_w900_jpg.webp",
+        "weight": "380гр",
+        "price_rub": 458.0,
+        "rating": 9.6
+    },
+    {
+        "product_id": "9039",
+        "name": "Канада ролл",
+        "category": "Авторские роллы",
+        "description": "Ролл, покрытый подкопченным угрем. Внутри кусочки копченной семги, перья зеленого лука и нежный творожный сыр. Украшен соусом \"унаги\" и золотистым кунжутом",
+        "image_url": "https://atamansushi.ru/__/images/menuProduct/66b095594243f_w900_jpg.webp",
+        "weight": "280гр",
+        "price_rub": 458.0,
         "rating": null
     },
     {
@@ -140,14 +120,54 @@
         "rating": null
     },
     {
-        "product_id": "9038",
-        "name": "Искушение ролл",
+        "product_id": "9043",
+        "name": "Феникс Креветка ролл",
         "category": "Авторские роллы",
-        "description": "Ролл с хрустящим листом салата и нежным сыром, обернут в тигровую креветку. Украшен творожным сыром, сочным киви, микрозеленью и цветочком",
-        "image_url": "https://atamansushi.ru/__/images/menuProduct/66b094bc6147b_w900_jpg.webp",
-        "weight": "380гр",
-        "price_rub": 458.0,
-        "rating": 9.6
+        "description": "Ролл с нежным творожным сыром, окутанный лососем. Украшен \"шапочкой\" из тигровой креветки, соуса \"спайси\" и икры \"масаго\". С микрозеленью и золотистым кунжутом",
+        "image_url": "https://atamansushi.ru/__/images/menuProduct/66b098be9cc94_w900_jpg.webp",
+        "weight": "360гр",
+        "price_rub": 518.0,
+        "rating": 9.8
+    },
+    {
+        "product_id": "9044",
+        "name": "Феникс Лосось ролл",
+        "category": "Авторские роллы",
+        "description": "Ролл с нежным творожным сыром, окутанный лососем. Украшен \"шапочкой\" из слабосоленого лосося, соуса \"спайси\" и икры \"масаго\". С микрозеленью и золотистым кунжутом",
+        "image_url": "https://atamansushi.ru/__/images/menuProduct/66b099e45926b_w900_jpg.webp",
+        "weight": "370гр",
+        "price_rub": 518.0,
+        "rating": null
+    },
+    {
+        "product_id": "9049",
+        "name": "Филадельфия Дуэт Люкс ролл",
+        "category": "Авторские роллы",
+        "description": "Ролл с нежным творожным сыром, поделен на две половинки. Одна половинка окутана подкопченным угрем и украшена творожным сыром, соусом \"унаги\" и кунжутом. Другая половинка окутана слабосоленым лососем и украшена творожным сыром и красной икрой",
+        "image_url": "https://atamansushi.ru/__/images/menuProduct/66b09fcf9063c_w900_jpg.webp",
+        "weight": "355гр",
+        "price_rub": 518.0,
+        "rating": null
+    },
+    {
+        "product_id": "9050",
+        "name": "Филадельфия Тропикана ролл",
+        "category": "Авторские роллы",
+        "description": "Ролл с нежным творожным сыром, обернут слабосоленым лососем. Украшен \"шапочкой\" из сочного манго, соуса манго-чили, икрой \"масаго\" и микрозеленью",
+        "image_url": "https://atamansushi.ru/__/images/menuProduct/66b0a08827580_w900_jpg.webp",
+        "weight": "370гр",
+        "price_rub": 518.0,
+        "rating": null
+    },
+    {
+        "product_id": "9042",
+        "name": "Ролл с угрем и миндалем ролл",
+        "category": "Авторские роллы",
+        "description": "Нежный ролл с творожным сыром, сочным манго и икрой \"масаго\", покрытый подкопченным угрем. Украшен соусом \"унаги\", микрозеленью и лепестками миндаля",
+        "image_url": "https://atamansushi.ru/__/images/menuProduct/66b097ee56e39_w900_jpg.webp",
+        "weight": "270гр",
+        "price_rub": 448.0,
+        "rating": null
     },
     {
         "product_id": "9040",
@@ -157,16 +177,6 @@
         "image_url": "https://atamansushi.ru/__/images/menuProduct/66b0962b4f6a8_w900_jpg.webp",
         "weight": "370гр",
         "price_rub": 518.0,
-        "rating": null
-    },
-    {
-        "product_id": "9048",
-        "name": "Филадельфия Грин ролл",
-        "category": "Авторские роллы",
-        "description": "Сочный ролл с жареной креветкой и творожным сыром, покрыт авокадо. Украшен соусом \"спайси\", соусом \"унаги\", микрозеленью и кунжутом",
-        "image_url": "https://atamansushi.ru/__/images/menuProduct/66b09e9862d2c_w900_jpg.webp",
-        "weight": "305гр",
-        "price_rub": 398.0,
         "rating": null
     },
     {
@@ -187,7 +197,7 @@
         "image_url": "https://atamansushi.ru/__/images/menuProduct/66aa08fd216dd_w900_jpeg.webp",
         "weight": "285гр",
         "price_rub": 378.0,
-        "rating": 9.5
+        "rating": 9.6
     },
     {
         "product_id": "8786",
@@ -200,16 +210,6 @@
         "rating": 8.5
     },
     {
-        "product_id": "8836",
-        "name": "Филадельфия Люкс ролл",
-        "category": "Филадельфия",
-        "description": "Восхитительный ролл окутан слабосоленым лососем и украшен нежным творожным сыром и красной икрой",
-        "image_url": "https://atamansushi.ru/__/images/menuProduct/66ab6e890a493_w900_jpg.webp",
-        "weight": "350гр",
-        "price_rub": 518.0,
-        "rating": 9.6
-    },
-    {
         "product_id": "8845",
         "name": "Филадельфия Дуэт ролл",
         "category": "Филадельфия",
@@ -218,6 +218,16 @@
         "weight": "285гр",
         "price_rub": 388.0,
         "rating": 8.4
+    },
+    {
+        "product_id": "8836",
+        "name": "Филадельфия Люкс ролл",
+        "category": "Филадельфия",
+        "description": "Восхитительный ролл окутан слабосоленым лососем и украшен нежным творожным сыром и красной икрой",
+        "image_url": "https://atamansushi.ru/__/images/menuProduct/66ab6e890a493_w900_jpg.webp",
+        "weight": "350гр",
+        "price_rub": 518.0,
+        "rating": 9.6
     },
     {
         "product_id": "8982",
@@ -240,26 +250,6 @@
         "rating": 10.0
     },
     {
-        "product_id": "8830",
-        "name": "Оками ролл",
-        "category": "Филадельфия",
-        "description": "Удивительный ролл с творожным сыром, хрустящим огурчиком и креветкой \"темпура\". Покрыт нежнейшим лососем.",
-        "image_url": "https://atamansushi.ru/__/images/menuProduct/66ab4a6b17b60_w900_jpg.webp",
-        "weight": "300гр",
-        "price_rub": 418.0,
-        "rating": 9.6
-    },
-    {
-        "product_id": "8981",
-        "name": "Филадельфия хот ролл",
-        "category": "Филадельфия",
-        "description": "Внутри мягкий сливочный сыр. Снаружи - запеченный лосось. Украшается нежной сырно-чесночной \"шапочкой\" и \"унаги\" соусом",
-        "image_url": "https://atamansushi.ru/__/images/menuProduct/66ae63d86b0f5_w900_jpg.webp",
-        "weight": "400гр",
-        "price_rub": 458.0,
-        "rating": 8.8
-    },
-    {
         "product_id": "9051",
         "name": "Филадельфия Фьюжн ролл",
         "category": "Филадельфия",
@@ -280,24 +270,14 @@
         "rating": 10.0
     },
     {
-        "product_id": "9020",
-        "name": "Филадельфия с манго ролл",
+        "product_id": "8981",
+        "name": "Филадельфия хот ролл",
         "category": "Филадельфия",
-        "description": "Изысканный ролл, покрытый слабосоленым лососем, таит в себе сочный манго и нежнейший сыр. Украшен соусом \"унаги\" и микрозеленью",
-        "image_url": "https://atamansushi.ru/__/images/menuProduct/66af71e9bc771_w900_jpg.webp",
-        "weight": "310гр",
-        "price_rub": 419.0,
-        "rating": null
-    },
-    {
-        "product_id": "8989",
-        "name": "Эби Филадельфия ролл",
-        "category": "Филадельфия",
-        "description": "Изысканный ролл с нежным творожным сыром, покрыт тигровой креветкой.",
-        "image_url": "https://atamansushi.ru/__/images/menuProduct/66af1860789dd_w900_jpg.webp",
-        "weight": "280гр",
-        "price_rub": 368.0,
-        "rating": null
+        "description": "Внутри мягкий сливочный сыр. Снаружи - запеченный лосось. Украшается нежной сырно-чесночной \"шапочкой\" и \"унаги\" соусом",
+        "image_url": "https://atamansushi.ru/__/images/menuProduct/66ae63d86b0f5_w900_jpg.webp",
+        "weight": "400гр",
+        "price_rub": 458.0,
+        "rating": 8.8
     },
     {
         "product_id": "9047",
@@ -310,24 +290,14 @@
         "rating": null
     },
     {
-        "product_id": "9050",
-        "name": "Филадельфия Тропикана ролл",
+        "product_id": "8830",
+        "name": "Оками ролл",
         "category": "Филадельфия",
-        "description": "Ролл с нежным творожным сыром, обернут слабосоленым лососем. Украшен \"шапочкой\" из сочного манго, соуса манго-чили, икрой \"масаго\" и микрозеленью",
-        "image_url": "https://atamansushi.ru/__/images/menuProduct/66b0a08827580_w900_jpg.webp",
-        "weight": "370гр",
-        "price_rub": 518.0,
-        "rating": null
-    },
-    {
-        "product_id": "8831",
-        "name": "Окина ролл",
-        "category": "Филадельфия",
-        "description": "Удивительный ролл покрытый нежным лососем, таит в себе сливочный сыр. Украшен соусом \"лава\"",
-        "image_url": "https://atamansushi.ru/__/images/menuProduct/66ab4b57df4c0_w900_jpg.webp",
-        "weight": "360гр",
-        "price_rub": 448.0,
-        "rating": null
+        "description": "Удивительный ролл с творожным сыром, хрустящим огурчиком и креветкой \"темпура\". Покрыт нежнейшим лососем.",
+        "image_url": "https://atamansushi.ru/__/images/menuProduct/66ab4a6b17b60_w900_jpg.webp",
+        "weight": "300гр",
+        "price_rub": 418.0,
+        "rating": 9.6
     },
     {
         "product_id": "8846",
@@ -337,6 +307,16 @@
         "image_url": "https://atamansushi.ru/__/images/menuProduct/66ab9b3209a32_w900_jpg.webp",
         "weight": "275гр",
         "price_rub": 403.0,
+        "rating": null
+    },
+    {
+        "product_id": "9020",
+        "name": "Филадельфия с манго ролл",
+        "category": "Филадельфия",
+        "description": "Изысканный ролл, покрытый слабосоленым лососем, таит в себе сочный манго и нежнейший сыр. Украшен соусом \"унаги\" и микрозеленью",
+        "image_url": "https://atamansushi.ru/__/images/menuProduct/66af71e9bc771_w900_jpg.webp",
+        "weight": "310гр",
+        "price_rub": 419.0,
         "rating": null
     },
     {
@@ -350,13 +330,33 @@
         "rating": null
     },
     {
-        "product_id": "9049",
-        "name": "Филадельфия Дуэт Люкс ролл",
+        "product_id": "9048",
+        "name": "Филадельфия Грин ролл",
         "category": "Филадельфия",
-        "description": "Ролл с нежным творожным сыром, поделен на две половинки. Одна половинка окутана подкопченным угрем и украшена творожным сыром, соусом \"унаги\" и кунжутом. Другая половинка окутана слабосоленым лососем и украшена творожным сыром и красной икрой",
-        "image_url": "https://atamansushi.ru/__/images/menuProduct/66b09fcf9063c_w900_jpg.webp",
-        "weight": "355гр",
-        "price_rub": 518.0,
+        "description": "Сочный ролл с жареной креветкой и творожным сыром, покрыт авокадо. Украшен соусом \"спайси\", соусом \"унаги\", микрозеленью и кунжутом",
+        "image_url": "https://atamansushi.ru/__/images/menuProduct/66b09e9862d2c_w900_jpg.webp",
+        "weight": "305гр",
+        "price_rub": 398.0,
+        "rating": null
+    },
+    {
+        "product_id": "8989",
+        "name": "Эби Филадельфия ролл",
+        "category": "Филадельфия",
+        "description": "Изысканный ролл с нежным творожным сыром, покрыт тигровой креветкой.",
+        "image_url": "https://atamansushi.ru/__/images/menuProduct/66af1860789dd_w900_jpg.webp",
+        "weight": "280гр",
+        "price_rub": 368.0,
+        "rating": null
+    },
+    {
+        "product_id": "8831",
+        "name": "Окина ролл",
+        "category": "Филадельфия",
+        "description": "Удивительный ролл покрытый нежным лососем, таит в себе сливочный сыр. Украшен соусом \"лава\"",
+        "image_url": "https://atamansushi.ru/__/images/menuProduct/66ab4b57df4c0_w900_jpg.webp",
+        "weight": "360гр",
+        "price_rub": 448.0,
         "rating": null
     },
     {
@@ -370,6 +370,26 @@
         "rating": null
     },
     {
+        "product_id": "9049",
+        "name": "Филадельфия Дуэт Люкс ролл",
+        "category": "Филадельфия",
+        "description": "Ролл с нежным творожным сыром, поделен на две половинки. Одна половинка окутана подкопченным угрем и украшена творожным сыром, соусом \"унаги\" и кунжутом. Другая половинка окутана слабосоленым лососем и украшена творожным сыром и красной икрой",
+        "image_url": "https://atamansushi.ru/__/images/menuProduct/66b09fcf9063c_w900_jpg.webp",
+        "weight": "355гр",
+        "price_rub": 518.0,
+        "rating": null
+    },
+    {
+        "product_id": "9050",
+        "name": "Филадельфия Тропикана ролл",
+        "category": "Филадельфия",
+        "description": "Ролл с нежным творожным сыром, обернут слабосоленым лососем. Украшен \"шапочкой\" из сочного манго, соуса манго-чили, икрой \"масаго\" и микрозеленью",
+        "image_url": "https://atamansushi.ru/__/images/menuProduct/66b0a08827580_w900_jpg.webp",
+        "weight": "370гр",
+        "price_rub": 518.0,
+        "rating": null
+    },
+    {
         "product_id": "9029",
         "name": "Сет Филадельфия",
         "category": "Филадельфия",
@@ -377,16 +397,6 @@
         "image_url": "https://atamansushi.ru/__/images/menuProduct/66b081ecb14ce_w900_jpg.webp",
         "weight": "800гр",
         "price_rub": 2320.0,
-        "rating": null
-    },
-    {
-        "product_id": "9048",
-        "name": "Филадельфия Грин ролл",
-        "category": "Филадельфия",
-        "description": "Сочный ролл с жареной креветкой и творожным сыром, покрыт авокадо. Украшен соусом \"спайси\", соусом \"унаги\", микрозеленью и кунжутом",
-        "image_url": "https://atamansushi.ru/__/images/menuProduct/66b09e9862d2c_w900_jpg.webp",
-        "weight": "305гр",
-        "price_rub": 398.0,
         "rating": null
     },
     {
@@ -420,16 +430,6 @@
         "rating": 10.0
     },
     {
-        "product_id": "8983",
-        "name": "Хинаде ролл",
-        "category": "Роллы",
-        "description": "Сочный ролл с креветкой \"темпура\", хрустящим огурчиком, нежным творожным сыром и икрой \"масаго\"",
-        "image_url": "https://atamansushi.ru/__/images/menuProduct/66af06c04f304_w900_jpg.webp",
-        "weight": "235гр",
-        "price_rub": 528.0,
-        "rating": 10.0
-    },
-    {
         "product_id": "8809",
         "name": "Восходящее солнце ролл",
         "category": "Роллы",
@@ -460,6 +460,16 @@
         "rating": null
     },
     {
+        "product_id": "8983",
+        "name": "Хинаде ролл",
+        "category": "Роллы",
+        "description": "Сочный ролл с креветкой \"темпура\", хрустящим огурчиком, нежным творожным сыром и икрой \"масаго\"",
+        "image_url": "https://atamansushi.ru/__/images/menuProduct/66af06c04f304_w900_jpg.webp",
+        "weight": "235гр",
+        "price_rub": 528.0,
+        "rating": 10.0
+    },
+    {
         "product_id": "8829",
         "name": "Унаги маки ролл",
         "category": "Роллы",
@@ -467,16 +477,6 @@
         "image_url": "https://atamansushi.ru/__/images/menuProduct/66b1d3719a3ef_w900_jpg.webp",
         "weight": "120гр",
         "price_rub": 358.0,
-        "rating": null
-    },
-    {
-        "product_id": "8835",
-        "name": "Томато ролл",
-        "category": "Роллы",
-        "description": "Нежный ролл с творожным сыром и дольками томата. ",
-        "image_url": "https://atamansushi.ru/__/images/menuProduct/66ab665c24636_w900_jpg.webp",
-        "weight": "205гр",
-        "price_rub": 348.0,
         "rating": null
     },
     {
@@ -490,13 +490,13 @@
         "rating": null
     },
     {
-        "product_id": "8797",
-        "name": "Акай ролл",
+        "product_id": "8835",
+        "name": "Томато ролл",
         "category": "Роллы",
-        "description": "Ролл в сырной тортилье с нежным лососем, сливочным сыром, хрустящим огурчиком и сочной икрой масаго",
-        "image_url": "https://atamansushi.ru/__/images/menuProduct/66ab21e0c19be_w900_jpg.webp",
-        "weight": "230гр",
-        "price_rub": 568.0,
+        "description": "Нежный ролл с творожным сыром и дольками томата. ",
+        "image_url": "https://atamansushi.ru/__/images/menuProduct/66ab665c24636_w900_jpg.webp",
+        "weight": "205гр",
+        "price_rub": 348.0,
         "rating": null
     },
     {
@@ -507,6 +507,16 @@
         "image_url": "https://atamansushi.ru/__/images/menuProduct/66ab1124510c1_w900_jpg.webp",
         "weight": "260гр",
         "price_rub": 588.0,
+        "rating": null
+    },
+    {
+        "product_id": "8797",
+        "name": "Акай ролл",
+        "category": "Роллы",
+        "description": "Ролл в сырной тортилье с нежным лососем, сливочным сыром, хрустящим огурчиком и сочной икрой масаго",
+        "image_url": "https://atamansushi.ru/__/images/menuProduct/66ab21e0c19be_w900_jpg.webp",
+        "weight": "230гр",
+        "price_rub": 568.0,
         "rating": null
     },
     {
@@ -540,16 +550,6 @@
         "rating": null
     },
     {
-        "product_id": "8792",
-        "name": "Сладкая парочка ролл",
-        "category": "Роллы",
-        "description": "Ролл из дух половинок с нежным лососем и сливочным сыром. Одна половинка украшена манго, вторая половинка украшена клубникой. Ролл полит соусом манго-чили и украшен цветком и рисовыми шариками.",
-        "image_url": "https://atamansushi.ru/__/images/menuProduct/66ab04f32e48d_w900_jpg.webp",
-        "weight": "265гр",
-        "price_rub": 598.0,
-        "rating": null
-    },
-    {
         "product_id": "8984",
         "name": "Хороми ролл",
         "category": "Роллы",
@@ -557,6 +557,26 @@
         "image_url": "https://atamansushi.ru/__/images/menuProduct/66af1d7b02e7d_w900_jpg.webp",
         "weight": "230гр",
         "price_rub": 558.0,
+        "rating": null
+    },
+    {
+        "product_id": "8990",
+        "name": "Эби Чиз ролл",
+        "category": "Роллы",
+        "description": "Сочный ролл с тигровой креветкой, нежным творожным сыром, хрустящим огурчиком и плавленым сыром \"хохланд\"",
+        "image_url": "https://atamansushi.ru/__/images/menuProduct/66af1b3624bc2_w900_jpg.webp",
+        "weight": "230гр",
+        "price_rub": 498.0,
+        "rating": null
+    },
+    {
+        "product_id": "8792",
+        "name": "Сладкая парочка ролл",
+        "category": "Роллы",
+        "description": "Ролл из дух половинок с нежным лососем и сливочным сыром. Одна половинка украшена манго, вторая половинка украшена клубникой. Ролл полит соусом манго-чили и украшен цветком и рисовыми шариками.",
+        "image_url": "https://atamansushi.ru/__/images/menuProduct/66ab04f32e48d_w900_jpg.webp",
+        "weight": "265гр",
+        "price_rub": 598.0,
         "rating": null
     },
     {
@@ -640,16 +660,6 @@
         "rating": null
     },
     {
-        "product_id": "8990",
-        "name": "Эби Чиз ролл",
-        "category": "Роллы",
-        "description": "Сочный ролл с тигровой креветкой, нежным творожным сыром, хрустящим огурчиком и плавленым сыром \"хохланд\"",
-        "image_url": "https://atamansushi.ru/__/images/menuProduct/66af1b3624bc2_w900_jpg.webp",
-        "weight": "230гр",
-        "price_rub": 498.0,
-        "rating": null
-    },
-    {
         "product_id": "8991",
         "name": "Ясай ролл",
         "category": "Роллы",
@@ -680,6 +690,16 @@
         "rating": 9.3
     },
     {
+        "product_id": "8907",
+        "name": "Мураками ролл",
+        "category": "Темпура роллы",
+        "description": "Ролл с золотистой корочкой и гармоничной начинкой из слабосоленого лосося, перьев зеленого лука, нежного сыра. Украшен соусом \"Унаги\" и кунжутом",
+        "image_url": "https://atamansushi.ru/__/images/menuProduct/66ae1288841ea_w900_jpeg.webp",
+        "weight": "310гр",
+        "price_rub": 498.0,
+        "rating": 9.2
+    },
+    {
         "product_id": "8917",
         "name": "Якудза ролл",
         "category": "Темпура роллы",
@@ -688,16 +708,6 @@
         "weight": "330гр",
         "price_rub": 528.0,
         "rating": 9.8
-    },
-    {
-        "product_id": "8907",
-        "name": "Мураками ролл",
-        "category": "Темпура роллы",
-        "description": "Ролл с золотистой корочкой и гармоничной начинкой из слабосоленого лосося, перьев зеленого лука, нежного сыра. Украшен соусом \"Унаги\" и кунжутом",
-        "image_url": "https://atamansushi.ru/__/images/menuProduct/66ae1288841ea_w900_jpeg.webp",
-        "weight": "310гр",
-        "price_rub": 498.0,
-        "rating": 8.9
     },
     {
         "product_id": "8908",
@@ -710,16 +720,6 @@
         "rating": null
     },
     {
-        "product_id": "8910",
-        "name": "Кансо ролл",
-        "category": "Темпура роллы",
-        "description": "Под хрустящей корочкой кляра скрывается  филе лосося и омлет томаго. Украшен творожным сыром и соусом \"Унаги\"",
-        "image_url": "https://atamansushi.ru/__/images/menuProduct/66af51ee4a890_w900_jpg.webp",
-        "weight": "345гр",
-        "price_rub": 508.0,
-        "rating": 6.4
-    },
-    {
         "product_id": "8911",
         "name": "Сяке эби темпура ролл",
         "category": "Темпура роллы",
@@ -728,6 +728,16 @@
         "weight": "295гр",
         "price_rub": 568.0,
         "rating": null
+    },
+    {
+        "product_id": "8910",
+        "name": "Кансо ролл",
+        "category": "Темпура роллы",
+        "description": "Под хрустящей корочкой кляра скрывается  филе лосося и омлет томаго. Украшен творожным сыром и соусом \"Унаги\"",
+        "image_url": "https://atamansushi.ru/__/images/menuProduct/66af51ee4a890_w900_jpg.webp",
+        "weight": "345гр",
+        "price_rub": 508.0,
+        "rating": 6.4
     },
     {
         "product_id": "8852",
@@ -830,16 +840,6 @@
         "rating": 8.8
     },
     {
-        "product_id": "8969",
-        "name": "Кабуки ролл",
-        "category": "Запеченные роллы",
-        "description": "Под нежной сырно-чесночной \"шапочкой\" таится творожный сыр, омлет \"томаго\" и копченная курочка. Ролл украшен соусом \"Унаги\"",
-        "image_url": "https://atamansushi.ru/__/images/menuProduct/66ae3879a69a6_w900_jpeg.webp",
-        "weight": "320гр",
-        "price_rub": 498.0,
-        "rating": null
-    },
-    {
         "product_id": "8975",
         "name": "Тори хот ролл",
         "category": "Запеченные роллы",
@@ -847,6 +847,16 @@
         "image_url": "https://atamansushi.ru/__/images/menuProduct/66ae5be0ada86_w900_jpg.webp",
         "weight": "320гр",
         "price_rub": 508.0,
+        "rating": null
+    },
+    {
+        "product_id": "8969",
+        "name": "Кабуки ролл",
+        "category": "Запеченные роллы",
+        "description": "Под нежной сырно-чесночной \"шапочкой\" таится творожный сыр, омлет \"томаго\" и копченная курочка. Ролл украшен соусом \"Унаги\"",
+        "image_url": "https://atamansushi.ru/__/images/menuProduct/66ae3879a69a6_w900_jpeg.webp",
+        "weight": "320гр",
+        "price_rub": 498.0,
         "rating": null
     },
     {
@@ -890,6 +900,16 @@
         "rating": null
     },
     {
+        "product_id": "9008",
+        "name": "Гавайи ролл",
+        "category": "Киноа",
+        "description": "Ролл из киноа со сливочным сыром, лососем и креветкой, украшен шапкой из авокадо и миксом кунжута, полит соусом унаги.",
+        "image_url": "https://atamansushi.ru/__/images/menuProduct/66af5919a5690_w900_jpg.webp",
+        "weight": "260гр",
+        "price_rub": 558.0,
+        "rating": null
+    },
+    {
         "product_id": "9015",
         "name": "Ями-Ями ролл",
         "category": "Киноа",
@@ -917,16 +937,6 @@
         "image_url": "https://atamansushi.ru/__/images/menuProduct/66af59806ccd5_w900_jpg.webp",
         "weight": "220гр",
         "price_rub": 548.0,
-        "rating": null
-    },
-    {
-        "product_id": "9008",
-        "name": "Гавайи ролл",
-        "category": "Киноа",
-        "description": "Ролл из киноа со сливочным сыром, лососем и креветкой, украшен шапкой из авокадо и миксом кунжута, полит соусом унаги.",
-        "image_url": "https://atamansushi.ru/__/images/menuProduct/66af5919a5690_w900_jpg.webp",
-        "weight": "260гр",
-        "price_rub": 558.0,
         "rating": null
     },
     {
@@ -970,16 +980,6 @@
         "rating": null
     },
     {
-        "product_id": "9023",
-        "name": "Сет Известный",
-        "category": "Сеты",
-        "description": "В сет входит 3 ролла: Филадельфия, Лава со снежным крабом, Калифорния со снежным крабом",
-        "image_url": "https://atamansushi.ru/__/images/menuProduct/66af7a10687ef_w900_jpg.webp",
-        "weight": "720гр",
-        "price_rub": 1674.0,
-        "rating": 8.7
-    },
-    {
         "product_id": "9030",
         "name": "Сет Ямамото",
         "category": "Сеты",
@@ -1000,6 +1000,16 @@
         "rating": null
     },
     {
+        "product_id": "9023",
+        "name": "Сет Известный",
+        "category": "Сеты",
+        "description": "В сет входит 3 ролла: Филадельфия, Лава со снежным крабом, Калифорния со снежным крабом",
+        "image_url": "https://atamansushi.ru/__/images/menuProduct/66af7a10687ef_w900_jpg.webp",
+        "weight": "720гр",
+        "price_rub": 1674.0,
+        "rating": 8.7
+    },
+    {
         "product_id": "9021",
         "name": "Сет для Двоих",
         "category": "Сеты",
@@ -1007,26 +1017,6 @@
         "image_url": "https://atamansushi.ru/__/images/menuProduct/66af73caf04f7_w900_jpg.webp",
         "weight": "1.050 кг",
         "price_rub": 2342.0,
-        "rating": null
-    },
-    {
-        "product_id": "9022",
-        "name": "Сет Жара",
-        "category": "Сеты",
-        "description": "В сет входит 4 ролла: Нирвана, Мураками, Гурман, Цезарь ролл темпура",
-        "image_url": "https://atamansushi.ru/__/images/menuProduct/66af79176a528_w900_jpg.webp",
-        "weight": "1.130 кг",
-        "price_rub": 2032.0,
-        "rating": null
-    },
-    {
-        "product_id": "9017",
-        "name": "Сет Праздничный",
-        "category": "Сеты",
-        "description": "В сет входит 8 роллов: Филадельфия, Гейша, Калифорния краб, Фудзи, Унаги хасомаки, Восходящее солнце, Тортилья с курицей, Лава с лососем",
-        "image_url": "https://atamansushi.ru/__/images/menuProduct/66af6c385bf74_w900_jpg.webp",
-        "weight": "1.900 кг",
-        "price_rub": 4215.0,
         "rating": null
     },
     {
@@ -1038,6 +1028,16 @@
         "weight": "1.040 кг",
         "price_rub": 2402.0,
         "rating": null
+    },
+    {
+        "product_id": "9022",
+        "name": "Сет Жара",
+        "category": "Сеты",
+        "description": "В сет входит 4 ролла: Нирвана, Мураками, Гурман, Цезарь ролл темпура",
+        "image_url": "https://atamansushi.ru/__/images/menuProduct/66af79176a528_w900_jpg.webp",
+        "weight": "1.130 кг",
+        "price_rub": 2032.0,
+        "rating": 10.0
     },
     {
         "product_id": "9025",
@@ -1057,6 +1057,26 @@
         "image_url": "https://atamansushi.ru/__/images/menuProduct/66af81760e192_w900_jpg.webp",
         "weight": "1.119 кг",
         "price_rub": 2680.0,
+        "rating": null
+    },
+    {
+        "product_id": "9017",
+        "name": "Сет Праздничный",
+        "category": "Сеты",
+        "description": "В сет входит 8 роллов: Филадельфия, Гейша, Калифорния краб, Фудзи, Унаги хасомаки, Восходящее солнце, Тортилья с курицей, Лава с лососем",
+        "image_url": "https://atamansushi.ru/__/images/menuProduct/66af6c385bf74_w900_jpg.webp",
+        "weight": "1.900 кг",
+        "price_rub": 4215.0,
+        "rating": null
+    },
+    {
+        "product_id": "9024",
+        "name": "Сет Микс",
+        "category": "Сеты",
+        "description": "В сет входит 2 ролла и 2 Суши-сендвича: Филадельфия классическая, Калифорния с креветкой, Суши-Сендвич с лососем, Суши-Сендвич Цезарь",
+        "image_url": "https://atamansushi.ru/__/images/menuProduct/66af7f0b864f2_w900_jpg.webp",
+        "weight": "1.145 кг",
+        "price_rub": 2362.0,
         "rating": null
     },
     {
@@ -1080,16 +1100,6 @@
         "rating": null
     },
     {
-        "product_id": "9024",
-        "name": "Сет Микс",
-        "category": "Сеты",
-        "description": "В сет входит 2 ролла и 2 Суши-сендвича: Филадельфия классическая, Калифорния с креветкой, Суши-Сендвич с лососем, Суши-Сендвич Цезарь",
-        "image_url": "https://atamansushi.ru/__/images/menuProduct/66af7f0b864f2_w900_jpg.webp",
-        "weight": "1.145 кг",
-        "price_rub": 2362.0,
-        "rating": null
-    },
-    {
         "product_id": "9032",
         "name": "Сет Афродита",
         "category": "Сеты",
@@ -1097,16 +1107,6 @@
         "image_url": "https://atamansushi.ru/__/images/menuProduct/66b08f036fd5f_w900_jpg.webp",
         "weight": "640гр",
         "price_rub": 1644.0,
-        "rating": null
-    },
-    {
-        "product_id": "9033",
-        "name": "Сет Затерянный рай",
-        "category": "Сеты",
-        "description": "В сет входит: 3 ролла из киноа - Ями-ями, Сердце тафити, Гавайи",
-        "image_url": "https://atamansushi.ru/__/images/menuProduct/66b08fa480436_w900_jpg.webp",
-        "weight": "745гр",
-        "price_rub": 1774.0,
         "rating": null
     },
     {
@@ -1120,6 +1120,26 @@
         "rating": null
     },
     {
+        "product_id": "9033",
+        "name": "Сет Затерянный рай",
+        "category": "Сеты",
+        "description": "В сет входит: 3 ролла из киноа - Ями-ями, Сердце тафити, Гавайи",
+        "image_url": "https://atamansushi.ru/__/images/menuProduct/66b08fa480436_w900_jpg.webp",
+        "weight": "745гр",
+        "price_rub": 1774.0,
+        "rating": null
+    },
+    {
+        "product_id": "8890",
+        "name": "Суши Каппа Сяке",
+        "category": "Суши",
+        "description": "Нежное сочетание хрустящего огурчика, слабосоленого лосося и риса.",
+        "image_url": "https://atamansushi.ru/__/images/menuProduct/66adfc5674aaf_w900_jpeg.webp",
+        "weight": "40 гр.",
+        "price_rub": 168.0,
+        "rating": null
+    },
+    {
         "product_id": "8899",
         "name": "Суши Сяке",
         "category": "Суши",
@@ -1130,21 +1150,11 @@
         "rating": null
     },
     {
-        "product_id": "8900",
-        "name": "Суши Эби",
+        "product_id": "8892",
+        "name": "Суши Каппа Унаги",
         "category": "Суши",
-        "description": "Изысканное сочетание тигровой креветки и риса",
-        "image_url": "https://atamansushi.ru/__/images/menuProduct/66ae06b3c0580_w900_jpeg.webp",
-        "weight": "30 гр.",
-        "price_rub": 168.0,
-        "rating": null
-    },
-    {
-        "product_id": "8890",
-        "name": "Суши Каппа Сяке",
-        "category": "Суши",
-        "description": "Нежное сочетание хрустящего огурчика, слабосоленого лосося и риса.",
-        "image_url": "https://atamansushi.ru/__/images/menuProduct/66adfc5674aaf_w900_jpeg.webp",
+        "description": "Нежное сочетание свежего огурчика, подкопченного угря и риса. Украшено соусом \"Унаги\" и кунжутом",
+        "image_url": "https://atamansushi.ru/__/images/menuProduct/66ae01d81e8b0_w900_jpeg.webp",
         "weight": "40 гр.",
         "price_rub": 168.0,
         "rating": null
@@ -1160,31 +1170,11 @@
         "rating": null
     },
     {
-        "product_id": "8892",
-        "name": "Суши Каппа Унаги",
+        "product_id": "8900",
+        "name": "Суши Эби",
         "category": "Суши",
-        "description": "Нежное сочетание свежего огурчика, подкопченного угря и риса. Украшено соусом \"Унаги\" и кунжутом",
-        "image_url": "https://atamansushi.ru/__/images/menuProduct/66ae01d81e8b0_w900_jpeg.webp",
-        "weight": "40 гр.",
-        "price_rub": 168.0,
-        "rating": null
-    },
-    {
-        "product_id": "8898",
-        "name": "Суши Спайси Сяке кунсей",
-        "category": "Суши",
-        "description": "Аппетитное сочетание лосося холодного копчения, риса и острого соуса \"спайси\"",
-        "image_url": "https://atamansushi.ru/__/images/menuProduct/66ae04b015607_w900_jpeg.webp",
-        "weight": "35 гр.",
-        "price_rub": 168.0,
-        "rating": null
-    },
-    {
-        "product_id": "8901",
-        "name": "Суши Унаги",
-        "category": "Суши",
-        "description": "Пряное сочетание подкопченного угря и риса. Украшено соусом \"Унаги\" и кунжутом",
-        "image_url": "https://atamansushi.ru/__/images/menuProduct/66ae06e08e451_w900_jpeg.webp",
+        "description": "Изысканное сочетание тигровой креветки и риса",
+        "image_url": "https://atamansushi.ru/__/images/menuProduct/66ae06b3c0580_w900_jpeg.webp",
         "weight": "30 гр.",
         "price_rub": 168.0,
         "rating": null
@@ -1200,11 +1190,31 @@
         "rating": null
     },
     {
+        "product_id": "8901",
+        "name": "Суши Унаги",
+        "category": "Суши",
+        "description": "Пряное сочетание подкопченного угря и риса. Украшено соусом \"Унаги\" и кунжутом",
+        "image_url": "https://atamansushi.ru/__/images/menuProduct/66ae06e08e451_w900_jpeg.webp",
+        "weight": "30 гр.",
+        "price_rub": 168.0,
+        "rating": null
+    },
+    {
         "product_id": "8895",
         "name": "Суши Спайси Сяке",
         "category": "Суши",
         "description": "Восхитительное сочетание слабосоленого лосося, риса и острого соуса \"спайси\"",
         "image_url": "https://atamansushi.ru/__/images/menuProduct/66ae0476a05f8_w900_jpeg.webp",
+        "weight": "35 гр.",
+        "price_rub": 168.0,
+        "rating": null
+    },
+    {
+        "product_id": "8896",
+        "name": "Суши Спайси Эби",
+        "category": "Суши",
+        "description": "Восхитительное сочетание тигровой креветки, риса и острого соуса \"спайси\"",
+        "image_url": "https://atamansushi.ru/__/images/menuProduct/66ae050464d5f_w900_jpeg.webp",
         "weight": "35 гр.",
         "price_rub": 168.0,
         "rating": null
@@ -1220,16 +1230,6 @@
         "rating": null
     },
     {
-        "product_id": "8896",
-        "name": "Суши Спайси Эби",
-        "category": "Суши",
-        "description": "Восхитительное сочетание тигровой креветки, риса и острого соуса \"спайси\"",
-        "image_url": "https://atamansushi.ru/__/images/menuProduct/66ae050464d5f_w900_jpeg.webp",
-        "weight": "35 гр.",
-        "price_rub": 168.0,
-        "rating": null
-    },
-    {
         "product_id": "8894",
         "name": "Суши Каппа эби люкс",
         "category": "Суши",
@@ -1237,6 +1237,16 @@
         "image_url": "https://atamansushi.ru/__/images/menuProduct/66ae03fbaa39f_w900_jpeg.webp",
         "weight": "50 гр.",
         "price_rub": 188.0,
+        "rating": null
+    },
+    {
+        "product_id": "8898",
+        "name": "Суши Спайси Сяке кунсей",
+        "category": "Суши",
+        "description": "Аппетитное сочетание лосося холодного копчения, риса и острого соуса \"спайси\"",
+        "image_url": "https://atamansushi.ru/__/images/menuProduct/66ae04b015607_w900_jpeg.webp",
+        "weight": "35 гр.",
+        "price_rub": 168.0,
         "rating": null
     },
     {
@@ -1260,22 +1270,22 @@
         "rating": null
     },
     {
-        "product_id": "8914",
-        "name": "Суши-Сэндвич \"Креветка темпура\"",
-        "category": "Суши-сэндвичи",
-        "description": "Хрустящая корочка таит в себе нежнейшее мясо креветки \"темпура\", ломтики спелого томата, хрустящий лист салата, освежающий огурчик, ломтик сыра, с соусом \"спайси\" ",
-        "image_url": "https://atamansushi.ru/__/images/menuProduct/66ae103a0563b_w900_jpg.webp",
-        "weight": "310 гр.",
-        "price_rub": 648.0,
-        "rating": null
-    },
-    {
         "product_id": "8913",
         "name": "Суши-Сэндвич \"С креветкой\"",
         "category": "Суши-сэндвичи",
         "description": "Хрустящая корочка таит в себе нежнейшее мясо креветки, свежий листик салата, авокадо, сливочный сыр и икру \"Масаго\"",
         "image_url": "https://atamansushi.ru/__/images/menuProduct/66ae10722dd14_w900_jpg.webp",
         "weight": "305гр",
+        "price_rub": 648.0,
+        "rating": null
+    },
+    {
+        "product_id": "8914",
+        "name": "Суши-Сэндвич \"Креветка темпура\"",
+        "category": "Суши-сэндвичи",
+        "description": "Хрустящая корочка таит в себе нежнейшее мясо креветки \"темпура\", ломтики спелого томата, хрустящий лист салата, освежающий огурчик, ломтик сыра, с соусом \"спайси\" ",
+        "image_url": "https://atamansushi.ru/__/images/menuProduct/66ae103a0563b_w900_jpg.webp",
+        "weight": "310 гр.",
         "price_rub": 648.0,
         "rating": null
     },
@@ -1357,7 +1367,7 @@
         "image_url": "https://atamansushi.ru/__/images/menuProduct/66b1d7ddc0faa_w900_jpg.webp",
         "weight": "540гр",
         "price_rub": 668.0,
-        "rating": 9.5
+        "rating": 9.8
     },
     {
         "product_id": "8866",
@@ -1420,16 +1430,6 @@
         "rating": null
     },
     {
-        "product_id": "8864",
-        "name": "Пицца Барбекю",
-        "category": "Пицца",
-        "description": "Известная мясная пицца. В состав входит карбонад, бекон, куриное филе, болгарский перец и сыр моцарелла. На основе томатный соус. Сверху украшена красным луком, подается с соусом Барбекю (30 см)",
-        "image_url": "https://atamansushi.ru/__/images/menuProduct/66b1d7bc84844_w900_jpg.webp",
-        "weight": "570гр",
-        "price_rub": 638.0,
-        "rating": null
-    },
-    {
         "product_id": "8876",
         "name": "Пицца Том-ям креветка",
         "category": "Пицца",
@@ -1443,10 +1443,20 @@
         "product_id": "8873",
         "name": "Пицца Филадельфия",
         "category": "Пицца",
-        "description": "Вдохновленными популярным роллом, мы создали пиццу с лососем и сыром моцарелла на сливочном соусе. Украшена творожным сыром. (30 см)",
-        "image_url": "https://atamansushi.ru/__/images/menuProduct/66b1d61c686d2_w900_jpg.webp",
+        "description": "Вдохновленные популярным роллом, мы создали пиццу с лососем и сыром моцарелла на сливочном соусе. Украшена творожным сыром и соусом унаги. (30 см)",
+        "image_url": "https://atamansushi.ru/__/images/menuProduct/69157e6510578_w900_png.webp",
         "weight": "540гр",
         "price_rub": 808.0,
+        "rating": null
+    },
+    {
+        "product_id": "8864",
+        "name": "Пицца Барбекю",
+        "category": "Пицца",
+        "description": "Известная мясная пицца. В состав входит карбонад, бекон, куриное филе, болгарский перец и сыр моцарелла. На основе томатный соус. Сверху украшена красным луком, подается с соусом Барбекю (30 см)",
+        "image_url": "https://atamansushi.ru/__/images/menuProduct/66b1d7bc84844_w900_jpg.webp",
+        "weight": "570гр",
+        "price_rub": 638.0,
         "rating": null
     },
     {
@@ -1487,7 +1497,7 @@
         "image_url": "https://atamansushi.ru/__/images/menuProduct/66b79d690797a_w900_jpg.webp",
         "weight": "780 гр.",
         "price_rub": 709.0,
-        "rating": 9.2
+        "rating": 9.3
     },
     {
         "product_id": "8862",
@@ -1500,16 +1510,6 @@
         "rating": 9.6
     },
     {
-        "product_id": "8863",
-        "name": "Том-Кха с креветкой",
-        "category": "Супы",
-        "description": "Нежная креветка, ароматный бульон Том Кха,  сочные помидоры черри, грибы шампиньоны, лемонграсс, нежное кокосовое молоко, свежая кинза и ароматный лайм. Подается с ароматным рисом, который дополняет вкусовую гармонию этого блюда.",
-        "image_url": "https://atamansushi.ru/__/images/menuProduct/66b1fd43b9101_w900_jpg.webp",
-        "weight": "650 гр",
-        "price_rub": 718.0,
-        "rating": 10.0
-    },
-    {
         "product_id": "8865",
         "name": "Том-Кха с курицей",
         "category": "Супы",
@@ -1520,14 +1520,14 @@
         "rating": null
     },
     {
-        "product_id": "8856",
-        "name": "Вок с курицей",
-        "category": "Вок",
-        "description": "Изысканное блюдо в состав которого входит: нежное куриное филе, хрустящий болгарский перец, нежно-пряный лук, пекинская капуста, сочная морковь, стручковая фасоль, ароматный сельдерей. Добавляются - соевый соус и \"Терияки\" соус. Украшается кунжутом",
-        "image_url": "https://atamansushi.ru/__/images/menuProduct/66ac71e19348a_w900_jpeg.webp",
-        "weight": "350гр",
-        "price_rub": 498.0,
-        "rating": 9.7
+        "product_id": "8863",
+        "name": "Том-Кха с креветкой",
+        "category": "Супы",
+        "description": "Нежная креветка, ароматный бульон Том Кха,  сочные помидоры черри, грибы шампиньоны, лемонграсс, нежное кокосовое молоко, свежая кинза и ароматный лайм. Подается с ароматным рисом, который дополняет вкусовую гармонию этого блюда.",
+        "image_url": "https://atamansushi.ru/__/images/menuProduct/66b1fd43b9101_w900_jpg.webp",
+        "weight": "650 гр",
+        "price_rub": 718.0,
+        "rating": 10.0
     },
     {
         "product_id": "8855",
@@ -1538,6 +1538,16 @@
         "weight": "350 гр",
         "price_rub": 578.0,
         "rating": 8.0
+    },
+    {
+        "product_id": "8856",
+        "name": "Вок с курицей",
+        "category": "Вок",
+        "description": "Изысканное блюдо в состав которого входит: нежное куриное филе, хрустящий болгарский перец, нежно-пряный лук, пекинская капуста, сочная морковь, стручковая фасоль, ароматный сельдерей. Добавляются - соевый соус и \"Терияки\" соус. Украшается кунжутом",
+        "image_url": "https://atamansushi.ru/__/images/menuProduct/66ac71e19348a_w900_jpeg.webp",
+        "weight": "350гр",
+        "price_rub": 498.0,
+        "rating": 9.7
     },
     {
         "product_id": "8854",
@@ -1630,6 +1640,16 @@
         "rating": null
     },
     {
+        "product_id": "8888",
+        "name": "Чизкейк Шоколадный",
+        "category": "Десерты и напитки",
+        "description": "Популярный творожный, мягкий и сытный десерт в шоколадном исполнении",
+        "image_url": "https://atamansushi.ru/__/images/menuProduct/66adcc2dbd2bb_w900_jpeg.webp",
+        "weight": "1 шт",
+        "price_rub": 269.0,
+        "rating": null
+    },
+    {
         "product_id": "9141",
         "name": "Добрый Лимон-лайм 300мл",
         "category": "Десерты и напитки",
@@ -1640,11 +1660,11 @@
         "rating": null
     },
     {
-        "product_id": "8888",
-        "name": "Чизкейк Шоколадный",
+        "product_id": "8886",
+        "name": "Чизкейк Нью-Йорк",
         "category": "Десерты и напитки",
-        "description": "Популярный творожный, мягкий и сытный десерт в шоколадном исполнении",
-        "image_url": "https://atamansushi.ru/__/images/menuProduct/66adcc2dbd2bb_w900_jpeg.webp",
+        "description": "Классический популярный американский творожный десерт, признанный многими королем вкуса!",
+        "image_url": "https://atamansushi.ru/__/images/menuProduct/66adcb5153bc6_w900_jpeg.webp",
         "weight": "1 шт",
         "price_rub": 269.0,
         "rating": null
@@ -1660,16 +1680,6 @@
         "rating": null
     },
     {
-        "product_id": "9007",
-        "name": "Сок Rich яблочный 200мл",
-        "category": "Десерты и напитки",
-        "description": "Сок Rich яблочный 200мл",
-        "image_url": "https://atamansushi.ru/__/images/menuProduct/672ad0f32b878_w900_jpg.webp",
-        "weight": "200мл",
-        "price_rub": 169.0,
-        "rating": null
-    },
-    {
         "product_id": "8884",
         "name": "Чизкейк Малина",
         "category": "Десерты и напитки",
@@ -1680,13 +1690,13 @@
         "rating": null
     },
     {
-        "product_id": "8886",
-        "name": "Чизкейк Нью-Йорк",
+        "product_id": "9007",
+        "name": "Сок Rich яблочный 200мл",
         "category": "Десерты и напитки",
-        "description": "Классический популярный американский творожный десерт, признанный многими королем вкуса!",
-        "image_url": "https://atamansushi.ru/__/images/menuProduct/66adcb5153bc6_w900_jpeg.webp",
-        "weight": "1 шт",
-        "price_rub": 269.0,
+        "description": "Сок Rich яблочный 200мл",
+        "image_url": "https://atamansushi.ru/__/images/menuProduct/672ad0f32b878_w900_jpg.webp",
+        "weight": "200мл",
+        "price_rub": 169.0,
         "rating": null
     },
     {
@@ -1727,7 +1737,7 @@
         "image_url": "https://atamansushi.ru/__/images/menuProduct/672afb63b9ac9_w900_jpeg.webp",
         "weight": "20 гр.",
         "price_rub": 20.0,
-        "rating": 7.0
+        "rating": 8.4
     },
     {
         "product_id": "8938",
@@ -1747,6 +1757,16 @@
         "image_url": "https://atamansushi.ru/__/images/menuProduct/66ae38d87fb5c_w900_jpg.webp",
         "weight": "10 гр.",
         "price_rub": 7.0,
+        "rating": null
+    },
+    {
+        "product_id": "8958",
+        "name": "Соус Ореховый",
+        "category": "Соусы и добавки",
+        "description": "Ароматный соус с легкой ноткой сладости, сливочным оттенком и ярко-выраженным вкусом орехов",
+        "image_url": "https://atamansushi.ru/__/images/menuProduct/66ae39c7afa30_w900_jpg.webp",
+        "weight": "35 гр.",
+        "price_rub": 49.0,
         "rating": null
     },
     {
@@ -1770,21 +1790,21 @@
         "rating": null
     },
     {
-        "product_id": "8958",
-        "name": "Соус Ореховый",
-        "category": "Соусы и добавки",
-        "description": "Ароматный соус с легкой ноткой сладости, сливочным оттенком и ярко-выраженным вкусом орехов",
-        "image_url": "https://atamansushi.ru/__/images/menuProduct/66ae39c7afa30_w900_jpg.webp",
-        "weight": "35 гр.",
-        "price_rub": 49.0,
-        "rating": null
-    },
-    {
         "product_id": "8962",
         "name": "Соус Унаги",
         "category": "Соусы и добавки",
         "description": "Густой, терпкий, карамелизованный сладкий соус на основе соевого. Особенно хорошо подходит к блюдам с угрем, но и является интересной добавкой в других вкусовых сочетаниях",
         "image_url": "https://atamansushi.ru/__/images/menuProduct/66ae374ec7817_w900_jpg.webp",
+        "weight": "35 гр.",
+        "price_rub": 49.0,
+        "rating": null
+    },
+    {
+        "product_id": "8961",
+        "name": "Соус Сырный",
+        "category": "Соусы и добавки",
+        "description": "Один из популярных соусов, идеально подходящий для закусок",
+        "image_url": "https://atamansushi.ru/__/images/menuProduct/66b1d270b107c_w900_jpg.webp",
         "weight": "35 гр.",
         "price_rub": 49.0,
         "rating": null
@@ -1810,16 +1830,6 @@
         "rating": null
     },
     {
-        "product_id": "8961",
-        "name": "Соус Сырный",
-        "category": "Соусы и добавки",
-        "description": "Один из популярных соусов, идеально подходящий для закусок",
-        "image_url": "https://atamansushi.ru/__/images/menuProduct/66b1d270b107c_w900_jpg.webp",
-        "weight": "35 гр.",
-        "price_rub": 49.0,
-        "rating": null
-    },
-    {
         "product_id": "9053",
         "name": "Соус Барбекю",
         "category": "Соусы и добавки",
@@ -1840,16 +1850,6 @@
         "rating": 9.3
     },
     {
-        "product_id": "9073",
-        "name": "Том-Ям с креветкой",
-        "category": "Рекомендуем",
-        "description": "Всеми любимый тайский суп с отборной тигровой креветкой и крупными кольцами кальмара на основе густого куриного бульона с добавлением пасты TomYum, кокосового молока, томатов черри, лемонграсса, листа лайма, перца чили, корня имбиря и шампиньонов. Подается с рисом, кинзой, долькой лайма и соусом шрирачи (очень остро!) для регулировки остроты.",
-        "image_url": "https://atamansushi.ru/__/images/menuProduct/66b79d690797a_w900_jpg.webp",
-        "weight": "780 гр.",
-        "price_rub": 709.0,
-        "rating": 9.2
-    },
-    {
         "product_id": "8922",
         "name": "Поке с лососем",
         "category": "Рекомендуем",
@@ -1858,6 +1858,16 @@
         "weight": "410 гр",
         "price_rub": 689.0,
         "rating": 9.4
+    },
+    {
+        "product_id": "9073",
+        "name": "Том-Ям с креветкой",
+        "category": "Рекомендуем",
+        "description": "Всеми любимый тайский суп с отборной тигровой креветкой и крупными кольцами кальмара на основе густого куриного бульона с добавлением пасты TomYum, кокосового молока, томатов черри, лемонграсса, листа лайма, перца чили, корня имбиря и шампиньонов. Подается с рисом, кинзой, долькой лайма и соусом шрирачи (очень остро!) для регулировки остроты.",
+        "image_url": "https://atamansushi.ru/__/images/menuProduct/66b79d690797a_w900_jpg.webp",
+        "weight": "780 гр.",
+        "price_rub": 709.0,
+        "rating": 9.3
     },
     {
         "product_id": "8983",

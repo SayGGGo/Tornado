@@ -52,8 +52,12 @@ pip install -r requirements.txt
 
 6. Заполните ```.env```:
 ```env
-SECRET_KEY="Ваш секретный ключ"
-ADMIN_PASSWORD="Ваш пароль от админки"
+DEBUG_MODE="true"
+ADMIN_PASS="123"
+SECRET_KEY="123"
+ENABLE_STRIPE="false"
+STRIPE_PK="Ваш публичный ключ"
+STRIPE_SK="Ваш секретный ключ"
 ```
 
 7. Запустите скрипт

@@ -1,0 +1,25 @@
+{% extends "header.html" %}
+
+{% block content %}
+<div class="menu-sections-container">
+    <div class="menu-section">
+        <div class="payment-status-container {{ status }}">
+            {% if status == 'success' %}
+                <i class="fa-solid fa-check-circle status-icon"></i>
+            {% else %}
+                <i class="fa-solid fa-times-circle status-icon"></i>
+            {% endif %}
+            <h2>{{ message }}</h2>
+            <p>
+                {% if status == 'success' %}
+                    Ваш баланс скоро обновится.
+                {% else %}
+                    Пожалуйста, попробуйте еще раз или выберите другой способ оплаты.
+                {% endif %}
+            </p>
+            <a href="{{ url_for('index') }}" class="status-btn">На главную</a>
+            <a href="{{ url_for('balance') }}" class="status-btn activate">Пополнить еще</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

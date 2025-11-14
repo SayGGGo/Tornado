@@ -3,8 +3,8 @@
 {% block content %}
 
 <div class="category-container">
-    <button class="btn42"><i class="fa-solid fa-search"></i></button>
-    <button class="btn42"><i class="fa-solid fa-sort"></i></button>
+    <button><i class="fa-solid fa-search"></i></button>
+    <button><i class="fa-solid fa-sort"></i></button>
     {% for i in category_names %}
         <button class="category-item" data-category-id="{{ i | replace(' ', '-') | lower }}">{{ i }}</button>
     {% endfor %}

@@ -106,8 +106,10 @@ button {
     line-height: 17px;
     letter-spacing: 0px;
     text-align: center;
-    min-width: 150px;
-    min-height: 42px;
+    /* min-width: 150px;
+    min-height: 42px; */
+    padding: 12px 24px;
+    white-space: nowrap;
     transition: all 0.2s ease-in-out;
 }
 
@@ -127,8 +129,64 @@ button.activate {
     color: rgba(232, 228, 239, 1);
 }
 
+.balance-btn {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px;
+    min-width: 180px;
+    white-space: normal;
+    text-decoration: none;
+    border: none;
+    border-radius: 15px;
+    background: rgba(232, 228, 239, 1);
+    color: rgba(27, 36, 44, 1);
+    font-family: Montserrat;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 17px;
+    letter-spacing: 0px;
+    text-align: center;
+    transition: all 0.2s ease-in-out;
+}
+
+.balance-btn:hover {
+    background: rgba(71, 66, 81, 1);
+    color: rgba(232, 228, 239, 1);
+}
+
+.balance-btn:active {
+    background: rgba(71, 66, 81, 1);
+    color: rgba(232, 228, 239, 1);
+    transform: scale(0.95, 0.95);
+}
+
+.balance-btn.activate {
+    background: rgba(84, 76, 100, 1);
+    color: rgba(232, 228, 239, 1);
+}
+
+.balance-info {
+    padding-left: 10px;
+    padding-right: 10px;
+    white-space: nowrap;
+}
+
+.balance-add {
+    width: 30px;
+    height: 30px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: rgba(232, 228, 239, 1);
+    color: rgba(84, 76, 100, 1);
+    border-radius: 12px;
+}
+
 .btn42 {
-    min-width: 42px;
+    width: 42px;
+    height: 42px;
+    padding: 0;
 }
 
 .container {
@@ -214,7 +272,7 @@ button.activate {
     min-width: 180px;
     opacity: 0;
     transform: translateY(-10px);
-    transition: opacity 0.3s ease, transform 0.3s eыыыыыыыse;
+    transition: opacity 0.3s ease, transform 0.3s ease;
     width: fit-content;
 }
 
@@ -255,14 +313,14 @@ button.activate {
     transition: color 0.2s ease-in-out;
 }
 
-/* MAIN */
+/* --- MAIN --- */
 .category-container {
     width: 100%;
     height: 42px;
     margin: 70px 10px 10px 10px;
 
     display: flex;
-    flex-warp: nowrap;
+    flex-wrap: nowrap;
     overflow-x: auto;
     overflow-y: hidden;
 
@@ -281,7 +339,7 @@ button.activate {
 }
 
 .menu-sections-container {
-    padding: 0 20px 50px 20px;
+    padding: 70px 20px 50px 20px;
 }
 
 .menu-section {
@@ -397,5 +455,196 @@ button.activate {
 
 .add-to-cart-btn:hover {
     background: rgba(71, 66, 81, 1);
+    color: rgba(232, 228, 239, 1);
+}
+
+/* --- BALANCE AND PAYMENTS --- */
+.balance-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.balance-form-card,
+.payment-methods-card {
+    border-radius: 15px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    background: white;
+    padding: 25px;
+    font-family: Montserrat;
+}
+
+.balance-form-card h3,
+.payment-methods-card h3 {
+    font-family: 'Montserrat Alternates', sans-serif;
+    font-weight: 700;
+    font-size: 20px;
+    color: rgba(27, 36, 44, 1);
+    margin-top: 0;
+    margin-bottom: 10px;
+}
+
+.balance-form-card p {
+    font-size: 14px;
+    color: rgba(71, 66, 81, 1);
+    line-height: 1.5;
+    margin-bottom: 20px;
+}
+
+.balance-form-card small {
+    font-size: 12px;
+    color: rgba(71, 66, 81, 0.8);
+}
+
+.input-group {
+    position: relative;
+    margin-bottom: 10px;
+}
+
+.amount-input {
+    width: 100%;
+    border: 2px solid rgba(232, 228, 239, 1);
+    border-radius: 10px;
+    padding: 14px;
+    font-family: Montserrat;
+    font-size: 16px;
+    font-weight: 600;
+    color: rgba(27, 36, 44, 1);
+    box-sizing: border-box;
+    transition: border-color 0.2s ease;
+    background: none;
+}
+
+.amount-input:focus {
+    outline: none;
+    border-color: rgba(84, 76, 100, 1);
+}
+
+.input-label {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    font-size: 16px;
+    font-weight: 500;
+    color: rgba(71, 66, 81, 0.7);
+    pointer-events: none;
+    transition: all 0.2s ease;
+    background: white;
+    padding: 0 5px;
+}
+
+.amount-input:focus + .input-label,
+.amount-input:not(:placeholder-shown) + .input-label {
+    top: -10px;
+    left: 10px;
+    font-size: 12px;
+    color: rgba(84, 76, 100, 1);
+}
+
+.payment-methods-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 15px;
+}
+
+.payment-method-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 20px;
+    border-radius: 15px;
+    background: rgba(232, 228, 239, 0.5);
+    border: 2px solid transparent;
+    font-family: Montserrat;
+    font-size: 14px;
+    font-weight: 600;
+    color: rgba(27, 36, 44, 1);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.payment-method-card:hover {
+    background: rgba(71, 66, 81, 1);
+    color: rgba(232, 228, 239, 1);
+}
+
+.payment-method-card:active {
+    background: rgba(71, 66, 81, 1);
+    color: rgba(232, 228, 239, 1);
+    transform: scale(0.95, 0.95);
+}
+
+.payment-logo {
+    width: 50px;
+    height: 50px;
+    object-fit: cover;
+    border-radius: 10px;
+}
+
+.payment-status-container {
+    text-align: center;
+    padding: 40px;
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    max-width: 600px;
+    margin: 20px auto;
+    font-family: Montserrat;
+}
+
+.payment-status-container h2 {
+    font-family: 'Montserrat Alternates', sans-serif;
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 10px;
+}
+
+.payment-status-container p {
+    font-size: 16px;
+    color: rgba(71, 66, 81, 1);
+    margin-bottom: 30px;
+}
+
+.status-icon {
+    font-size: 50px;
+    margin-bottom: 20px;
+}
+
+.payment-status-container.success .status-icon,
+.payment-status-container.success h2 {
+    color: #28a745;
+}
+
+.payment-status-container.cancel .status-icon,
+.payment-status-container.cancel h2 {
+    color: #dc3545;
+}
+
+.status-btn {
+    display: inline-block;
+    text-decoration: none;
+    border: none;
+    border-radius: 15px;
+    background: rgba(232, 228, 239, 1);
+    color: rgba(27, 36, 44, 1);
+    font-family: Montserrat;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 12px 24px;
+    transition: all 0.2s ease-in-out;
+    margin: 5px;
+}
+
+.status-btn:hover {
+    background: rgba(71, 66, 81, 1);
+    color: rgba(232, 228, 239, 1);
+}
+
+.status-btn.activate {
+    background: rgba(84, 76, 100, 1);
     color: rgba(232, 228, 239, 1);
 }

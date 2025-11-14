@@ -1,0 +1,94 @@
+{% extends "header.html" %}
+
+{% block content %}
+<div class="menu-sections-container">
+    <div class="menu-section">
+        <h2 id="balance-topup">Пополнение баланса</h2>
+
+        <div class="balance-container">
+            <div class="balance-form-card">
+                <h3>Сумма пополнения</h3>
+                <p>Введите сумму в рублях, которую вы хотите внести на свой баланс.</p>
+                <div class="input-group">
+                    <input type="number" id="amount-input" class="amount-input" placeholder=" " min="100" value="100">
+                    <label for="amount-input" class="input-label">Сумма (₽)</label>
+                </div>
+                <small>Минимальная сумма пополнения: 100 ₽</small>
+            </div>
+
+            <div class="payment-methods-card">
+                <h3>Выберите способ оплаты</h3>
+                <div class="payment-methods-grid">
+
+                    {% if ENABLE_STRIPE %}
+                    <button class="payment-method-card" id="stripe-payment-btn">
+                        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTIfQ0Zah6zuQLAQWojHL0QM7InosE_X4RUdA&s" alt="Stripe" class="payment-logo">
+                        <span>Stripe</span>
+                    </button>
+                    {% endif %}
+
+                    <button class="payment-method-card" id="test-payment-btn">
+                        <img src="https://png.klev.club/uploads/posts/2024-04/png-klev-club-4inp-p-test-png-6.png" alt="Test" class="payment-logo">
+                        <span>Test</span>
+                    </button>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        {% if ENABLE_STRIPE and STRIPE_PK %}
+        var stripe = Stripe('{{ STRIPE_PK }}');
+        var stripeButton = document.getElementById('stripe-payment-btn');
+        var amountInput = document.getElementById('amount-input');
+
+        if (stripeButton) {
+            stripeButton.addEventListener('click', function() {
+                var amount = parseInt(amountInput.value, 10);
+                if (isNaN(amount) || amount < 10) {
+                    return;
+                }
+
+                fetch('/create-checkout-session', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ amount: amount })
+                })
+                .then(function(response) {
+                    return response.json();
+                })
+                .then(function(session) {
+                    if (session.id) {
+                        return stripe.redirectToCheckout({ sessionId: session.id });
+                    } else {
+                        throw new Error(session.error || 'Ошибка');
+                    }
+                })
+                .then(function(result) {
+                    if (result.error) {
+                        alert(result.error.message);
+                    }
+                })
+                .catch(function(error) {
+                    console.error('Error:', error);
+                    alert('Ошибка');
+                });
+            });
+        }
+        {% endif %}
+
+        var testButton = document.getElementById('test-payment-btn');
+        if (testButton) {
+            testButton.addEventListener('click', function() {
+                alert('Ошибка');
+            });
+        }
+    });
+</script>
+<script src="https://js.stripe.com/v3/"></script>
+{% endblock %}
