@@ -116,49 +116,48 @@ def load_menu():
 if __name__ == "__main__":
     tools = LuckyTools("⌊ TORNADO ⌉ »", prefix_short="⌊ TORNADO ⌉", show_init=False)
 
-    if os.environ.get("WERKZEUG_RUN_MAIN") == "true":
-        try:
-            if os.path.exists("server_info.json"):
-                with open("server_info.json", "r", encoding="utf-8") as file:
-                    data = json.load(file)
-                    last_run = data["last_run"]
+    try:
+        if os.path.exists("server_info.json"):
+            with open("server_info.json", "r", encoding="utf-8") as file:
+                data = json.load(file)
+                last_run = data["last_run"]
 
-                    last_run_date = datetime.datetime.fromisoformat(last_run).date()
-                    current_date = datetime.datetime.now().date()
-                    if current_date > last_run_date:
-                        load_menu()
+                last_run_date = datetime.datetime.fromisoformat(last_run).date()
+                current_date = datetime.datetime.now().date()
+                if current_date > last_run_date:
+                    load_menu()
 
+        last_run = datetime.datetime.now().isoformat()
+        with open("server_info.json", "w", encoding="utf-8") as file:
+            json.dump({"last_run": last_run}, file, indent=4, ensure_ascii=False)
+
+    except:
+        tools.fade_print("✕ Ошибка при работе с server_info.json", white_tag=True, time_show=3, color="ff0000")
+        with open("server_info.json", "w", encoding="utf-8") as file:
             last_run = datetime.datetime.now().isoformat()
-            with open("server_info.json", "w", encoding="utf-8") as file:
-                json.dump({"last_run": last_run}, file, indent=4, ensure_ascii=False)
-
-        except FileNotFoundError:
-            tools.fade_print("✕ Ошибка при работе с server_info.json", white_tag=True, time_show=3, color="ff0000")
-            with open("server_info.json", "w", encoding="utf-8") as file:
-                last_run = datetime.datetime.now().isoformat()
-                json.dump({"last_run": last_run}, file, indent=4, ensure_ascii=False)
+            json.dump({"last_run": last_run}, file, indent=4, ensure_ascii=False)
 
 
+    try:
+        with open("menu.json", "r", encoding="utf-8") as file:
+            menu = json.load(file)
+        tools.fade_print("Меню успешно загружено", time_show=0.01, white_tag=True)
+    except FileNotFoundError:
+        tools.fade_print("✕ Файл menu.json не найден", white_tag=True, time_show=3, color="ff0000")
         try:
-            with open("menu.json", "r", encoding="utf-8") as file:
-                menu = json.load(file)
-            tools.fade_print("Меню успешно загружено", time_show=0.01, white_tag=True)
-        except FileNotFoundError:
-            tools.fade_print("✕ Файл menu.json не найден", white_tag=True, time_show=3, color="ff0000")
-            try:
-                load_menu()
-            except ImportError:
-                pass
-            except Exception:
-                tools.fade_print("✕ Возникла ошибка при парсе", white_tag=True, time_show=3, color="ff0000")
-        except ReadError:
-            tools.fade_print("✕ Невозможно прочитать файл menu.json", white_tag=True, time_show=3, color="ff0000")
+            load_menu()
+        except ImportError:
+            pass
         except Exception:
-            tools.fade_print("✕ Возникла ошибка с файлом menu.json", white_tag=True, time_show=3, color="ff0000")
+            tools.fade_print("✕ Возникла ошибка при парсе", white_tag=True, time_show=3, color="ff0000")
+    except ReadError:
+        tools.fade_print("✕ Невозможно прочитать файл menu.json", white_tag=True, time_show=3, color="ff0000")
+    except Exception:
+        tools.fade_print("✕ Возникла ошибка с файлом menu.json", white_tag=True, time_show=3, color="ff0000")
 
-        if DEBUG_MODE:
-            tools.fade_print("Дебаг включен", white_tag=True, time_show=1, color="fcba03")
-        tools.fade_print("Запуск сервера...", time_show=0.01, white_tag=True)
+    if DEBUG_MODE:
+        tools.fade_print("Дебаг включен", white_tag=True, time_show=1, color="fcba03")
+    tools.fade_print("Запуск сервера...", time_show=0.01, white_tag=True)
     try:
         app.run(debug=DEBUG_MODE)
     except Exception:
