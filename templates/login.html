@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TORNADO — Вход</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .auth-links {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 14px;
+            color: #a0a0a0;
+        }
+        .auth-links a {
+            color: #34c759;
+            text-decoration: none;
+            font-weight: 600;
+            transition: text-shadow 0.3s;
+        }
+        .auth-links a:hover {
+            text-shadow: 0 0 10px rgba(52, 199, 89, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <div class="card-window" style="max-width: 450px;">
+        <header class="header">
+            <span class="logo">TORNADO</span> <span class="logo-subtitle">Chat</span>
+        </header>
+
+        <form class="setup-form" id="loginForm" novalidate>
+            <div class="form-row" style="grid-template-columns: 1fr;">
+                <label for="login">Ваш логин</label>
+                <input type="text" id="login" class="glass-input" name="login" placeholder="SayGG" required>
+            </div>
+
+            <div class="form-row" style="grid-template-columns: 1fr;">
+                <label for="password">Пароль</label>
+                <input type="password" id="password" class="glass-input" name="password" placeholder="•••••••••••••" required>
+            </div>
+
+            <div class="form-row action-row">
+                <button type="submit" class="glass-btn locked" id="loginBtn" disabled>Войти</button>
+            </div>
+
+            <div class="auth-links">
+                Нет аккаунта? <a href="/">Создать</a>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const cardWindow = document.querySelector('.card-window');
+            cardWindow.style.opacity = '0';
+            cardWindow.style.transform = 'translateY(30px) scale(0.98)';
+            cardWindow.style.transition = 'all 0.8s cubic-bezier(0.2, 0.8, 0.2, 1)';
+
+            setTimeout(() => {
+                cardWindow.style.opacity = '1';
+                cardWindow.style.transform = 'translateY(0) scale(1)';
+            }, 50);
+
+            const form = document.getElementById('loginForm');
+            const loginBtn = document.getElementById('loginBtn');
+
+            function showError(message) {
+                let errDiv = document.getElementById('error-msg');
+                if (!errDiv) {
+                    errDiv = document.createElement('div');
+                    errDiv.id = 'error-msg';
+                    errDiv.className = 'error-message';
+                    form.insertBefore(errDiv, document.querySelector('.action-row'));
+                }
+                errDiv.textContent = message;
+                errDiv.style.display = 'block';
+                setTimeout(() => {
+                    errDiv.style.opacity = '0';
+                    setTimeout(() => {
+                        errDiv.style.display = 'none';
+                        errDiv.style.opacity = '1';
+                    }, 300);
+                }, 3000);
+            }
+
+            function validateForm() {
+                let isValid = true;
+                const requiredInputs = form.querySelectorAll('[required]');
+
+                requiredInputs.forEach(input => {
+                    if (!input.value.trim()) {
+                        isValid = false;
+                    }
+                });
+
+                if (isValid) {
+                    loginBtn.classList.remove('locked');
+                    loginBtn.disabled = false;
+                } else {
+                    loginBtn.classList.add('locked');
+                    loginBtn.disabled = true;
+                }
+            }
+
+            form.addEventListener('input', validateForm);
+
+            document.querySelectorAll('.glass-input').forEach(input => {
+                input.addEventListener('mousemove', e => {
+                    const rect = input.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    input.style.setProperty('--mouse-x', `${x}px`);
+                    input.style.setProperty('--mouse-y', `${y}px`);
+                });
+
+                input.addEventListener('mouseleave', () => {
+                    input.style.setProperty('--mouse-x', `-500px`);
+                    input.style.setProperty('--mouse-y', `-500px`);
+                });
+            });
+
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                if (loginBtn.classList.contains('locked')) return;
+
+                const formData = new FormData(form);
+                const data = Object.fromEntries(formData.entries());
+
+                const originalBtnText = loginBtn.textContent;
+                loginBtn.textContent = 'Загрузка...';
+                loginBtn.classList.add('locked');
+
+                try {
+                    const response = await fetch('/login', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(data)
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        window.location.href = result.redirect;
+                    } else {
+                        showError(result.message);
+                        loginBtn.textContent = originalBtnText;
+                        loginBtn.classList.remove('locked');
+                    }
+                } catch (error) {
+                    showError('Ошибка соединения с сервером');
+                    loginBtn.textContent = originalBtnText;
+                    loginBtn.classList.remove('locked');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

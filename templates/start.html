@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TORNADO — Старт</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="card-window">
+        <header class="header">
+            <span class="logo">TORNADO</span> <span class="logo-subtitle">Chat</span>
+        </header>
+
+        <form class="setup-form" id="setupForm" novalidate>
+            <div class="form-row">
+                <label for="fio">Ваше ФИО <span class="required">*</span></label>
+                <input type="text" id="fio" class="glass-input" name="fio" placeholder="Пашков Павел Артемович" required>
+            </div>
+
+            <div class="form-row">
+                <label for="login">Придумайте никнейм <span class="required">*</span></label>
+                <input type="text" id="login" class="glass-input" name="login" placeholder="SayGG" required>
+            </div>
+
+            <div class="form-row">
+                <label for="password">Придумайте пароль <span class="required">*</span></label>
+                <input type="password" id="password" class="glass-input" name="password" placeholder="•••••••••••••" required>
+            </div>
+            <div class="form-row">
+                <label for="password_retry">Повторите пароль <span class="required">*</span></label>
+                <input type="password" id="password_retry" class="glass-input" name="password_retry" placeholder="•••••••••••••" required>
+            </div>
+
+            <div class="form-row">
+                <label>Ваша группа <span class="required">*</span></label>
+                <div class="custom-select" id="cs-position">
+                    <div class="cs-display glass-input">
+                        <span class="cs-placeholder">Выберите группу</span>
+                    </div>
+                    <div class="glass-panel">
+                        <div class="cs-option" data-value="ut51">ЮТ-5-1</div>
+                        <div class="cs-option" data-value="ut52">ЮТ-5-2</div>
+                        <div class="cs-option" data-value="ut53">ЮТ-5-3</div>
+                        <div class="cs-option" data-value="ut54">ЮТ-5-4</div>
+                        <div class="cs-option" data-value="ut55">ЮТ-5-5</div>
+                        <div class="cs-option" data-value="ut56">ЮТ-5-6</div>
+                        <div class="cs-option" data-value="ut57">ЮТ-5-7</div>
+                        <div class="cs-option" data-value="ut58">ЮТ-5-8</div>
+
+                        <div class="cs-option" data-value="sgk5">Профклассы СГК-5</div>
+
+                        <div class="cs-option" data-value="id91">ИД-91</div>
+                        <div class="cs-option" data-value="id92">ИД-92</div>
+                        <div class="cs-option" data-value="id10">ИД-10</div>
+                        <div class="cs-option" data-value="id11">ИД-11</div>
+
+                        <div class="cs-option" data-value="or7">ОР-7</div>
+                        <div class="cs-option" data-value="or8">ОР-8</div>
+                        <div class="cs-option" data-value="or9">ОР-9</div>
+                        <div class="cs-option" data-value="or10">ОР-10</div>
+                        <div class="cs-option" data-value="opd7">ОПД-7</div>
+                        <div class="cs-option" data-value="opd8">ОПД-8</div>
+                        <div class="cs-option" data-value="opd9">ОПД-9</div>
+                        <div class="cs-option" data-value="opd10">ОПД-10</div>
+                        <div class="cs-option" data-value="ib7">ИБ-7</div>
+                        <div class="cs-option" data-value="ib8">ИБ-8</div>
+                        <div class="cs-option" data-value="ib9">ИБ-9</div>
+                        <div class="cs-option" data-value="ib10">ИБ-10</div>
+                        <div class="cs-option" data-value="tttt7">ТТТТ-7</div>
+                        <div class="cs-option" data-value="tttt8">ТТТТ-8</div>
+                        <div class="cs-option" data-value="tttt9">ТТТТ-9</div>
+                        <div class="cs-option" data-value="tttt10">ТТТТ-10</div>
+
+                        <div class="cs-option" data-value="sr561">СР-56-1</div>
+                        <div class="cs-option" data-value="sr562">СР-56-2</div>
+                        <div class="cs-option" data-value="sr563">СР-56-3</div>
+                        <div class="cs-option" data-value="sr78">СР-78</div>
+                        <div class="cs-option" data-value="sr910">СР-910</div>
+                        <div class="cs-option" data-value="pd7">ПД-7</div>
+                        <div class="cs-option" data-value="pd8">ПД-8</div>
+                        <div class="cs-option" data-value="pd9">ПД-9</div>
+                        <div class="cs-option" data-value="pd10">ПД-10</div>
+
+                        <div class="cs-option" data-value="p51">П-51</div>
+                        <div class="cs-option" data-value="p52">П-52</div>
+                        <div class="cs-option" data-value="p53">П-53</div>
+                        <div class="cs-option" data-value="p54">П-54</div>
+                        <div class="cs-option" data-value="p55">П-55</div>
+                        <div class="cs-option" data-value="p56">П-56</div>
+                        <div class="cs-option" data-value="p61">П-61</div>
+                        <div class="cs-option" data-value="p62">П-62</div>
+                        <div class="cs-option" data-value="p63">П-63</div>
+                        <div class="cs-option" data-value="ip61">ИП-61</div>
+                        <div class="cs-option" data-value="ip62">ИП-62</div>
+                        <div class="cs-option" data-value="ip63">ИП-63</div>
+
+                        <div class="cs-option" data-value="ii71">ИИ-71</div>
+                        <div class="cs-option" data-value="ii72">ИИ-72</div>
+                        <div class="cs-option" data-value="ii81">ИИ-81</div>
+                        <div class="cs-option" data-value="ii82">ИИ-82</div>
+                        <div class="cs-option" data-value="ii9">ИИ-9</div>
+                        <div class="cs-option" data-value="ii10">ИИ-10</div>
+                        <div class="cs-option" data-value="ii11">ИИ-11</div>
+
+                        <div class="cs-option" data-value="ie71">ИЭ-71</div>
+                        <div class="cs-option" data-value="ie72">ИЭ-72</div>
+                        <div class="cs-option" data-value="ie81">ИЭ-81</div>
+                        <div class="cs-option" data-value="ie82">ИЭ-82</div>
+                        <div class="cs-option" data-value="ie9">ИЭ-9</div>
+                        <div class="cs-option" data-value="ie10">ИЭ-10</div>
+                        <div class="cs-option" data-value="ie11">ИЭ-11</div>
+
+                        <div class="cs-option" data-value="mf71">МФ-71</div>
+                        <div class="cs-option" data-value="mf72">МФ-72</div>
+                        <div class="cs-option" data-value="mf81">МФ-81</div>
+                        <div class="cs-option" data-value="mf82">МФ-82</div>
+                        <div class="cs-option" data-value="mf9">МФ-9</div>
+                        <div class="cs-option" data-value="mf10">МФ-10</div>
+                        <div class="cs-option" data-value="mf11">МФ-11</div>
+
+                        <div class="cs-option" data-value="h71">Х-71</div>
+                        <div class="cs-option" data-value="h72">Х-72</div>
+                        <div class="cs-option" data-value="h81">Х-81</div>
+                        <div class="cs-option" data-value="h82">Х-82</div>
+                        <div class="cs-option" data-value="h9">Х-9</div>
+                        <div class="cs-option" data-value="h10">Х-10</div>
+                        <div class="cs-option" data-value="h11">Х-11</div>
+                    </div>
+                    <input type="hidden" name="position" id="position_input" required>
+                </div>
+            </div>
+
+            <div id="dynamic-fields" style="display: none; opacity: 0; transition: opacity 0.5s ease;">
+                <div class="form-row">
+                    <label>Как вы обучаетесь? <span class="required">*</span></label>
+                    <div class="custom-select">
+                        <div class="cs-display glass-input">
+                            <span class="cs-placeholder">Выберите вариант</span>
+                        </div>
+                        <div class="glass-panel">
+                            <div class="cs-option" data-value="onl">Онлайн</div>
+                            <div class="cs-option" data-value="off">Оффлайн</div>
+                            <div class="cs-option" data-value="any">И то, и то</div>
+                        </div>
+                        <input type="hidden" name="hiring_volume" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <label>На каких ПК вы работаете? <span class="required">*</span></label>
+                    <div class="custom-multiselect">
+                        <div class="ms-display glass-input">
+                            <span class="ms-placeholder">Выберите платформы</span>
+                            <div class="ms-tags"></div>
+                        </div>
+                        <div class="glass-panel">
+                            <div class="ms-option" data-value="pc-ts">ПК в Центре</div>
+                            <div class="ms-option" data-value="pc-l">Свой ПК</div>
+                            <div class="ms-option" data-value="labtop-ts">Ноутбук в Центре</div>
+                            <div class="ms-option" data-value="labtop-l">Свой ноутбук</div>
+                        </div>
+                        <input type="hidden" name="channels" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <label>О каких проектах вы слышали?</label>
+                    <div class="custom-multiselect">
+                        <div class="ms-display glass-input">
+                            <span class="ms-placeholder">Выберите проекты</span>
+                            <div class="ms-tags"></div>
+                        </div>
+                        <div class="glass-panel">
+                            <div class="ms-option" data-value="1">KYmis Chat</div>
+                            <div class="ms-option" data-value="2">FMessage</div>
+                        </div>
+                        <input type="hidden" name="painpoints">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <label>Как вы узнале о проекте?</label>
+                    <div class="custom-select">
+                        <div class="cs-display glass-input">
+                            <span class="cs-placeholder">Выбери источники</span>
+                        </div>
+                        <div class="glass-panel">
+                            <div class="cs-option" data-value="para">На паре</div>
+                            <div class="cs-option" data-value="seatch">Поисковая система</div>
+                            <div class="cs-option" data-value="friend">Лично от знакомого</div>
+                            <div class="cs-option" data-value="other">Другое</div>
+                        </div>
+                        <input type="hidden" name="current_ats">
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-row switch-row">
+                <div class="switch-label-wrapper">
+                    <label>Соглашение с условиями<span class="required">*</span></label>
+                    <span class="sub-label"><a href="/terms">Условия использования</a> и <a href="/policy">политика конфендициальности</a></span>
+                </div>
+                <div class="switch-scaler">
+                    <div class="switch-container">
+                        <input type="checkbox" name="terms" class="switch-input" required>
+                        <div class="track"></div>
+                        <div class="knob-wrapper">
+                            <div class="knob">
+                                <div class="knob-specular"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="auth-links">
+                Есть аккаунт? <a href="/login">Войти</a>
+            </div>
+            <div class="form-row action-row">
+                <button type="button" class="glass-btn locked" id="nextBtn" disabled>Далее</button>
+            </div>
+        </form>
+    </div>
+
+    <svg id="svg-filters" xmlns="http://www.w3.org/2000/svg" version="1.1" style="display: none;">
+        <defs>
+            <filter id="liquidGlassFilter" x="-50%" y="-50%" width="200%" height="200%">
+                <feImage
+                    xlink:href="data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='200'%3E%3Cdefs%3E%3CradialGradient id='grad1' cx='50%25' cy='50%25' r='50%25' fx='50%25' fy='50%25'%3E%3Cstop offset='0%25' style='stop-color:rgb(128,128,128);stop-opacity:1' /%3E%3Cstop offset='100%25' style='stop-color:rgb(0,0,0);stop-opacity:1' /%3E%3C/radialGradient%3E%3C/defs%3E%3Crect width='400' height='200' fill='url(%23grad1)' /%3E%3C/svg%3E"
+                    result="displacementMap"
+                    x="0" y="0" width="100%" height="100%"
+                />
+                <feDisplacementMap
+                    in="SourceGraphic"
+                    in2="displacementMap"
+                    scale="30"
+                    xChannelSelector="R"
+                    yChannelSelector="G"
+                    result="displaced"
+                />
+                <feGaussianBlur in="displaced" stdDeviation="5" result="blurredDisplaced"/>
+                <feBlend in="SourceGraphic" in2="blurredDisplaced" mode="overlay"/>
+            </filter>
+        </defs>
+    </svg>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

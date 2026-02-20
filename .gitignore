@@ -1,0 +1,7 @@
+.venv/
+.venvosik/
+.idea/
+instance/
+.env
+Tornado.zip
+example.html
