@@ -11,31 +11,6 @@
     <meta name="current-user-id" content="{{ current_user.id }}">
 </head>
 <body>
-    <div class="card-window chat-layout">
-        <header class="chat-header">
-            <div>
-                <span class="logo">TORNADO</span> <span class="logo-subtitle">Chat</span>
-            </div>
-            <div class="chat-user-info">
-                <span>{{ current_user.login }}</span>
-                <a href="/logout" class="logout-btn">Выйти</a>
-            </div>
-        </header>
-
-        <main class="chat-messages" id="chatBox">
-        </main>
-
-        <footer class="chat-input-container">
-            <input type="text" id="messageInput" class="glass-input chat-input" placeholder="Введите сообщение..." autocomplete="off">
-            <button id="sendBtn" class="glass-btn send-btn">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="22" y1="2" x2="11" y2="13"></line>
-                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-                </svg>
-            </button>
-        </footer>
-    </div>
-
-    <script src="{{ url_for('static', filename='js/chat.js') }}"></script>
+    Разработка
 </body>
 </html>

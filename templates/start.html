@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TORNADO — Старт</title>
+    <title>TORNADO — Регистрация</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 </head>
 <body>
     <div class="card-window">
@@ -42,93 +43,9 @@
                         <span class="cs-placeholder">Выберите группу</span>
                     </div>
                     <div class="glass-panel">
-                        <div class="cs-option" data-value="ut51">ЮТ-5-1</div>
-                        <div class="cs-option" data-value="ut52">ЮТ-5-2</div>
-                        <div class="cs-option" data-value="ut53">ЮТ-5-3</div>
-                        <div class="cs-option" data-value="ut54">ЮТ-5-4</div>
-                        <div class="cs-option" data-value="ut55">ЮТ-5-5</div>
-                        <div class="cs-option" data-value="ut56">ЮТ-5-6</div>
-                        <div class="cs-option" data-value="ut57">ЮТ-5-7</div>
-                        <div class="cs-option" data-value="ut58">ЮТ-5-8</div>
-
-                        <div class="cs-option" data-value="sgk5">Профклассы СГК-5</div>
-
-                        <div class="cs-option" data-value="id91">ИД-91</div>
-                        <div class="cs-option" data-value="id92">ИД-92</div>
-                        <div class="cs-option" data-value="id10">ИД-10</div>
-                        <div class="cs-option" data-value="id11">ИД-11</div>
-
-                        <div class="cs-option" data-value="or7">ОР-7</div>
-                        <div class="cs-option" data-value="or8">ОР-8</div>
-                        <div class="cs-option" data-value="or9">ОР-9</div>
-                        <div class="cs-option" data-value="or10">ОР-10</div>
-                        <div class="cs-option" data-value="opd7">ОПД-7</div>
-                        <div class="cs-option" data-value="opd8">ОПД-8</div>
-                        <div class="cs-option" data-value="opd9">ОПД-9</div>
-                        <div class="cs-option" data-value="opd10">ОПД-10</div>
-                        <div class="cs-option" data-value="ib7">ИБ-7</div>
-                        <div class="cs-option" data-value="ib8">ИБ-8</div>
-                        <div class="cs-option" data-value="ib9">ИБ-9</div>
-                        <div class="cs-option" data-value="ib10">ИБ-10</div>
-                        <div class="cs-option" data-value="tttt7">ТТТТ-7</div>
-                        <div class="cs-option" data-value="tttt8">ТТТТ-8</div>
-                        <div class="cs-option" data-value="tttt9">ТТТТ-9</div>
-                        <div class="cs-option" data-value="tttt10">ТТТТ-10</div>
-
-                        <div class="cs-option" data-value="sr561">СР-56-1</div>
-                        <div class="cs-option" data-value="sr562">СР-56-2</div>
-                        <div class="cs-option" data-value="sr563">СР-56-3</div>
-                        <div class="cs-option" data-value="sr78">СР-78</div>
-                        <div class="cs-option" data-value="sr910">СР-910</div>
-                        <div class="cs-option" data-value="pd7">ПД-7</div>
-                        <div class="cs-option" data-value="pd8">ПД-8</div>
-                        <div class="cs-option" data-value="pd9">ПД-9</div>
-                        <div class="cs-option" data-value="pd10">ПД-10</div>
-
-                        <div class="cs-option" data-value="p51">П-51</div>
-                        <div class="cs-option" data-value="p52">П-52</div>
-                        <div class="cs-option" data-value="p53">П-53</div>
-                        <div class="cs-option" data-value="p54">П-54</div>
-                        <div class="cs-option" data-value="p55">П-55</div>
-                        <div class="cs-option" data-value="p56">П-56</div>
-                        <div class="cs-option" data-value="p61">П-61</div>
-                        <div class="cs-option" data-value="p62">П-62</div>
-                        <div class="cs-option" data-value="p63">П-63</div>
-                        <div class="cs-option" data-value="ip61">ИП-61</div>
-                        <div class="cs-option" data-value="ip62">ИП-62</div>
-                        <div class="cs-option" data-value="ip63">ИП-63</div>
-
-                        <div class="cs-option" data-value="ii71">ИИ-71</div>
-                        <div class="cs-option" data-value="ii72">ИИ-72</div>
-                        <div class="cs-option" data-value="ii81">ИИ-81</div>
-                        <div class="cs-option" data-value="ii82">ИИ-82</div>
-                        <div class="cs-option" data-value="ii9">ИИ-9</div>
-                        <div class="cs-option" data-value="ii10">ИИ-10</div>
-                        <div class="cs-option" data-value="ii11">ИИ-11</div>
-
-                        <div class="cs-option" data-value="ie71">ИЭ-71</div>
-                        <div class="cs-option" data-value="ie72">ИЭ-72</div>
-                        <div class="cs-option" data-value="ie81">ИЭ-81</div>
-                        <div class="cs-option" data-value="ie82">ИЭ-82</div>
-                        <div class="cs-option" data-value="ie9">ИЭ-9</div>
-                        <div class="cs-option" data-value="ie10">ИЭ-10</div>
-                        <div class="cs-option" data-value="ie11">ИЭ-11</div>
-
-                        <div class="cs-option" data-value="mf71">МФ-71</div>
-                        <div class="cs-option" data-value="mf72">МФ-72</div>
-                        <div class="cs-option" data-value="mf81">МФ-81</div>
-                        <div class="cs-option" data-value="mf82">МФ-82</div>
-                        <div class="cs-option" data-value="mf9">МФ-9</div>
-                        <div class="cs-option" data-value="mf10">МФ-10</div>
-                        <div class="cs-option" data-value="mf11">МФ-11</div>
-
-                        <div class="cs-option" data-value="h71">Х-71</div>
-                        <div class="cs-option" data-value="h72">Х-72</div>
-                        <div class="cs-option" data-value="h81">Х-81</div>
-                        <div class="cs-option" data-value="h82">Х-82</div>
-                        <div class="cs-option" data-value="h9">Х-9</div>
-                        <div class="cs-option" data-value="h10">Х-10</div>
-                        <div class="cs-option" data-value="h11">Х-11</div>
+                        {% for group in groups %}
+                            <div class="cs-option" data-value="{{ group.value }}">{{ group.name }}</div>
+                        {% endfor %}
                     </div>
                     <input type="hidden" name="position" id="position_input" required>
                 </div>
@@ -221,6 +138,7 @@
                 Есть аккаунт? <a href="/login">Войти</a>
             </div>
             <div class="form-row action-row">
+                <div class="cf-turnstile" data-sitekey="{{ site_key }}" data-theme="dark"></div>
                 <button type="button" class="glass-btn locked" id="nextBtn" disabled>Далее</button>
             </div>
         </form>

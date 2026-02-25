@@ -8,6 +8,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+
     <style>
         .auth-links {
             margin-top: 20px;
@@ -44,6 +46,7 @@
             </div>
 
             <div class="form-row action-row">
+                <div class="cf-turnstile" data-sitekey="{{ site_key }}" data-theme="dark"></div>
                 <button type="submit" class="glass-btn locked" id="loginBtn" disabled>Войти</button>
             </div>
 
