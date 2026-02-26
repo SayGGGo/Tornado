@@ -417,6 +417,15 @@ def send_message():
     return jsonify({"success": True, "id": new_msg.id})
 
 
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template('error.html', error_code=404, error="Запрашиваемая страница испарилась в квантовом поле."), 404
+
+@app.errorhandler(500)
+def internal_server_error(e):
+    return render_template('error.html', error_code=500, error="Внутренняя ошибка сервера. База данных сделала сальто."), 500
+
+
 if __name__ == "__main__":
     check_github_updates()
     app.run(debug=True, port=3000, host="0.0.0.0")

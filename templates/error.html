@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TORNADO — {% if error_code == 404 %}Расследование 404{% else %}Критическая угроза 500{% endif %}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --mouse-x: 50%;
+            --mouse-y: 50%;
+            --scroll-y: 0;
+            --bg-color: #050505;
+            --text-main: #ffffff;
+            --accent-404: #34c759;
+            --accent-500: #ff453a;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            font-family: 'Montserrat', sans-serif;
+            color: var(--text-main);
+            overflow-x: hidden;
+            scroll-behavior: smooth;
+        }
+
+        .btn-home {
+            display: inline-block;
+            margin-top: 30px;
+            padding: 16px 40px;
+            border-radius: 14px;
+            color: #fff;
+            text-decoration: none;
+            font-weight: 700;
+            backdrop-filter: blur(10px);
+            pointer-events: auto;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+            z-index: 100;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .layout-404 .btn-home {
+            background: rgba(52, 199, 89, 0.1);
+            border: 1px solid rgba(52, 199, 89, 0.3);
+        }
+
+        .layout-404 .btn-home:hover {
+            background: rgba(52, 199, 89, 0.3);
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: 0 10px 30px rgba(52, 199, 89, 0.4);
+        }
+
+        .layout-500 .btn-home {
+            background: rgba(255, 69, 58, 0.1);
+            border: 1px solid rgba(255, 69, 58, 0.3);
+            animation: pulse-btn 2s infinite;
+        }
+
+        .layout-500 .btn-home:hover {
+            background: rgba(255, 69, 58, 0.3);
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: 0 10px 40px rgba(255, 69, 58, 0.6);
+            animation: none;
+        }
+
+        @keyframes pulse-btn {
+            0% { box-shadow: 0 0 0 0 rgba(255, 69, 58, 0.4); }
+            70% { box-shadow: 0 0 0 15px rgba(255, 69, 58, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 69, 58, 0); }
+        }
+
+        .layout-404, .layout-500 {
+            height: 600vh;
+        }
+
+        .flashlight, .alarm-light {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 50;
+        }
+
+        .flashlight {
+            background: radial-gradient(
+                circle 350px at var(--mouse-x) var(--mouse-y),
+                transparent 0%,
+                rgba(5, 5, 5, 0.95) 70%,
+                #000000 100%
+            );
+            transition: background 0.1s;
+        }
+
+        .alarm-light {
+            background: radial-gradient(
+                circle 600px at var(--mouse-x) var(--mouse-y),
+                rgba(255, 69, 58, 0.15) 0%,
+                rgba(5, 5, 5, 0.9) 80%,
+                #000000 100%
+            );
+            animation: alarm-pulse 1s infinite alternate;
+        }
+
+        @keyframes alarm-pulse {
+            from { opacity: 0.8; }
+            to { opacity: 1; }
+        }
+
+        .story-section {
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            padding: 0 20px;
+            box-sizing: border-box;
+            text-align: center;
+            opacity: 0;
+            transform: translateY(100px);
+            transition: opacity 1s ease-out, transform 1s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        .story-section.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .title-error {
+            font-size: 10vw;
+            font-weight: 900;
+            margin-bottom: 20px;
+            line-height: 1;
+        }
+
+        .layout-404 .title-error {
+            background: linear-gradient(135deg, #fff, #555);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 10px 30px rgba(255,255,255,0.1);
+        }
+
+        .layout-500 .title-error {
+            color: transparent;
+            -webkit-text-stroke: 3px var(--accent-500);
+            text-shadow: 0 0 20px rgba(255, 69, 58, 0.5);
+            animation: glitch 2s infinite;
+        }
+
+        @keyframes glitch {
+            0% { transform: translate(0) }
+            20% { transform: translate(-5px, 5px) }
+            40% { transform: translate(-5px, -5px) }
+            60% { transform: translate(5px, 5px) }
+            80% { transform: translate(5px, -5px) }
+            100% { transform: translate(0) }
+        }
+
+        .clue {
+            font-size: 1.8rem;
+            color: #ccc;
+            max-width: 800px;
+            line-height: 1.5;
+            z-index: 10;
+            background: rgba(0,0,0,0.4);
+            padding: 20px 40px;
+            border-radius: 20px;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .clue b {
+            color: #fff;
+            font-weight: 900;
+        }
+
+        .layout-500 .clue b {
+            color: var(--accent-500);
+        }
+
+        .interactive-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .code-snippet {
+            position: absolute;
+            color: var(--accent-404);
+            font-family: monospace;
+            font-size: 1.2rem;
+            opacity: 0.5;
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            text-shadow: 0 0 5px rgba(52, 199, 89, 0.5);
+        }
+
+        .gear {
+            position: absolute;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none" stroke="%23888" stroke-width="4"><circle cx="50" cy="50" r="30"/><path d="M50 10 L50 20 M50 80 L50 90 M10 50 L20 50 M80 50 L90 50 M22 22 L29 29 M71 71 L78 78 M22 78 L29 71 M71 29 L78 22"/></svg>') no-repeat center/contain;
+            transition: transform 0.1s linear;
+            filter: drop-shadow(0 0 10px rgba(255,255,255,0.1));
+        }
+
+        .flask {
+            position: absolute;
+            width: 60px;
+            height: 80px;
+            border: 3px solid #fff;
+            border-radius: 5px 5px 30px 30px;
+            background: linear-gradient(to top, var(--accent-404) 50%, transparent 50%);
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            padding-bottom: 10px;
+            color: #000;
+            font-weight: 900;
+            transition: top 0.4s, left 0.4s, transform 0.3s;
+            pointer-events: auto;
+            cursor: pointer;
+            box-shadow: 0 0 20px rgba(52, 199, 89, 0.3);
+        }
+
+        .paper-plane {
+            position: absolute;
+            width: 0;
+            height: 0;
+            border-left: 15px solid transparent;
+            border-right: 15px solid transparent;
+            border-bottom: 40px solid #fff;
+            opacity: 0.8;
+            filter: drop-shadow(0 5px 5px rgba(0,0,0,0.5));
+        }
+
+        .baby-duck {
+            position: absolute;
+            font-size: 2.5rem;
+            pointer-events: none;
+            transition: transform 0.15s ease-out;
+            filter: drop-shadow(0 5px 10px rgba(0,0,0,0.5));
+        }
+
+        .term-window {
+            position: absolute;
+            background: rgba(10, 10, 10, 0.9);
+            border: 1px solid var(--accent-500);
+            border-radius: 8px;
+            padding: 10px;
+            font-family: monospace;
+            color: var(--accent-500);
+            box-shadow: 0 0 20px rgba(255, 69, 58, 0.2);
+            pointer-events: auto;
+            cursor: grab;
+        }
+
+        .term-header {
+            border-bottom: 1px solid #333;
+            margin-bottom: 5px;
+            padding-bottom: 5px;
+            font-size: 0.8rem;
+            color: #888;
+        }
+
+        .spark {
+            position: absolute;
+            width: 3px;
+            height: 15px;
+            background: #ffcc00;
+            border-radius: 2px;
+            box-shadow: 0 0 10px #ffcc00, 0 0 20px #ff9900;
+        }
+
+        .nitrogen-drop {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: #00f0ff;
+            border-radius: 50%;
+            box-shadow: 0 0 15px #00f0ff;
+            pointer-events: auto;
+            cursor: pointer;
+        }
+
+        .server-core-container {
+            position: relative;
+            width: 300px;
+            height: 400px;
+            perspective: 1000px;
+            z-index: 5;
+            margin-bottom: 40px;
+        }
+
+        .core-rack {
+            width: 100%;
+            height: 100%;
+            border: 2px solid #333;
+            background: #0a0a0a;
+            border-radius: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            padding: 20px;
+            box-sizing: border-box;
+            box-shadow: inset 0 0 50px rgba(255, 69, 58, 0.1);
+            transition: transform 0.1s;
+        }
+
+        .core-blade {
+            flex: 1;
+            background: #111;
+            border: 1px solid #222;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            padding: 0 15px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .core-led {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--accent-500);
+            box-shadow: 0 0 15px var(--accent-500);
+        }
+
+        .layout-500 .story-section {
+            background: rgba(0,0,0,0);
+        }
+
+    </style>
+</head>
+<body class="layout-{{ error_code }}">
+
+    {% if error_code == 404 %}
+    <div class="flashlight"></div>
+
+    <div class="story-section" id="sec0">
+        <h1 class="title-error">404</h1>
+        <div class="clue">Страница бесследно исчезла.<br>Листай вниз, чтобы начать расследование в недрах Центра.</div>
+    </div>
+
+    <div class="story-section" id="sec1">
+        <div class="interactive-layer" id="layer-it"></div>
+        <div class="clue">Мы на территории <b>Яишников</b>.<br>Они опять забыли прописать роуты и наплодили багов в коде. Код разбегается от курсора.</div>
+    </div>
+
+    <div class="story-section" id="sec2">
+        <div class="interactive-layer" id="layer-eng"></div>
+        <div class="clue">Зона <b>Иэшников</b>.<br>Механизмы крутятся только тогда, когда ты скроллишь. Наверное, кто-то перекусил кабель питания.</div>
+    </div>
+
+    <div class="story-section" id="sec3">
+        <div class="interactive-layer" id="layer-chem"></div>
+        <div class="clue">Лаборатория <b>Химбио</b>... Фууу.<br>Колбы реагируют на движения. Лучше их не трогать, а то взорвутся.</div>
+    </div>
+
+    <div class="story-section" id="sec4">
+        <div class="interactive-layer" id="layer-prop"></div>
+        <div class="clue"><b>Пропедевтика (5-6 классы)</b>.<br>Хаос, бумажные самолетики и крики. Тоже так себе местечко, проходим быстрее.</div>
+    </div>
+
+    <div class="story-section" id="sec5">
+        <div class="interactive-layer" id="layer-kids"></div>
+        <div class="clue"><b>4-й класс</b>. Вообще лялечки.<br>Они просто ходят за тобой хвостиком. Пора уносить ноги, пока не пришлось делать за них домашку.</div>
+        <a href="/" class="btn-home">Сбежать в укрытие</a>
+    </div>
+
+    <script>
+        const root = document.documentElement;
+        let mouseX = window.innerWidth / 2;
+        let mouseY = window.innerHeight / 2;
+
+        document.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+            root.style.setProperty('--mouse-x', mouseX + 'px');
+            root.style.setProperty('--mouse-y', mouseY + 'px');
+        });
+
+        const sections = document.querySelectorAll('.story-section');
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, { threshold: 0.3 });
+        sections.forEach(sec => observer.observe(sec));
+
+        const layerIt = document.getElementById('layer-it');
+        for (let i = 0; i < 25; i++) {
+            const el = document.createElement('div');
+            el.className = 'code-snippet';
+            el.innerText = ['import flask', '404 Not Found', 'return null', 'def main():', 'SyntaxError', 'console.log()', 'undefined'][Math.floor(Math.random() * 7)];
+            el.style.left = Math.random() * 90 + 5 + 'vw';
+            el.style.top = Math.random() * 90 + 5 + 'vh';
+            layerIt.appendChild(el);
+        }
+
+        const layerEng = document.getElementById('layer-eng');
+        const gears = [];
+        for (let i = 0; i < 12; i++) {
+            const el = document.createElement('div');
+            el.className = 'gear';
+            el.style.left = Math.random() * 80 + 10 + 'vw';
+            el.style.top = Math.random() * 80 + 10 + 'vh';
+            const size = Math.random() * 120 + 60;
+            el.style.width = size + 'px';
+            el.style.height = size + 'px';
+            layerEng.appendChild(el);
+            gears.push(el);
+        }
+
+        const layerChem = document.getElementById('layer-chem');
+        for (let i = 0; i < 12; i++) {
+            const el = document.createElement('div');
+            el.className = 'flask';
+            el.innerText = 'Фу';
+            let bx = Math.random() * (window.innerWidth - 100) + 50;
+            let by = Math.random() * (window.innerHeight - 100) + 50;
+            el.style.left = bx + 'px';
+            el.style.top = by + 'px';
+            el.addEventListener('mouseover', () => {
+                bx = Math.random() * (window.innerWidth - 100) + 50;
+                by = Math.random() * (window.innerHeight - 100) + 50;
+                el.style.left = bx + 'px';
+                el.style.top = by + 'px';
+                el.style.transform = `rotate(${(Math.random() - 0.5) * 90}deg) scale(1.2)`;
+                setTimeout(() => el.style.transform = `rotate(0deg) scale(1)`, 300);
+            });
+            layerChem.appendChild(el);
+        }
+
+        const layerProp = document.getElementById('layer-prop');
+        const planes = [];
+        for (let i = 0; i < 20; i++) {
+            const el = document.createElement('div');
+            el.className = 'paper-plane';
+            el.x = Math.random() * window.innerWidth;
+            el.y = Math.random() * window.innerHeight;
+            el.vx = (Math.random() - 0.5) * 6;
+            el.vy = (Math.random() - 0.5) * 6;
+            layerProp.appendChild(el);
+            planes.push(el);
+        }
+
+        const layerKids = document.getElementById('layer-kids');
+        const ducks = [];
+        for (let i = 0; i < 8; i++) {
+            const el = document.createElement('div');
+            el.className = 'baby-duck';
+            el.innerText = '🍼';
+            el.x = window.innerWidth / 2 + (Math.random() - 0.5) * 200;
+            el.y = window.innerHeight / 2 + (Math.random() - 0.5) * 200;
+            layerKids.appendChild(el);
+            ducks.push(el);
+        }
+
+        let lastScrollY = window.scrollY;
+
+        function animate404() {
+            const scrollY = window.scrollY;
+            const itRect = document.getElementById('sec1').getBoundingClientRect();
+            if (itRect.top < window.innerHeight && itRect.bottom > 0) {
+                for (let el of layerIt.children) {
+                    const rect = el.getBoundingClientRect();
+                    const ex = rect.left + rect.width / 2;
+                    const ey = rect.top + rect.height / 2;
+                    const dist = Math.hypot(mouseX - ex, mouseY - ey);
+                    if (dist < 250) {
+                        const angle = Math.atan2(ey - mouseY, ex - mouseX);
+                        el.style.transform = `translate(${Math.cos(angle) * 150}px, ${Math.sin(angle) * 150}px) scale(1.1)`;
+                        el.style.opacity = '1';
+                    } else {
+                        el.style.transform = 'translate(0, 0) scale(1)';
+                        el.style.opacity = '0.5';
+                    }
+                }
+            }
+
+            const engRect = document.getElementById('sec2').getBoundingClientRect();
+            if (engRect.top < window.innerHeight && engRect.bottom > 0) {
+                const delta = Math.abs(scrollY - lastScrollY);
+                gears.forEach((g, i) => {
+                    const currentRot = parseFloat(g.getAttribute('data-rot') || 0);
+                    const newRot = currentRot + (i % 2 === 0 ? delta * 0.5 : -delta * 0.5);
+                    g.style.transform = `rotate(${newRot}deg)`;
+                    g.setAttribute('data-rot', newRot);
+                });
+            }
+
+            const propRect = document.getElementById('sec4').getBoundingClientRect();
+            if (propRect.top < window.innerHeight && propRect.bottom > 0) {
+                planes.forEach(p => {
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    if (p.x < -50 || p.x > window.innerWidth + 50) p.vx *= -1;
+                    if (p.y < -50 || p.y > window.innerHeight + 50) p.vy *= -1;
+                    const angle = Math.atan2(p.vy, p.vx) * 180 / Math.PI + 90;
+                    p.style.transform = `translate(${p.x}px, ${p.y}px) rotate(${angle}deg)`;
+                });
+            }
+
+            const kidsRect = document.getElementById('sec5').getBoundingClientRect();
+            if (kidsRect.top < window.innerHeight && kidsRect.bottom > 0) {
+                let targetX = mouseX;
+                let targetY = mouseY;
+                ducks.forEach((d, i) => {
+                    d.x += (targetX - d.x) * (0.05 + i * 0.01);
+                    d.y += (targetY - d.y) * (0.05 + i * 0.01);
+                    d.style.transform = `translate(${d.x}px, ${d.y}px)`;
+                    targetX = d.x;
+                    targetY = d.y - 45;
+                });
+            }
+
+            lastScrollY = scrollY;
+            requestAnimationFrame(animate404);
+        }
+        animate404();
+    </script>
+    {% endif %}
+
+    {% if error_code == 500 %}
+    <div class="alarm-light" id="alarm-bg"></div>
+
+    <div class="story-section" id="sec0">
+        <h1 class="title-error">500</h1>
+        <div class="clue">Серверное ядро нестабильно. Температура растет.<br>Спускайся на нижние уровни для ручной перезагрузки.</div>
+    </div>
+
+    <div class="story-section" id="sec1">
+        <div class="interactive-layer" id="layer-terminals"></div>
+        <div class="clue">Уровень <b>Яишников</b>.<br>База упала, логи сыпятся с потолка. Они пытаются поднять бэкенд, разбрасывая терминалы.</div>
+    </div>
+
+    <div class="story-section" id="sec2">
+        <div class="interactive-layer" id="layer-sparks"></div>
+        <div class="clue">Уровень <b>Иэшников</b>.<br>Охлаждение сдохло. Всё искрит и коротит от перегруза. Осторожно, высокое напряжение!</div>
+    </div>
+
+    <div class="story-section" id="sec3">
+        <div class="interactive-layer" id="layer-nitrogen"></div>
+        <div class="clue">Уровень <b>Химбио</b>.<br>Они решили залить сервера жидким азотом. Лови капли курсором, чтобы сбить температуру.</div>
+    </div>
+
+    <div class="story-section" id="sec4">
+        <div class="server-core-container">
+            <div class="core-rack" id="main-core">
+                <div class="core-blade"><div class="core-led"></div><span style="margin-left:15px; font-family:monospace">CORE 01 // CRITICAL</span></div>
+                <div class="core-blade"><div class="core-led"></div><span style="margin-left:15px; font-family:monospace">DB_MAIN // DEADLOCK</span></div>
+                <div class="core-blade"><div class="core-led"></div><span style="margin-left:15px; font-family:monospace">AUTH_SVC // TIMEOUT</span></div>
+                <div class="core-blade"><div class="core-led"></div><span style="margin-left:15px; font-family:monospace">TEMP_CTL // OFFLINE</span></div>
+                <div class="core-blade"><div class="core-led"></div><span style="margin-left:15px; font-family:monospace">SYS_MEM // OVERFLOW</span></div>
+            </div>
+        </div>
+        <div class="clue" id="core-status"><b>Ядро системы</b>. Держится на честном слове.<br>Нажимай кнопку, пока всё не взлетело на воздух.</div>
+        <a href="/" class="btn-home" id="reboot-btn">Экстренная перезагрузка</a>
+    </div>
+
+    <script>
+        const root = document.documentElement;
+        let mouseX = window.innerWidth / 2;
+        let mouseY = window.innerHeight / 2;
+        let tempLevel = 100;
+
+        document.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+            root.style.setProperty('--mouse-x', mouseX + 'px');
+            root.style.setProperty('--mouse-y', mouseY + 'px');
+        });
+
+        const sections = document.querySelectorAll('.story-section');
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, { threshold: 0.3 });
+        sections.forEach(sec => observer.observe(sec));
+
+        const layerTerminals = document.getElementById('layer-terminals');
+        const errors = ["FATAL ERROR", "SEGMENTATION FAULT", "DB DEADLOCK", "REDIS GONE", "PANIC", "NULL POINTER"];
+        for (let i = 0; i < 8; i++) {
+            const el = document.createElement('div');
+            el.className = 'term-window';
+            el.innerHTML = `<div class="term-header">root@tornado:~</div><div>> ${errors[i%errors.length]}</div><div>> _</div>`;
+            el.style.left = Math.random() * 80 + 10 + 'vw';
+            el.style.top = Math.random() * 80 + 10 + 'vh';
+            el.style.transform = `rotate(${(Math.random()-0.5)*20}deg)`;
+
+            let isDragging = false;
+            let offsetX, offsetY;
+            el.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                offsetX = e.clientX - el.getBoundingClientRect().left;
+                offsetY = e.clientY - el.getBoundingClientRect().top;
+                el.style.zIndex = 100;
+            });
+            window.addEventListener('mouseup', () => {
+                isDragging = false;
+                el.style.zIndex = 1;
+            });
+            window.addEventListener('mousemove', (e) => {
+                if (isDragging) {
+                    el.style.left = (e.clientX - offsetX) + 'px';
+                    el.style.top = (e.clientY - offsetY) + 'px';
+                }
+            });
+            layerTerminals.appendChild(el);
+        }
+
+        const layerSparks = document.getElementById('layer-sparks');
+        const sparks = [];
+        for (let i = 0; i < 40; i++) {
+            const el = document.createElement('div');
+            el.className = 'spark';
+            el.x = Math.random() * window.innerWidth;
+            el.y = Math.random() * window.innerHeight;
+            el.vy = Math.random() * 10 + 5;
+            el.vx = (Math.random() - 0.5) * 4;
+            el.style.left = el.x + 'px';
+            el.style.top = el.y + 'px';
+            layerSparks.appendChild(el);
+            sparks.push(el);
+        }
+
+        const layerNitrogen = document.getElementById('layer-nitrogen');
+        const drops = [];
+        setInterval(() => {
+            const nitRect = document.getElementById('sec3').getBoundingClientRect();
+            if (nitRect.top < window.innerHeight && nitRect.bottom > 0) {
+                if (drops.length < 30) {
+                    const el = document.createElement('div');
+                    el.className = 'nitrogen-drop';
+                    el.x = Math.random() * window.innerWidth;
+                    el.y = -20;
+                    el.style.left = el.x + 'px';
+                    el.style.top = el.y + 'px';
+
+                    el.addEventListener('mouseover', () => {
+                        el.style.transform = 'scale(3)';
+                        el.style.opacity = '0';
+                        tempLevel = Math.max(0, tempLevel - 5);
+                        setTimeout(() => {
+                            if (el.parentNode) el.parentNode.removeChild(el);
+                            const index = drops.indexOf(el);
+                            if (index > -1) drops.splice(index, 1);
+                        }, 200);
+                    });
+
+                    layerNitrogen.appendChild(el);
+                    drops.push(el);
+                }
+            }
+        }, 300);
+
+        const core = document.getElementById('main-core');
+        const leds = document.querySelectorAll('.core-led');
+
+        function animate500() {
+            const scrollY = window.scrollY;
+            const maxScroll = document.body.scrollHeight - window.innerHeight;
+            const scrollPercent = scrollY / maxScroll;
+
+            const baseShake = (1 - scrollPercent) * 15;
+            const bgOpacity = 0.15 + (1 - scrollPercent) * 0.3;
+            document.getElementById('alarm-bg').style.background = `radial-gradient(circle 600px at var(--mouse-x) var(--mouse-y), rgba(255, 69, 58, ${bgOpacity}) 0%, rgba(5, 5, 5, 0.9) 80%, #000000 100%)`;
+
+            const sparksRect = document.getElementById('sec2').getBoundingClientRect();
+            if (sparksRect.top < window.innerHeight && sparksRect.bottom > 0) {
+                sparks.forEach(s => {
+                    s.y += s.vy;
+                    s.x += s.vx;
+                    if (s.y > window.innerHeight) {
+                        s.y = -20;
+                        s.x = Math.random() * window.innerWidth;
+                    }
+                    s.style.transform = `translate(${s.x}px, ${s.y}px)`;
+                });
+            }
+
+            const nitRect = document.getElementById('sec3').getBoundingClientRect();
+            if (nitRect.top < window.innerHeight && nitRect.bottom > 0) {
+                for (let i = drops.length - 1; i >= 0; i--) {
+                    const d = drops[i];
+                    d.y += 3;
+                    d.style.transform = `translateY(${d.y}px)`;
+                    if (d.y > window.innerHeight) {
+                        if (d.parentNode) d.parentNode.removeChild(d);
+                        drops.splice(i, 1);
+                    }
+                }
+            }
+
+            const coreRect = document.getElementById('sec4').getBoundingClientRect();
+            if (coreRect.top < window.innerHeight) {
+                const finalShake = (tempLevel / 100) * 10;
+                core.style.transform = `translate(${(Math.random()-0.5)*finalShake}px, ${(Math.random()-0.5)*finalShake}px)`;
+
+                if (tempLevel < 30) {
+                    leds.forEach(l => {
+                        l.style.background = '#34c759';
+                        l.style.boxShadow = '0 0 15px #34c759';
+                    });
+                    document.getElementById('core-status').innerHTML = 'Температура в норме. Ядро стабильно.<br>Можно безопасно перезагружать.';
+                    document.getElementById('reboot-btn').style.background = 'rgba(52, 199, 89, 0.2)';
+                    document.getElementById('reboot-btn').style.borderColor = 'rgba(52, 199, 89, 0.5)';
+                } else {
+                    leds.forEach(l => {
+                        l.style.background = '#ff453a';
+                        l.style.boxShadow = '0 0 15px #ff453a';
+                    });
+                }
+            } else {
+                tempLevel = Math.min(100, tempLevel + 0.5);
+            }
+
+            requestAnimationFrame(animate500);
+        }
+        animate500();
+    </script>
+    {% endif %}
+
+</body>
+</html>
