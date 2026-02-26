@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TORNADO — {% if error_code == 404 %}Расследование 404{% else %}Критическая угроза 500{% endif %}</title>
+    <title>TORNADO — {% if error_code == 404 %}Расследование 404{% elif error_code == 500 %}Критическая угроза 500{% else %}Блокировка {{ error_code }}{% endif %}</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -14,6 +14,7 @@
             --text-main: #ffffff;
             --accent-404: #34c759;
             --accent-500: #ff453a;
+            --accent-403: #ff9f0a;
         }
 
         body, html {
@@ -58,7 +59,7 @@
         .layout-500 .btn-home {
             background: rgba(255, 69, 58, 0.1);
             border: 1px solid rgba(255, 69, 58, 0.3);
-            animation: pulse-btn 2s infinite;
+            animation: pulse-btn-500 2s infinite;
         }
 
         .layout-500 .btn-home:hover {
@@ -68,17 +69,28 @@
             animation: none;
         }
 
-        @keyframes pulse-btn {
+        .layout-403 .btn-home {
+            background: rgba(255, 159, 10, 0.1);
+            border: 1px solid rgba(255, 159, 10, 0.3);
+        }
+
+        .layout-403 .btn-home:hover {
+            background: rgba(255, 159, 10, 0.3);
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: 0 10px 40px rgba(255, 159, 10, 0.6);
+        }
+
+        @keyframes pulse-btn-500 {
             0% { box-shadow: 0 0 0 0 rgba(255, 69, 58, 0.4); }
             70% { box-shadow: 0 0 0 15px rgba(255, 69, 58, 0); }
             100% { box-shadow: 0 0 0 0 rgba(255, 69, 58, 0); }
         }
 
-        .layout-404, .layout-500 {
+        .layout-404, .layout-500, .layout-403 {
             height: 600vh;
         }
 
-        .flashlight, .alarm-light {
+        .flashlight, .alarm-light, .search-light {
             position: fixed;
             top: 0;
             left: 0;
@@ -106,6 +118,17 @@
                 #000000 100%
             );
             animation: alarm-pulse 1s infinite alternate;
+        }
+
+        .search-light {
+            background: radial-gradient(
+                circle 400px at var(--mouse-x) var(--mouse-y),
+                transparent 0%,
+                rgba(255, 159, 10, 0.05) 40%,
+                rgba(5, 5, 5, 0.95) 80%,
+                #000000 100%
+            );
+            transition: background 0.1s;
         }
 
         @keyframes alarm-pulse {
@@ -155,6 +178,13 @@
             animation: glitch 2s infinite;
         }
 
+        .layout-403 .title-error {
+            color: transparent;
+            -webkit-text-stroke: 3px var(--accent-403);
+            text-shadow: 0 0 20px rgba(255, 159, 10, 0.5);
+            animation: pulse-403 2s infinite alternate;
+        }
+
         @keyframes glitch {
             0% { transform: translate(0) }
             20% { transform: translate(-5px, 5px) }
@@ -162,6 +192,11 @@
             60% { transform: translate(5px, 5px) }
             80% { transform: translate(5px, -5px) }
             100% { transform: translate(0) }
+        }
+
+        @keyframes pulse-403 {
+            0% { opacity: 0.8; text-shadow: 0 0 10px rgba(255, 159, 10, 0.4); }
+            100% { opacity: 1; text-shadow: 0 0 40px rgba(255, 159, 10, 1); }
         }
 
         .clue {
@@ -184,6 +219,10 @@
 
         .layout-500 .clue b {
             color: var(--accent-500);
+        }
+
+        .layout-403 .clue b {
+            color: var(--accent-403);
         }
 
         .interactive-layer {
@@ -336,7 +375,64 @@
             box-shadow: 0 0 15px var(--accent-500);
         }
 
-        .layout-500 .story-section {
+        .laser-beam {
+            position: absolute;
+            background: var(--accent-403);
+            box-shadow: 0 0 15px var(--accent-403);
+            opacity: 0.6;
+            transition: opacity 0.3s;
+        }
+
+        .toxic-cloud {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(25px);
+            background: #bf5af2;
+            opacity: 0.3;
+            transition: transform 0.5s ease-out, opacity 0.5s;
+            pointer-events: auto;
+        }
+
+        .radar-container {
+            position: relative;
+            width: 300px;
+            height: 300px;
+            border: 2px solid var(--accent-403);
+            border-radius: 50%;
+            margin-bottom: 40px;
+            box-shadow: 0 0 40px rgba(255, 159, 10, 0.15);
+            overflow: hidden;
+            background: rgba(255, 159, 10, 0.05);
+            z-index: 5;
+        }
+
+        .radar-sweep {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 50%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--accent-403));
+            transform-origin: 0% 50%;
+            animation: radar-spin 3s linear infinite;
+        }
+
+        @keyframes radar-spin {
+            100% { transform: rotate(360deg); }
+        }
+
+        .radar-blip {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: #ff453a;
+            border-radius: 50%;
+            box-shadow: 0 0 15px #ff453a;
+            opacity: 0;
+            transition: opacity 0.2s, left 0.1s, top 0.1s;
+        }
+
+        .layout-500 .story-section, .layout-403 .story-section {
             background: rgba(0,0,0,0);
         }
 
@@ -734,6 +830,133 @@
             requestAnimationFrame(animate500);
         }
         animate500();
+    </script>
+    {% endif %}
+
+    {% if error_code == 403 %}
+    <div class="search-light" id="search-bg"></div>
+
+    <div class="story-section" id="sec0">
+        <h1 class="title-error">403</h1>
+        <div class="clue">Сработал протокол изоляции.<br>Доступ строго запрещен. Уровень угрозы критический.</div>
+    </div>
+
+    <div class="story-section" id="sec1">
+        <div class="interactive-layer" id="layer-lasers"></div>
+        <div class="clue">Периметр <b>Иэшников и ИИшников</b>.<br>Охранная лазерная сетка активирована. Любое движение фиксируется.</div>
+    </div>
+
+    <div class="story-section" id="sec2">
+        <div class="interactive-layer" id="layer-gas"></div>
+        <div class="clue">Карантин <b>Химбио</b>.<br>Автоматический сброс реагентов класса А. Разгоняй ядовитые пары, чтобы найти выход.</div>
+    </div>
+
+    <div class="story-section" id="sec3">
+        <div class="radar-container">
+            <div class="radar-sweep"></div>
+            <div class="radar-blip" id="radar-blip"></div>
+        </div>
+        <div class="clue">Служба безопасности Центра.<br>Биорадар сканирует сектор. Держись вне зоны фокуса, иначе они вышлют группу перехвата.</div>
+    </div>
+
+    <div class="story-section" id="sec4">
+        <div class="clue"><b>Аварийный шлюз</b>.<br>Система временно перегружена. У тебя есть несколько секунд, чтобы уйти незамеченным.</div>
+        <a href="/" class="btn-home">Покинуть закрытую зону</a>
+    </div>
+
+    <script>
+        const root = document.documentElement;
+        let mouseX = window.innerWidth / 2;
+        let mouseY = window.innerHeight / 2;
+
+        document.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+            root.style.setProperty('--mouse-x', mouseX + 'px');
+            root.style.setProperty('--mouse-y', mouseY + 'px');
+        });
+
+        const sections = document.querySelectorAll('.story-section');
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, { threshold: 0.3 });
+        sections.forEach(sec => observer.observe(sec));
+
+        const layerLasers = document.getElementById('layer-lasers');
+        for (let i = 0; i < 20; i++) {
+            const laser = document.createElement('div');
+            laser.className = 'laser-beam';
+            if (Math.random() > 0.5) {
+                laser.style.width = '100vw';
+                laser.style.height = '2px';
+                laser.style.left = '0';
+                laser.style.top = Math.random() * 100 + 'vh';
+            } else {
+                laser.style.width = '2px';
+                laser.style.height = '100vh';
+                laser.style.top = '0';
+                laser.style.left = Math.random() * 100 + 'vw';
+            }
+            layerLasers.appendChild(laser);
+        }
+
+        const layerGas = document.getElementById('layer-gas');
+        const clouds = [];
+        for (let i = 0; i < 25; i++) {
+            const cloud = document.createElement('div');
+            cloud.className = 'toxic-cloud';
+            const size = Math.random() * 250 + 150;
+            cloud.style.width = size + 'px';
+            cloud.style.height = size + 'px';
+            cloud.x = Math.random() * window.innerWidth;
+            cloud.y = Math.random() * window.innerHeight;
+            cloud.style.left = cloud.x - size / 2 + 'px';
+            cloud.style.top = cloud.y - size / 2 + 'px';
+
+            cloud.addEventListener('mouseover', () => {
+                cloud.style.transform = `scale(0.1) translate(${(Math.random()-0.5)*800}px, ${(Math.random()-0.5)*800}px)`;
+                cloud.style.opacity = '0';
+                setTimeout(() => {
+                    cloud.x = Math.random() * window.innerWidth;
+                    cloud.y = Math.random() * window.innerHeight;
+                    cloud.style.left = cloud.x - size / 2 + 'px';
+                    cloud.style.top = cloud.y - size / 2 + 'px';
+                    cloud.style.transform = 'scale(1) translate(0,0)';
+                    cloud.style.opacity = '0.3';
+                }, 4000);
+            });
+            layerGas.appendChild(cloud);
+            clouds.push(cloud);
+        }
+
+        const radarBlip = document.getElementById('radar-blip');
+
+        function animate403() {
+            const sec3Rect = document.getElementById('sec3').getBoundingClientRect();
+            if (sec3Rect.top < window.innerHeight && sec3Rect.bottom > 0) {
+                const containerCenterY = sec3Rect.top + sec3Rect.height / 2;
+                const containerCenterX = window.innerWidth / 2;
+
+                const dx = mouseX - containerCenterX;
+                const dy = mouseY - containerCenterY;
+
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                if (distance < 150) {
+                    radarBlip.style.opacity = '1';
+                    radarBlip.style.left = (150 + dx - 6) + 'px';
+                    radarBlip.style.top = (150 + dy - 6) + 'px';
+                } else {
+                    radarBlip.style.opacity = '0';
+                }
+            }
+            requestAnimationFrame(animate403);
+        }
+        animate403();
     </script>
     {% endif %}
 

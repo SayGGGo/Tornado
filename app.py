@@ -419,11 +419,15 @@ def send_message():
 
 @app.errorhandler(404)
 def page_not_found(e):
-    return render_template('error.html', error_code=404, error="Запрашиваемая страница испарилась в квантовом поле."), 404
+    return render_template('error.html', error_code=404), 404
 
 @app.errorhandler(500)
 def internal_server_error(e):
-    return render_template('error.html', error_code=500, error="Внутренняя ошибка сервера. База данных сделала сальто."), 500
+    return render_template('error.html', error_code=500), 500
+
+@app.errorhandler(403)
+def perm_defended(e):
+    return render_template('error.html', error_code=403), 403
 
 
 if __name__ == "__main__":
