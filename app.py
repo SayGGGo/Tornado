@@ -1,7 +1,10 @@
+import random
 import sys
 import os
 import time
 from datetime import datetime
+import hashlib
+import socket
 
 try:
     import requests
@@ -24,6 +27,7 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy(app)
 
+server_ip_cache = None
 groups_cache = {"data": [], "last_updated": 0}
 
 
@@ -192,6 +196,139 @@ def register():
 
     session["user_id"] = new_user.id
     return jsonify({"success": True, "redirect": url_for("chat")})
+
+
+# Фекй пинг для рекламы в другом мессенджере
+def get_randomization(text, power):
+    homoglyphs = {
+        'а': ['a', 'а', 'α', '𝕒', 'а́', 'а̇'], 'б': ['б', 'b', '6', '♭', '𝕓'],
+        'в': ['в', 'b', 'v', '𝕧', 'ʙ'], 'г': ['г', 'r', 'g', '𝕘', 'г̓'],
+        'д': ['д', 'd', '𝕕', '∂'], 'е': ['е', 'e', 'е́', '℮', '𝕖', 'є'],
+        'з': ['з', '3', 'z', '𝕫'], 'и': ['и', 'u', 'i', '𝕚', 'і'],
+        'к': ['к', 'k', '𝕜', 'қ'], 'л': ['л', 'l', '𝕝', 'љ'],
+        'м': ['м', 'm', '𝕞', 'ʍ'], 'н': ['н', 'n', 'h', '𝕟', 'ң'],
+        'о': ['о', 'o', '0', 'ο', '𝕠', 'о̇'], 'п': ['п', 'n', 'π', '𝕡'],
+        'р': ['р', 'p', 'ρ', '𝕡'], 'с': ['с', 'c', '𝕔', 'ç'],
+        'т': ['т', 't', '𝕥', 'τ'], 'у': ['у', 'y', 'γ', '𝕪'],
+        'х': ['х', 'x', '𝕩', 'х̇'], 'ч': ['ч', '4', 'ҷ'],
+
+        'a': ['a', 'а', 'α', '𝕒', 'а́'], 'b': ['b', 'в', '8', '𝕓', 'ʙ'],
+        'c': ['c', 'с', 'ç', '𝕔', 'с̇'], 'd': ['d', 'ԁ', '𝕕', 'đ'],
+        'e': ['e', 'е', '℮', '𝕖', 'ё'], 'f': ['f', '𝕗', 'ƒ'],
+        'g': ['g', '𝕘', 'ԍ', 'ｇ'], 'h': ['h', 'н', '𝕙', 'һ'],
+        'i': ['i', 'і', '𝕚', '1', 'ι'], 'j': ['j', 'ј', '𝕛'],
+        'k': ['k', 'к', '𝕜', 'κ'], 'l': ['l', '𝕝', 'ӏ', 'ǀ'],
+        'm': ['m', 'м', '𝕞', 'ʍ'], 'n': ['n', 'п', '𝕟', 'η'],
+        'o': ['o', 'о', '0', '𝕠', 'ο'], 'p': ['p', 'р', '𝕡', 'ρ'],
+        'q': ['q', '𝕢', 'ԛ'], 'r': ['r', 'г', '𝕣', 'ʀ'],
+        's': ['s', '𝕤', 'ѕ', 'ś'], 't': ['t', 'т', '𝕥', 'τ'],
+        'u': ['u', 'и', '𝕦', 'μ'], 'v': ['v', 'ѵ', '𝕧', 'ν'],
+        'w': ['w', '𝕨', 'ѡ'], 'x': ['x', 'х', '𝕩', 'ҳ'],
+        'y': ['y', 'у', '𝕪', 'ү'], 'z': ['z', '𝕫', 'ᴢ'],
+
+        '0': ['0', 'O', 'Ο', '𝕠', 'zero'], '1': ['1', 'I', 'l', '𝕚', 'і'],
+        '2': ['2', 'ℤ', 'ᒿ'], '3': ['3', 'з', 'Ӡ', 'ʒ'],
+        '4': ['4', 'ч', 'Ꮞ'], '5': ['5', 'Ƽ', '𝟝'],
+        '6': ['6', 'б', 'б'], '7': ['7', '7', '𝟕'],
+        '8': ['8', 'B', '𝟠', 'Ȣ'], '9': ['9', 'q', '𝟡']
+    }
+
+    invisible_chars = ['\u200B', '\u200C', '\u200D', '\u2060']
+    result = []
+
+    for char in text:
+        if char in [':', '/', '.', '?', '=', '&', '+']:
+            result.append(char)
+            continue
+
+        char_lower = char.lower()
+        if char_lower in homoglyphs and random.random() < power:
+            replacement = random.choice(homoglyphs[char_lower])
+            new_char = replacement.upper() if char.isupper() else replacement
+        else:
+            new_char = char
+
+        result.append(new_char)
+
+        if char.isalnum() and random.random() < (power * 0.4):
+            result.append(random.choice(invisible_chars))
+
+    return "".join(result)
+
+
+@app.route("/ping")
+def fake_ping():
+    messages = [
+        "Tornado is best",
+        "Лучший мессенджер - Tornado",
+        "Переходи в Tornado",
+        "А ведь Tornado лучше...",
+        "Tornado: твоя приватность под защитой",
+        "Попробуй Tornado прямо сейчас",
+        "Tornado — связь без границ",
+        "Добро пожаловать в Tornado",
+        "Tornado — это быстрее, чем ты думаешь",
+        "Выбирай лучшее — выбирай Tornado",
+        "Tornado — мессенджер нового поколения",
+        "Твой выбор сегодня — Tornado",
+        "Tornado — здесь все свои",
+        "Безопасность начинается с Tornado",
+        "Tornado — просто, быстро, надежно",
+        "Весь мир в одном Tornado",
+        "Tornado: будущее уже наступило",
+        "Хватит ждать, заходи в Tornado"
+    ]
+
+    return jsonify({"ok": True, "name": get_randomization(random.choice(messages), random.randint(1, 5))})
+
+
+# Реальный пинг
+def get_ip():
+    global server_ip_cache
+    if server_ip_cache:
+        return server_ip_cache
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.settimeout(2)
+        s.connect(("8.8.8.8", 80))
+        server_ip_cache = s.getsockname()[0]
+        s.close()
+        return server_ip_cache
+    except:
+        return "127.0.0.1"
+
+
+def verify_key(key):
+    if not key:
+        return False
+    try:
+        server_name = os.getenv("SERVER_NAME", "Tornado")
+        secret_salt = os.getenv("LICENSE_SALT")
+        current_ip = get_ip()
+
+        raw_string = f"{current_ip}:{server_name}:{secret_salt}"
+        expected_key = hashlib.sha256(raw_string.encode()).hexdigest()
+
+        return key == expected_key
+    except Exception:
+        return False
+
+
+@app.route("/api/ping")
+def ping():
+    try:
+        open_key = os.getenv("SERVER_OPENKEY")
+        is_verified = verify_key(open_key)
+        verify_env = str(os.getenv("SERVER_VERIFY", "false")).lower()
+
+        return jsonify({
+            "ok": True,
+            "name": os.getenv("SERVER_NAME"),
+            "verify": is_verified,
+            "verify_key": open_key if verify_env == "true" else None
+        })
+    except Exception as error:
+        return jsonify({"ok": False, "error": str(error)})
 
 
 @app.route("/login", methods=["GET", "POST"])

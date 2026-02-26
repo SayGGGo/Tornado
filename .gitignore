@@ -5,3 +5,5 @@ instance/
 .env
 Tornado.zip
 example.html
+example.py
+key_encoder.py
