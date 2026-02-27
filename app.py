@@ -372,9 +372,7 @@ def chat():
         session.pop("user_id", None)
         return redirect(url_for("login"))
 
-    folders = [
-        {"name": "Все", "count": 5, "active": True},
-    ]
+    folders = [{"name": "Все", "count": 0, "active": True}]
 
     msg_data = {
         "1": {
@@ -400,7 +398,6 @@ def chat():
             "unread": 0,
             "pinned": False,
             "muted": False,
-            "tags": [],
             "premium": "1"
         }}
     return render_template("chat.html", current_user=user, msg_data=msg_data, folders=folders)
