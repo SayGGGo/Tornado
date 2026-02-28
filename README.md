@@ -9,3 +9,5 @@
     <img src="for_rdm/2.png">
   </a>
 </p>
+
+<a href="https://github.com/SayGGGo/Tornado/blob/main/TODO.md">Перейти в TODO</a>
