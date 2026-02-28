@@ -5,6 +5,7 @@ import time
 from datetime import datetime
 import hashlib
 import socket
+import logging
 
 try:
     import requests
@@ -15,10 +16,23 @@ try:
     from dotenv import load_dotenv
     from markupsafe import escape
     import subprocess
-except ImportError as e:
-    sys.exit(f"Критическая ошибка: не установлена библиотека {e.name}. Выполните установку зависимостей.")
+except ImportError as lib:
+    sys.exit(f"Критическая ошибка: не установлена библиотека {lib.name}. Выполните установку зависимостей.")
+
 
 load_dotenv()
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(name)s: %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout)
+    ]
+)
+
+logger = logging.getLogger(os.getenv("SERVER_NAME"))
+werkzeug_logger = logging.getLogger("werkzeug")
+werkzeug_logger.setLevel(logging.INFO)
 
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", os.urandom(24))
@@ -54,24 +68,19 @@ class Message(db.Model):
 
 with app.app_context():
     db.create_all()
+    logger.info("База данных инициализирована.")
 
 
 def get_local_commit():
     try:
-        return f"коммит: {subprocess.run(
-            ["git", "rev-parse", "--short", "HEAD"],
-            capture_output=True, text=True, check=True
-        ).stdout.strip()}"
+        return f"коммит: {subprocess.run(['git', 'rev-parse', '--short', 'HEAD'], capture_output=True, text=True, check=True).stdout.strip()}"
     except (subprocess.CalledProcessError, FileNotFoundError):
         return "неизвестно"
 
 
 def get_local_version():
     try:
-        return f"релиз: {subprocess.run(
-            ["git", "describe", "--tags", "--abbrev=0"],
-            capture_output=True, text=True, check=True
-        ).stdout.strip()}"
+        return f"релиз: {subprocess.run(['git', 'describe', '--tags', '--abbrev=0'], capture_output=True, text=True, check=True).stdout.strip()}"
     except (subprocess.CalledProcessError, FileNotFoundError):
         return get_local_commit()
 
@@ -89,7 +98,7 @@ def check_github_updates():
             latest_release = res.json()[0]
             latest_version = latest_release.get("tag_name")
             if latest_version and latest_version != current_version:
-                print(f"[WARN] Доступен новый релиз: {latest_version} (текущий {current_version})")
+                logger.warning(f"Доступен новый релиз: {latest_version} (текущий {current_version})")
             return
 
         url_commits = f"https://api.github.com/repos/SayGGGo/Tornado/commits"
@@ -98,10 +107,10 @@ def check_github_updates():
         if res_commits.status_code == 200 and res_commits.json():
             latest_commit = res_commits.json()[0].get("sha", "")[:7]
             if latest_commit and latest_commit != current_commit:
-                print(f"[WARN] Доступен новый коммит: {latest_commit} (текущий {current_commit})")
+                logger.warning(f"Доступен новый коммит: {latest_commit} (текущий {current_commit})")
 
-    except requests.RequestException as e:
-        print(f"[ERROR] Ошибка проверки обновлений GitHub: {e}")
+    except requests.RequestException as error:
+        logger.error(f"Ошибка проверки обновлений GitHub: {error}")
 
 
 def verify_turnstile(token):
@@ -113,7 +122,8 @@ def verify_turnstile(token):
     try:
         response = requests.post(url, data=data, timeout=5)
         return response.json().get("success", False)
-    except requests.RequestException:
+    except requests.RequestException as error:
+        logger.error(f"Ошибка проверки Turnstile: {error}")
         return False
 
 
@@ -143,8 +153,10 @@ def get_groups():
         if groups:
             groups_cache["data"] = groups
             groups_cache["last_updated"] = current_time
+            logger.info("Расписание групп успешно обновлено.")
 
-    except requests.RequestException:
+    except requests.RequestException as error:
+        logger.error(f"Ошибка загрузки расписания: {error}")
         if groups_cache["data"]:
             return groups_cache["data"]
         groups = [{"name": "Ошибка загрузки расписания", "value": "error"}]
@@ -163,10 +175,12 @@ def index():
 def register():
     data = request.json
     if not data:
+        logger.warning("Попытка регистрации с пустым запросом.")
         return jsonify({"success": False, "message": "Пустой запрос"}), 400
 
     token = data.get("cf-turnstile-response")
     if not token or not verify_turnstile(token):
+        logger.warning("Провалена проверка капчи при регистрации.")
         return jsonify({"success": False, "message": "Капча не пройдена"})
 
     required_fields = ["fio", "login", "password", "password_retry", "position"]
@@ -177,6 +191,7 @@ def register():
         return jsonify({"success": False, "message": "Пароли не совпадают"})
 
     if User.query.filter_by(login=data["login"]).first():
+        logger.warning(f"Попытка регистрации существующего логина: {data['login']}")
         return jsonify({"success": False, "message": "Пользователь с таким логином уже существует"})
 
     new_user = User(
@@ -193,12 +208,13 @@ def register():
 
     db.session.add(new_user)
     db.session.commit()
+    logger.info(f"Зарегистрирован новый пользователь: {new_user.login}")
 
     session["user_id"] = new_user.id
     return jsonify({"success": True, "redirect": url_for("chat")})
 
 
-# Фекй пинг для рекламы в другом мессенджере
+# todo: Что-то придумать
 def get_randomization(text, power):
     homoglyphs = {
         'а': ['a', 'а', 'α', '𝕒', 'а́', 'а̇'], 'б': ['б', 'b', '6', '♭', '𝕓'],
@@ -295,6 +311,7 @@ def get_ip():
         s.close()
         return server_ip_cache
     except:
+        logger.error(f"Не удалось получить IP сервера")
         return "127.0.0.1"
 
 
@@ -311,6 +328,7 @@ def verify_key(key):
 
         return key == expected_key
     except Exception:
+        logger.error(f"Ошибка проверки ключа")
         return False
 
 
@@ -328,6 +346,7 @@ def ping():
             "verify_key": open_key if verify_env == "true" else None
         })
     except Exception as error:
+        logger.error(f"Ошибка в /api/ping: {error}")
         return jsonify({"ok": False, "error": str(error)})
 
 
@@ -349,8 +368,10 @@ def login():
 
         if user and check_password_hash(user.password_hash, data.get("password", "")):
             session["user_id"] = user.id
+            logger.info(f"Успешный вход пользователя: {user.login}")
             return jsonify({"success": True, "redirect": url_for("chat")})
 
+        logger.warning(f"Неудачная попытка входа для логина: {data.get('login')}")
         return jsonify({"success": False, "message": "Неверный логин или пароль"})
 
     return render_template("login.html", site_key=os.getenv("TURNSTILE_SITEKEY", "1"))
@@ -390,7 +411,7 @@ def chat():
         },
         "2": {
             "name": "Tornado",
-            "avatar": "https://i.ibb.co/r2gBtVR6/tlogo.png",
+            "avatar": "https://i.ibb.co/XZ3kSFyf/tlogo.png",
             "active": False,
             "last_msg": "Служебные сообщения",
             "last_time": "",
@@ -447,17 +468,20 @@ def send_message():
 
 @app.errorhandler(404)
 def page_not_found(e):
+    logger.warning(f"Страница не найдена: {request.url}")
     return render_template('error.html', error_code=404), 404
 
 @app.errorhandler(500)
 def internal_server_error(e):
+    logger.error(f"Внутренняя ошибка сервера: {e}")
     return render_template('error.html', error_code=500), 500
 
 @app.errorhandler(403)
 def perm_defended(e):
+    logger.warning(f"Доступ запрещен: {request.url}")
     return render_template('error.html', error_code=403), 403
 
 
 if __name__ == "__main__":
-    check_github_updates()
+    # check_github_updates()
     app.run(debug=True, port=3000, host="0.0.0.0")
