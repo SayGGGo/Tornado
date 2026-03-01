@@ -86,4 +86,4 @@ graph TD
     R_PING --> S_VERIFY[Защита эндпоинта\nгенерация hashlib.sha256 из соли и IP]:::server
 ```
 
-### Сделано в Figma, перенесенно через Mermaid и нейронки
+### Сделано в Figma, перенесенно через Mermaid и Gemini
