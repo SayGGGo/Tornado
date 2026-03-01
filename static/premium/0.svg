@@ -1,0 +1,20 @@
+<svg viewBox="0 0 1267.08 1100.08" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1267.079346" height="1100.079590" fill="none" customFrame="#000000">
+	<defs>
+		<g id="pixso_custom_effect_0">
+			<effect x="0.000000" y="0.000000" visibility="visible" fill="rgb(255,255,255)" fill-opacity="0.25" effectType="dropShadow" stdDeviation="132.539825" radius="0" />
+		</g>
+		<filter id="filter_0" width="1267.079346" height="1100.079590" x="0.000000" y="0.000000" filterUnits="userSpaceOnUse" customEffect="url(#pixso_custom_effect_0)" color-interpolation-filters="sRGB">
+			<feFlood flood-opacity="0" result="BackgroundImageFix" />
+			<feColorMatrix result="hardAlpha" in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0 " />
+			<feOffset dx="0.000000" dy="0.000000" in="hardAlpha" />
+			<feGaussianBlur stdDeviation="44.1799431" />
+			<feComposite k2="-1" k3="1" in2="hardAlpha" operator="out" />
+			<feColorMatrix type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.25 0 " />
+			<feBlend result="effect_dropShadow_1" in2="BackgroundImageFix" mode="normal" />
+			<feBlend result="shape" in="SourceGraphic" in2="effect_dropShadow_1" mode="normal" />
+		</filter>
+	</defs>
+	<g id="Сочетание 2" filter="url(#filter_0)">
+		<path id="Форма 6" d="M1049.12 139.911C1049.12 139.911 1141.81 103.768 1134.08 191.545C1131.51 227.689 1108.34 354.192 1090.31 491.022L1028.52 896.347C1028.52 896.347 1023.37 955.725 977.021 966.053C930.674 976.378 861.156 929.909 848.281 919.582C837.982 911.838 655.174 795.661 590.802 738.864C572.778 723.373 552.18 692.393 593.377 656.249L863.731 398.082C894.628 367.101 925.526 294.814 796.785 382.591L436.315 627.852C436.315 627.852 395.119 653.668 317.877 630.433L150.514 578.799C150.514 578.799 88.7192 540.074 194.286 501.347C451.765 380.007 768.464 256.086 1049.12 139.911Z" fill="rgb(255,255,255)" fill-rule="nonzero" />
+	</g>
+</svg>

@@ -10,21 +10,39 @@ import logging
 try:
     import requests
     from bs4 import BeautifulSoup
-    from flask import Flask, render_template, request, jsonify, session, redirect, url_for
+    from flask import Flask, render_template, request, jsonify, session, redirect, url_for, send_file
     from flask_sqlalchemy import SQLAlchemy
     from werkzeug.security import generate_password_hash, check_password_hash
     from dotenv import load_dotenv
     from markupsafe import escape
     import subprocess
+    import asyncio
 except ImportError as lib:
-    sys.exit(f"Критическая ошибка: не установлена библиотека {lib.name}. Выполните установку зависимостей.")
+    sys.exit(f"Пожалуйста, установите библиотку {lib}")
 
 
 load_dotenv()
 
+tg_api = False
+if os.getenv("TELEGRAM_API")=="True":
+    try:
+        from telethon.sync import TelegramClient
+        from telethon.sessions import MemorySession
+        import qrcode
+        from qrcode.image.styledpil import StyledPilImage
+        from qrcode.image.styles.moduledrawers import RoundedModuleDrawer, CircleModuleDrawer
+
+        import PIL
+        from PIL import ImageDraw
+        import io
+
+        tg_api = True
+    except ImportError as lib:
+        sys.exit(f"Пожалуйста, установите библиотеку {lib} или установите TELEGRAM_API=False в .env")
+
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s [%(levelname)s] %(name)s: %(message)s',
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     handlers=[
         logging.StreamHandler(sys.stdout)
     ]
@@ -70,17 +88,19 @@ with app.app_context():
     db.create_all()
     logger.info("База данных инициализирована.")
 
+if tg_api:
+    logger.info("Teelgram API активен")
 
 def get_local_commit():
     try:
-        return f"коммит: {subprocess.run(['git', 'rev-parse', '--short', 'HEAD'], capture_output=True, text=True, check=True).stdout.strip()}"
+        return f"коммит: {subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True, check=True).stdout.strip()}"
     except (subprocess.CalledProcessError, FileNotFoundError):
         return "неизвестно"
 
 
 def get_local_version():
     try:
-        return f"релиз: {subprocess.run(['git', 'describe', '--tags', '--abbrev=0'], capture_output=True, text=True, check=True).stdout.strip()}"
+        return f"релиз: {subprocess.run(["git", "describe", "--tags", "--abbrev=0"], capture_output=True, text=True, check=True).stdout.strip()}"
     except (subprocess.CalledProcessError, FileNotFoundError):
         return get_local_commit()
 
@@ -191,7 +211,7 @@ def register():
         return jsonify({"success": False, "message": "Пароли не совпадают"})
 
     if User.query.filter_by(login=data["login"]).first():
-        logger.warning(f"Попытка регистрации существующего логина: {data['login']}")
+        logger.warning(f"Попытка регистрации существующего логина: {data["login"]}")
         return jsonify({"success": False, "message": "Пользователь с таким логином уже существует"})
 
     new_user = User(
@@ -217,43 +237,43 @@ def register():
 # todo: Что-то придумать
 def get_randomization(text, power):
     homoglyphs = {
-        'а': ['a', 'а', 'α', '𝕒', 'а́', 'а̇'], 'б': ['б', 'b', '6', '♭', '𝕓'],
-        'в': ['в', 'b', 'v', '𝕧', 'ʙ'], 'г': ['г', 'r', 'g', '𝕘', 'г̓'],
-        'д': ['д', 'd', '𝕕', '∂'], 'е': ['е', 'e', 'е́', '℮', '𝕖', 'є'],
-        'з': ['з', '3', 'z', '𝕫'], 'и': ['и', 'u', 'i', '𝕚', 'і'],
-        'к': ['к', 'k', '𝕜', 'қ'], 'л': ['л', 'l', '𝕝', 'љ'],
-        'м': ['м', 'm', '𝕞', 'ʍ'], 'н': ['н', 'n', 'h', '𝕟', 'ң'],
-        'о': ['о', 'o', '0', 'ο', '𝕠', 'о̇'], 'п': ['п', 'n', 'π', '𝕡'],
-        'р': ['р', 'p', 'ρ', '𝕡'], 'с': ['с', 'c', '𝕔', 'ç'],
-        'т': ['т', 't', '𝕥', 'τ'], 'у': ['у', 'y', 'γ', '𝕪'],
-        'х': ['х', 'x', '𝕩', 'х̇'], 'ч': ['ч', '4', 'ҷ'],
+        "а": ["a", "а", "α", "𝕒", "а́", "а̇"], "б": ["б", "b", "6", "♭", "𝕓"],
+        "в": ["в", "b", "v", "𝕧", "ʙ"], "г": ["г", "r", "g", "𝕘", "г̓"],
+        "д": ["д", "d", "𝕕", "∂"], "е": ["е", "e", "е́", "℮", "𝕖", "є"],
+        "з": ["з", "3", "z", "𝕫"], "и": ["и", "u", "i", "𝕚", "і"],
+        "к": ["к", "k", "𝕜", "қ"], "л": ["л", "l", "𝕝", "љ"],
+        "м": ["м", "m", "𝕞", "ʍ"], "н": ["н", "n", "h", "𝕟", "ң"],
+        "о": ["о", "o", "0", "ο", "𝕠", "о̇"], "п": ["п", "n", "π", "𝕡"],
+        "р": ["р", "p", "ρ", "𝕡"], "с": ["с", "c", "𝕔", "ç"],
+        "т": ["т", "t", "𝕥", "τ"], "у": ["у", "y", "γ", "𝕪"],
+        "х": ["х", "x", "𝕩", "х̇"], "ч": ["ч", "4", "ҷ"],
 
-        'a': ['a', 'а', 'α', '𝕒', 'а́'], 'b': ['b', 'в', '8', '𝕓', 'ʙ'],
-        'c': ['c', 'с', 'ç', '𝕔', 'с̇'], 'd': ['d', 'ԁ', '𝕕', 'đ'],
-        'e': ['e', 'е', '℮', '𝕖', 'ё'], 'f': ['f', '𝕗', 'ƒ'],
-        'g': ['g', '𝕘', 'ԍ', 'ｇ'], 'h': ['h', 'н', '𝕙', 'һ'],
-        'i': ['i', 'і', '𝕚', '1', 'ι'], 'j': ['j', 'ј', '𝕛'],
-        'k': ['k', 'к', '𝕜', 'κ'], 'l': ['l', '𝕝', 'ӏ', 'ǀ'],
-        'm': ['m', 'м', '𝕞', 'ʍ'], 'n': ['n', 'п', '𝕟', 'η'],
-        'o': ['o', 'о', '0', '𝕠', 'ο'], 'p': ['p', 'р', '𝕡', 'ρ'],
-        'q': ['q', '𝕢', 'ԛ'], 'r': ['r', 'г', '𝕣', 'ʀ'],
-        's': ['s', '𝕤', 'ѕ', 'ś'], 't': ['t', 'т', '𝕥', 'τ'],
-        'u': ['u', 'и', '𝕦', 'μ'], 'v': ['v', 'ѵ', '𝕧', 'ν'],
-        'w': ['w', '𝕨', 'ѡ'], 'x': ['x', 'х', '𝕩', 'ҳ'],
-        'y': ['y', 'у', '𝕪', 'ү'], 'z': ['z', '𝕫', 'ᴢ'],
+        "a": ["a", "а", "α", "𝕒", "а́"], "b": ["b", "в", "8", "𝕓", "ʙ"],
+        "c": ["c", "с", "ç", "𝕔", "с̇"], "d": ["d", "ԁ", "𝕕", "đ"],
+        "e": ["e", "е", "℮", "𝕖", "ё"], "f": ["f", "𝕗", "ƒ"],
+        "g": ["g", "𝕘", "ԍ", "ｇ"], "h": ["h", "н", "𝕙", "һ"],
+        "i": ["i", "і", "𝕚", "1", "ι"], "j": ["j", "ј", "𝕛"],
+        "k": ["k", "к", "𝕜", "κ"], "l": ["l", "𝕝", "ӏ", "ǀ"],
+        "m": ["m", "м", "𝕞", "ʍ"], "n": ["n", "п", "𝕟", "η"],
+        "o": ["o", "о", "0", "𝕠", "ο"], "p": ["p", "р", "𝕡", "ρ"],
+        "q": ["q", "𝕢", "ԛ"], "r": ["r", "г", "𝕣", "ʀ"],
+        "s": ["s", "𝕤", "ѕ", "ś"], "t": ["t", "т", "𝕥", "τ"],
+        "u": ["u", "и", "𝕦", "μ"], "v": ["v", "ѵ", "𝕧", "ν"],
+        "w": ["w", "𝕨", "ѡ"], "x": ["x", "х", "𝕩", "ҳ"],
+        "y": ["y", "у", "𝕪", "ү"], "z": ["z", "𝕫", "ᴢ"],
 
-        '0': ['0', 'O', 'Ο', '𝕠', 'zero'], '1': ['1', 'I', 'l', '𝕚', 'і'],
-        '2': ['2', 'ℤ', 'ᒿ'], '3': ['3', 'з', 'Ӡ', 'ʒ'],
-        '4': ['4', 'ч', 'Ꮞ'], '5': ['5', 'Ƽ', '𝟝'],
-        '6': ['6', 'б', 'б'], '7': ['7', '7', '𝟕'],
-        '8': ['8', 'B', '𝟠', 'Ȣ'], '9': ['9', 'q', '𝟡']
+        "0": ["0", "O", "Ο", "𝕠", "zero"], "1": ["1", "I", "l", "𝕚", "і"],
+        "2": ["2", "ℤ", "ᒿ"], "3": ["3", "з", "Ӡ", "ʒ"],
+        "4": ["4", "ч", "Ꮞ"], "5": ["5", "Ƽ", "𝟝"],
+        "6": ["6", "б", "б"], "7": ["7", "7", "𝟕"],
+        "8": ["8", "B", "𝟠", "Ȣ"], "9": ["9", "q", "𝟡"]
     }
 
-    invisible_chars = ['\u200B', '\u200C', '\u200D', '\u2060']
+    invisible_chars = ["\u200B", "\u200C", "\u200D", "\u2060"]
     result = []
 
     for char in text:
-        if char in [':', '/', '.', '?', '=', '&', '+']:
+        if char in [":", "/", ".", "?", "=", "&", "+"]:
             result.append(char)
             continue
 
@@ -371,11 +391,68 @@ def login():
             logger.info(f"Успешный вход пользователя: {user.login}")
             return jsonify({"success": True, "redirect": url_for("chat")})
 
-        logger.warning(f"Неудачная попытка входа для логина: {data.get('login')}")
+        logger.warning(f"Неудачная попытка входа для логина: {data.get("login")}")
         return jsonify({"success": False, "message": "Неверный логин или пароль"})
 
     return render_template("login.html", site_key=os.getenv("TURNSTILE_SITEKEY", "1"))
 
+# --- Telegram сессии [Beta]
+async def get_qr_from_login(client):
+    await client.connect()
+    qr_login = await client.qr_login()
+    return qr_login.url
+
+# todo: полный асинк прикрутить обязательно, криво работает
+@app.route("/api/tg/login", methods=["GET"])
+def generate_qr_from_login():
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
+    try:
+        client = TelegramClient(MemorySession(), int(os.getenv("TG_API_ID")), os.getenv("TG_API_HASH"), loop=loop)
+    except:
+        return jsonify({"success": False, "message": "API недоступен"}), 500
+
+    try:
+        url = loop.run_until_complete(get_qr_from_login(client))
+
+        qr = qrcode.QRCode(
+            error_correction=qrcode.constants.ERROR_CORRECT_H,
+            box_size=10,
+            border=4,
+        )
+        qr.add_data(url)
+        qr.make(fit=True)
+
+        img = qr.make_image(
+            image_factory=StyledPilImage,
+            module_drawer=RoundedModuleDrawer(),
+            eye_drawer=RoundedModuleDrawer()).convert("RGB")
+
+        width, height = img.size
+
+        hole_size_ratio = 0.25
+        hole_w = int(width * hole_size_ratio)
+        hole_h = int(height * hole_size_ratio)
+
+        left = (width - hole_w) // 2
+        top = (height - hole_h) // 2
+        right = (width + hole_w) // 2
+        bottom = (height + hole_h) // 2
+
+        draw = ImageDraw.Draw(img)
+        draw.rectangle([left, top, right, bottom], fill="white")
+
+        img_io = io.BytesIO()
+        img.save(img_io, "PNG")
+        img_io.seek(0)
+
+        return send_file(img_io, mimetype="image/png")
+    except Exception as error:
+        logger.error(f"Ошибка: {error}")
+        return jsonify({"success": False, "message": "API недоступен"}), 500
+    finally:
+        loop.close()
 
 @app.route("/logout")
 def logout():
@@ -420,6 +497,18 @@ def chat():
             "pinned": False,
             "muted": False,
             "premium": "1"
+        },
+        "3": {
+            "name": "Test",
+            "avatar": "https://cdn.worldvectorlogo.com/logos/telegram-1.svg",
+            "active": False,
+            "last_msg": "/start",
+            "last_time": "17:21",
+            "last_status": True,
+            "unread": 0,
+            "pinned": False,
+            "muted": False,
+            "premium": "0"
         }}
     return render_template("chat.html", current_user=user, msg_data=msg_data, folders=folders)
 
@@ -465,21 +554,25 @@ def send_message():
 
     return jsonify({"success": True, "id": new_msg.id})
 
+@app.route("/favicon.ico")
+def icon():
+    return send_file("static/icons/favicon.ico")
+
 
 @app.errorhandler(404)
 def page_not_found(e):
     logger.warning(f"Страница не найдена: {request.url}")
-    return render_template('error.html', error_code=404), 404
+    return render_template("error.html", error_code=404), 404
 
 @app.errorhandler(500)
 def internal_server_error(e):
     logger.error(f"Внутренняя ошибка сервера: {e}")
-    return render_template('error.html', error_code=500), 500
+    return render_template("error.html", error_code=500), 500
 
 @app.errorhandler(403)
 def perm_defended(e):
     logger.warning(f"Доступ запрещен: {request.url}")
-    return render_template('error.html', error_code=403), 403
+    return render_template("error.html", error_code=403), 403
 
 
 if __name__ == "__main__":
