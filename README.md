@@ -11,3 +11,5 @@
 </p>
 
 <a href="https://github.com/SayGGGo/Tornado/blob/main/TODO.md">Перейти в TODO</a>
+<br>
+<a href="https://github.com/SayGGGo/Tornado/blob/main/SCHEME.md">Перейти в блок-схему</a>
