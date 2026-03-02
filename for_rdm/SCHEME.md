@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="for_rdm/scheme.png" alt="TORNADO">
+  <img src="scheme.png" alt="TORNADO">
 </p>
 
 ```mermaid
@@ -85,5 +85,7 @@ graph TD
     
     R_PING --> S_VERIFY[Защита эндпоинта\nгенерация hashlib.sha256 из соли и IP]:::server
 ```
+## Если схема выше не загружается, или плохо работает:
+<img src="sh.svg">
 
-### Сделано в Figma, перенесенно через Mermaid и Gemini
+### Сделано в Figma, перенесенно через Mermaid, SVG и Gemini
