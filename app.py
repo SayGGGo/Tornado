@@ -5,7 +5,8 @@ import time
 from datetime import datetime
 import hashlib
 import socket
-import logging
+import subprocess
+import asyncio
 
 try:
     import requests
@@ -13,49 +14,29 @@ try:
     from flask import Flask, render_template, request, jsonify, session, redirect, url_for, send_file
     from flask_sqlalchemy import SQLAlchemy
     from werkzeug.security import generate_password_hash, check_password_hash
-    from dotenv import load_dotenv
     from markupsafe import escape
-    import subprocess
-    import asyncio
 except ImportError as lib:
-    sys.exit(f"Пожалуйста, установите библиотку {lib}")
+    sys.exit(f"Пожалуйста, установите библиотеку {lib}")
 
-
-load_dotenv()
+from config import Config, logger
 
 tg_api = False
-if os.getenv("TELEGRAM_API")=="True":
+if Config.TELEGRAM_API_ACTIVE:
     try:
         from telethon.sync import TelegramClient
         from telethon.sessions import MemorySession
         import qrcode
         from qrcode.image.styledpil import StyledPilImage
         from qrcode.image.styles.moduledrawers import RoundedModuleDrawer, CircleModuleDrawer
-
         import PIL
         from PIL import ImageDraw
         import io
-
         tg_api = True
     except ImportError as lib:
         sys.exit(f"Пожалуйста, установите библиотеку {lib} или установите TELEGRAM_API=False в .env")
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-    handlers=[
-        logging.StreamHandler(sys.stdout)
-    ]
-)
-
-logger = logging.getLogger(os.getenv("SERVER_NAME"))
-werkzeug_logger = logging.getLogger("werkzeug")
-werkzeug_logger.setLevel(logging.INFO)
-
 app = Flask(__name__)
-app.secret_key = os.getenv("SECRET_KEY", os.urandom(24))
-app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL", "sqlite:///tornado.db")
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+app.config.from_object(Config)
 
 db = SQLAlchemy(app)
 
@@ -136,7 +117,7 @@ def check_github_updates():
 def verify_turnstile(token):
     url = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
     data = {
-        "secret": os.getenv("TURNSTILE_SECRET", "1x0000000000000000000000000000000AA"),
+        "secret": Config.TURNSTILE_SECRET,
         "response": token
     }
     try:
@@ -188,7 +169,7 @@ def get_groups():
 def index():
     if "user_id" in session:
         return redirect(url_for("chat"))
-    return render_template("start.html", groups=get_groups(), site_key=os.getenv("TURNSTILE_SITEKEY", "1"))
+    return render_template("start.html", groups=get_groups(), site_key=Config.TURNSTILE_SITEKEY)
 
 
 @app.route("/api/register", methods=["POST"])
@@ -339,11 +320,7 @@ def verify_key(key):
     if not key:
         return False
     try:
-        server_name = os.getenv("SERVER_NAME", "Tornado")
-        secret_salt = os.getenv("LICENSE_SALT")
-        current_ip = get_ip()
-
-        raw_string = f"{current_ip}:{server_name}:{secret_salt}"
+        raw_string = f"{get_ip()}:{Config.SERVER_NAME}:{Config.LICENSE_SALT}"
         expected_key = hashlib.sha256(raw_string.encode()).hexdigest()
 
         return key == expected_key
@@ -355,13 +332,13 @@ def verify_key(key):
 @app.route("/api/ping")
 def ping():
     try:
-        open_key = os.getenv("SERVER_OPENKEY")
+        open_key = Config.SERVER_OPENKEY
         is_verified = verify_key(open_key)
-        verify_env = str(os.getenv("SERVER_VERIFY", "false")).lower()
+        verify_env = str(Config.SERVER_VERIFY).lower()
 
         return jsonify({
             "ok": True,
-            "name": os.getenv("SERVER_NAME"),
+            "name": Config.SERVER_NAME,
             "verify": is_verified,
             "verify_key": open_key if verify_env == "true" else None
         })
@@ -394,7 +371,7 @@ def login():
         logger.warning(f"Неудачная попытка входа для логина: {data.get("login")}")
         return jsonify({"success": False, "message": "Неверный логин или пароль"})
 
-    return render_template("login.html", site_key=os.getenv("TURNSTILE_SITEKEY", "1"))
+    return render_template("login.html", site_key=Config.TURNSTILE_SITEKEY)
 
 # --- Telegram сессии [Beta]
 async def get_qr_from_login(client):
@@ -409,7 +386,7 @@ def generate_qr_from_login():
     asyncio.set_event_loop(loop)
 
     try:
-        client = TelegramClient(MemorySession(), int(os.getenv("TG_API_ID")), os.getenv("TG_API_HASH"), loop=loop)
+        client = TelegramClient(MemorySession(), int(Config.TG_API_ID), Config.TG_API_HASH, loop=loop)
     except:
         return jsonify({"success": False, "message": "API недоступен"}), 500
 
