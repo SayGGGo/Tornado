@@ -74,14 +74,14 @@ if tg_api:
 
 def get_local_commit():
     try:
-        return f"коммит: {subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True, check=True).stdout.strip()}"
+        return f"коммит: {subprocess.run(['git', 'rev-parse', '--short', 'HEAD'], capture_output=True, text=True, check=True).stdout.strip()}"
     except (subprocess.CalledProcessError, FileNotFoundError):
         return "неизвестно"
 
 
 def get_local_version():
     try:
-        return f"релиз: {subprocess.run(["git", "describe", "--tags", "--abbrev=0"], capture_output=True, text=True, check=True).stdout.strip()}"
+        return f"релиз: {subprocess.run(['git', 'describe', '--tags', '--abbrev=0'], capture_output=True, text=True, check=True).stdout.strip()}"
     except (subprocess.CalledProcessError, FileNotFoundError):
         return get_local_commit()
 
@@ -192,7 +192,7 @@ def register():
         return jsonify({"success": False, "message": "Пароли не совпадают"})
 
     if User.query.filter_by(login=data["login"]).first():
-        logger.warning(f"Попытка регистрации существующего логина: {data["login"]}")
+        logger.warning(f"Попытка регистрации существующего логина: {data['login']}")
         return jsonify({"success": False, "message": "Пользователь с таким логином уже существует"})
 
     new_user = User(
@@ -368,7 +368,7 @@ def login():
             logger.info(f"Успешный вход пользователя: {user.login}")
             return jsonify({"success": True, "redirect": url_for("chat")})
 
-        logger.warning(f"Неудачная попытка входа для логина: {data.get("login")}")
+        logger.warning(f"Неудачная попытка входа для логина: {data.get('login')}")
         return jsonify({"success": False, "message": "Неверный логин или пароль"})
 
     return render_template("login.html", site_key=Config.TURNSTILE_SITEKEY)
