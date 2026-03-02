@@ -1,11 +1,11 @@
 <p align="center">
-  <a href="http://89.111.168.223:3000/">
+  <a href="89.111.168.223:3000/">
     <img src="for_rdm/header.png" alt="TORNADO">
   </a>
-  <a href="http://89.111.168.223:3000/" title="Перейти на сайт">
+  <a href="89.111.168.223:3000/" title="Перейти на сайт">
     <img src="for_rdm/1.png" alt="DEMO — TORNADO.SAYDEF.XYZ">
   </a>
-  <a href="http://89.111.168.223:3000/">
+  <a href="89.111.168.223:3000/">
     <img src="for_rdm/2.png">
   </a>
 </p>
