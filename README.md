@@ -97,7 +97,7 @@ python app.py
 
 ## FAQ
 **1. Как реализован Liquid Glass?**
-Интерфейс использует кастомный SVG-фильтр `liquid-glass-filter` с использованием узлов `feTurbulence` и `feDisplacementMap`, что позволяет создавать эффект динамического искажения стекла. Подробнее можно прочитать на [tonky-kot.ru](https://tonky-kot.ru/cool-stuff/liquid-glass-generator).
+Интерфейс использует кастомный SVG-фильтр `liquid-glass-filter` с использованием узлов `feTurbulence` и `feDisplacementMap`, что позволяет создавать эффект динамического искажения стекла. Такое можно просто реализовать на [tonky-kot.ru](https://tonky-kot.ru/cool-stuff/liquid-glass-generator).
 
 **2. Работают ли боты при входе через Telegram?**
 Да, но только если бот работает через команды. Клавиатуры и мини-приложения не поддерживаются.
