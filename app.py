@@ -19,6 +19,7 @@ except ImportError as lib:
     sys.exit(f"Пожалуйста, установите библиотеку {lib}")
 
 from config import Config, logger
+from botapi import register_bot_api
 
 tg_api = False
 if Config.TELEGRAM_API_ACTIVE:
@@ -554,4 +555,5 @@ def perm_defended(e):
 
 if __name__ == "__main__":
     # check_github_updates()
+    register_bot_api(app)
     app.run(debug=True, port=3000, host="0.0.0.0")
