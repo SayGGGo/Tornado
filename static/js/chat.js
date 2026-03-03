@@ -84,16 +84,16 @@ chatItems.forEach(item => {
     });
 });
 
-document.addEventListener('click', (e) => {
-    if (!contextMenu.contains(e.target)) {
-        contextMenu.classList.remove('active');
-        setTimeout(() => {
-            if (!contextMenu.classList.contains('active')) {
-                contextMenu.style.display = 'none';
-            }
-        }, 100);
-    }
-});
+// document.addEventListener('click', (e) => {
+//     if (!contextMenu.contains(e.target)) {
+//         contextMenu.classList.remove('active');
+//         setTimeout(() => {
+//             if (!contextMenu.classList.contains('active')) {
+//                 contextMenu.style.display = 'none';
+//             }
+//         }, 100);
+//     }
+// });
 
 const currentUserMeta = document.querySelector('meta[name="current-user"]');
 const currentUser = currentUserMeta ? currentUserMeta.content : '';
@@ -184,4 +184,15 @@ if (sendBtn && messageInput) {
         if (e.key === 'Enter') sendMessage();
     });
     setInterval(fetchMessages, 2000);
+}
+
+const isChromium = /chrome|edg|opr|opera/.test(navigator.userAgent.toLowerCase());
+const elements = document.querySelectorAll('.liquid-glass');
+
+if (elements.length > 0) {
+if (!isChromium) {
+  elements.forEach(el => {
+    el.classList.add('liquid-glass-fallback');
+  });
+}
 }
