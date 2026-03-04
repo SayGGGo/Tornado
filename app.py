@@ -44,6 +44,17 @@ db = SQLAlchemy(app)
 server_ip_cache = None
 groups_cache = {"data": [], "last_updated": 0}
 
+# todo: Доделать
+class ChatParticipant(db.Model):
+    __tablename__ = 'chat_participant'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    chat_id = db.Column(db.Integer, db.ForeignKey("chat.id"), nullable=False)
+    role = db.Column(db.String(20), default="member")
+    joined_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship("User", back_populates="chat_memberships")
+    chat = db.relationship("Chat", back_populates="participants")
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -55,16 +66,39 @@ class User(db.Model):
     platforms = db.Column(db.String(200))
     projects = db.Column(db.String(200))
     source = db.Column(db.String(50))
+
     premium = db.Column(db.Boolean, default=False)
+    premium_emoji = db.Column(db.Integer, default=0)
+
+    chat_memberships = db.relationship("ChatParticipant", back_populates="user", cascade="all, delete-orphan")
+    messages = db.relationship("Message", back_populates="author", lazy="dynamic")
+
+
+class Chat(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    personal = db.Column(db.Boolean, default=False)
+
+    # группа
+    name = db.Column(db.String(150), nullable=True)
+    owner_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=True)
+    protected = db.Column(db.Boolean, default=False)
+
+    # связь
+    participants = db.relationship("ChatParticipant", back_populates="chat", cascade="all, delete-orphan")
+    messages = db.relationship("Message", back_populates="chat", cascade="all, delete-orphan")
 
 
 class Message(db.Model):
     id = db.Column(db.Integer, primary_key=True)
+
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    chat_id = db.Column(db.Integer, db.ForeignKey("chat.id"), nullable=False)
+
     content = db.Column(db.Text, nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
-    user = db.relationship("User", backref=db.backref("messages", lazy=True))
 
+    author = db.relationship("User", back_populates="messages")
+    chat = db.relationship("Chat", back_populates="messages")
 
 with app.app_context():
     db.create_all()
