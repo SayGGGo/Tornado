@@ -590,4 +590,4 @@ def perm_defended(e):
 if __name__ == "__main__":
     # check_github_updates()
     register_bot_api(app)
-    app.run(debug=True, port=3000, host="0.0.0.0")
+    app.run(port=3000, host="0.0.0.0")
