@@ -9,3 +9,4 @@ example.py
 key_encoder.py
 tests/
 frontend/
+migrations/
