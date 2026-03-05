@@ -1,0 +1,12 @@
+from flask_sqlalchemy import SQLAlchemy
+
+db = SQLAlchemy()
+
+from .user import User
+from .chat import Chat, ChatParticipant
+from .message import Message
+
+def init_models(app):
+    db.init_app(app)
+    with app.app_context():
+        db.create_all()

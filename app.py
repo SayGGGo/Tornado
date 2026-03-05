@@ -12,7 +12,6 @@ try:
     import requests
     from bs4 import BeautifulSoup
     from flask import Flask, render_template, request, jsonify, session, redirect, url_for, send_file
-    from flask_sqlalchemy import SQLAlchemy
     from werkzeug.security import generate_password_hash, check_password_hash
     from markupsafe import escape
 except ImportError as lib:
@@ -20,6 +19,7 @@ except ImportError as lib:
 
 from config import Config, logger
 from botapi import register_bot_api
+from models import init_models, User, Chat, Message, ChatParticipant, db
 
 tg_api = False
 if Config.TELEGRAM_API_ACTIVE:
@@ -38,71 +38,10 @@ if Config.TELEGRAM_API_ACTIVE:
 
 app = Flask(__name__)
 app.config.from_object(Config)
-
-db = SQLAlchemy(app)
+init_models(app)
 
 server_ip_cache = None
 groups_cache = {"data": [], "last_updated": 0}
-
-# todo: Доделать
-class ChatParticipant(db.Model):
-    __tablename__ = 'chat_participant'
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
-    chat_id = db.Column(db.Integer, db.ForeignKey("chat.id"), nullable=False)
-    role = db.Column(db.String(20), default="member")
-    joined_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-    user = db.relationship("User", back_populates="chat_memberships")
-    chat = db.relationship("Chat", back_populates="participants")
-
-class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    fio = db.Column(db.String(150), nullable=False)
-    login = db.Column(db.String(50), unique=True, nullable=False)
-    password_hash = db.Column(db.String(256), nullable=False)
-    group_id = db.Column(db.String(50), nullable=False)
-    study_type = db.Column(db.String(50))
-    platforms = db.Column(db.String(200))
-    projects = db.Column(db.String(200))
-    source = db.Column(db.String(50))
-
-    premium = db.Column(db.Boolean, default=False)
-    premium_emoji = db.Column(db.Integer, default=0)
-
-    chat_memberships = db.relationship("ChatParticipant", back_populates="user", cascade="all, delete-orphan")
-    messages = db.relationship("Message", back_populates="author", lazy="dynamic")
-
-
-class Chat(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    personal = db.Column(db.Boolean, default=False)
-
-    # группа
-    name = db.Column(db.String(150), nullable=True)
-    owner_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=True)
-    protected = db.Column(db.Boolean, default=False)
-
-    # связь
-    participants = db.relationship("ChatParticipant", back_populates="chat", cascade="all, delete-orphan")
-    messages = db.relationship("Message", back_populates="chat", cascade="all, delete-orphan")
-
-
-class Message(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-
-    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
-    chat_id = db.Column(db.Integer, db.ForeignKey("chat.id"), nullable=False)
-
-    content = db.Column(db.Text, nullable=False)
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
-
-    author = db.relationship("User", back_populates="messages")
-    chat = db.relationship("Chat", back_populates="messages")
-
-with app.app_context():
-    db.create_all()
-    logger.info("База данных инициализирована.")
 
 if tg_api:
     logger.info("Teelgram API активен")

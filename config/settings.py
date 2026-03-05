@@ -20,3 +20,5 @@ class Config:
     TELEGRAM_API_ACTIVE = os.getenv("TELEGRAM_API") == "True"
     TG_API_ID = os.getenv("TG_API_ID")
     TG_API_HASH = os.getenv("TG_API_HASH")
+
+    FLASK_DEBUG = os.getenv("FLASK_DEBUG")
