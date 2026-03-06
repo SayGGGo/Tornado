@@ -13,11 +13,13 @@
   Узнайте больше о проекте
 </h3>
 <p align="center">
-  <a href="for_rdm/TODO.md"><img src="https://img.shields.io/badge/План_проекта-TODO-34c759?style=for-the-badge&logo=googlesheets&logoColor=white"></a>
-  <a href="for_rdm/SCHEME.md"><img src="https://img.shields.io/badge/Архитектура-Блок--схема-8774e1?style=for-the-badge&logo=mermaid&logoColor=white"></a>
-  <a href="for_rdm/MODULES.md"><img src="https://img.shields.io/badge/Структура-Модули-ff9f0a?style=for-the-badge&logo=python&logoColor=white"></a>
-  <a href="for_rdm/BIZ.md"><img src="https://img.shields.io/badge/БИЗНЕС-ЛОГИКА-ff3b30?style=for-the-badge&logo=target&logoColor=white"></a>
-  <a href="https://github.com/SayGGGo/Tornado/tree/149f881d0fce1777e9d3135e98fd1369636a6d32"><img src="https://img.shields.io/badge/СТАРАЯ-ВЕРСИЯ-3486eb?style=for-the-badge&logo=stagetimer&logoColor=white"></a>
+  <a href="for_rdm/TODO.md"><img src="https://img.shields.io/badge/План-Roadmap-34c759?style=for-the-badge&logo=googlesheets&logoColor=white"></a>
+  <a href="for_rdm/SCHEME.md"><img src="https://img.shields.io/badge/Схема-Архитектура-8774e1?style=for-the-badge&logo=mermaid&logoColor=white"></a>
+  <a href="for_rdm/MODULES.md"><img src="https://img.shields.io/badge/Система-Модули-ff9f0a?style=for-the-badge&logo=python&logoColor=white"></a>
+  <a href="for_rdm/BIZ.md"><img src="https://img.shields.io/badge/B2G-Концепция-ff3b30?style=for-the-badge&logo=target&logoColor=white"></a>
+  <a href="https://pypi.org/project/tornbot/0.1.0/"><img src="https://img.shields.io/badge/API-TornBot-007aff?style=for-the-badge&logo=telegram&logoColor=white"></a>
+  <a href="https://github.com/SayGGGo/Tornado/actions"><img src="https://img.shields.io/badge/CI/CD-Actions-2088ff?style=for-the-badge&logo=githubactions&logoColor=white"></a>
+  <a href="https://github.com/SayGGGo/Tornado/tree/149f881d0fce1777e9d3135e98fd1369636a6d32"><img src="https://img.shields.io/badge/Архив-Legacy-607d8b?style=for-the-badge&logo=stagetimer&logoColor=white"></a>
 </p>
 
 ---
