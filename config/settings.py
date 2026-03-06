@@ -21,4 +21,6 @@ class Config:
     TG_API_ID = os.getenv("TG_API_ID")
     TG_API_HASH = os.getenv("TG_API_HASH")
 
-    FLASK_DEBUG = os.getenv("FLASK_DEBUG")
+    FLASK_DEBUG = os.getenv("FLASK_DEBUG", "false")
+    FLASK_HOST = os.getenv("FLASK_HOST", "0.0.0.0")
+    FLASK_PORT = os.getenv("FLASK_PORT", "3000")
