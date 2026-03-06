@@ -11,12 +11,20 @@
 			<feBlend result="effect_dropShadow_1" in2="BackgroundImageFix" mode="normal" />
 			<feBlend result="shape" in="SourceGraphic" in2="effect_dropShadow_1" mode="normal" />
 		</filter>
-		<linearGradient id="paint_linear_3" x1="1.27450538" x2="1497.27466" y1="96.2343445" y2="96.2344513" gradientUnits="userSpaceOnUse">
-			<stop stop-color="rgb(122,199,85)" offset="0" stop-opacity="1" />
-			<stop stop-color="rgb(149,255,147)" offset="0.200000003" stop-opacity="1" />
-			<stop stop-color="rgb(120,204,94)" offset="0.600000024" stop-opacity="1" />
-			<stop stop-color="rgb(175.915,255,174.423)" offset="0.800000012" stop-opacity="1" />
-			<stop stop-color="rgb(91,194,89)" offset="1" stop-opacity="1" />
+		<linearGradient id="paint_linear_3" x1="1.27450538" x2="1497.27466" y1="96.2343445" y2="96.2344513" gradientUnits="userSpaceOnUse" spreadMethod="repeat">
+		   <stop stop-color="rgb(122,199,85)" offset="0" />
+		   <stop stop-color="rgb(149,255,147)" offset="0.2" />
+		   <stop stop-color="rgb(122,199,85)" offset="0.6" />
+		   <stop stop-color="rgb(149,255,147)" offset="0.8" />
+		   <stop stop-color="rgb(122,199,85)" offset="1" />
+
+		   <animateTransform
+			  attributeName="gradientTransform"
+			  type="translate"
+			  from="-1498 0"
+			  to="1498 0"
+			  dur="3s"
+			  repeatCount="indefinite" />
 		</linearGradient>
 	</defs>
 	<g filter="url(#filter_3)">
