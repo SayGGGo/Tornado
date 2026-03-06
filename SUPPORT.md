@@ -1,4 +1,4 @@
-<img src="for_rdm/help.png">
+<img src="for_rdm/help.svg">
 
 ## Документация
 - Ознакомьтесь с [README.md](../README.md) для быстрой настройки.

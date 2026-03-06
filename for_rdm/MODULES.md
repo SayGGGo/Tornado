@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="moduls.png" alt="TORNADO">
+  <img src="moduls.svg" alt="TORNADO">
 </p>
 
 

@@ -1,4 +1,4 @@
-<img src="biz.png">
+<img src="biz.svg">
 
 ---
 

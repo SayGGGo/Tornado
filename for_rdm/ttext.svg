@@ -8,7 +8,7 @@
 			<feOffset dx="0.000000" dy="0.000000" in="SourceAlpha" />
 			<feGaussianBlur stdDeviation="10" />
 			<feColorMatrix type="matrix" values="0 0 0 0 0.498039 0 0 0 0 0.847059 0 0 0 0 0.415686 0 0 0 0.5 0 " />
-			<feBlend result="effect_dropShadow_1" in2="BackgroundImageFix" mode="normal" />
+			<feBlend result="effect_dropаShadow_1" in2="BackgroundImageFix" mode="normal" />
 			<feBlend result="shape" in="SourceGraphic" in2="effect_dropShadow_1" mode="normal" />
 		</filter>
 		<linearGradient id="paint_linear_3" x1="1.27450538" x2="1497.27466" y1="96.2343445" y2="96.2344513" gradientUnits="userSpaceOnUse" spreadMethod="repeat">
@@ -18,8 +18,8 @@
 		   <stop stop-color="rgb(149,255,147)" offset="0.8" />
 		   <stop stop-color="rgb(122,199,85)" offset="1" />
 
-			<animate xmlns="http://www.w3.org/2000/svg" attributeName="x1" from="-100%" to="100%" dur="3s" repeatCount="indefinite" />
-			<animate xmlns="http://www.w3.org/2000/svg" attributeName="x2" from="0%" to="200%" dur="3s" repeatCount="indefinite" />
+			<animate xmlns="http://www.w3.org/2000/svg" attributeName="x1" from="-100%" to="100%" dur="5s" repeatCount="indefinite" />
+			<animate xmlns="http://www.w3.org/2000/svg" attributeName="x2" from="0%" to="200%" dur="5s" repeatCount="indefinite" />
 		</linearGradient>
 	</defs>
 	<g filter="url(#filter_3)">

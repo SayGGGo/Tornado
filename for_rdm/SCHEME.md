@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="scheme.png" alt="TORNADO">
+  <img src="scheme.svg" alt="TORNADO">
 </p>
 
 ```mermaid

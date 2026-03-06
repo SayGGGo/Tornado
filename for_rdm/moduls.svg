@@ -1,0 +1,52 @@
+<svg viewBox="0 0 1280 332" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1280.000000" height="332.000000" fill="none" clip-path="url(#clipPath_3)" customFrame="url(#clipPath_3)">
+	<defs>
+		<clipPath id="clipPath_3">
+			<rect width="1280.000000" height="332.000000" x="0.000000" y="0.000000" rx="30.000000" fill="rgb(255,255,255)" />
+		</clipPath>
+		<g id="pixso_custom_effect_6">
+			<effect visibility="visible" effectType="" stdDeviation="0" />
+		</g>
+		<filter id="filter_6" width="244.000000" height="244.000000" x="-53.000000" y="166.000000" filterUnits="userSpaceOnUse" customEffect="url(#pixso_custom_effect_6)" color-interpolation-filters="sRGB">
+			<feFlood flood-opacity="0" result="BackgroundImageFix" />
+			<feBlend result="shape" in="SourceGraphic" in2="BackgroundImageFix" mode="normal" />
+		</filter>
+		<g id="pixso_custom_effect_7">
+			<effect visibility="visible" effectType="" stdDeviation="0" />
+		</g>
+		<filter id="filter_7" width="244.000000" height="244.000000" x="1067.000000" y="-78.000000" filterUnits="userSpaceOnUse" customEffect="url(#pixso_custom_effect_7)" color-interpolation-filters="sRGB">
+			<feFlood flood-opacity="0" result="BackgroundImageFix" />
+			<feBlend result="shape" in="SourceGraphic" in2="BackgroundImageFix" mode="normal" />
+		</filter>
+		<g id="pixso_custom_effect_8">
+			<effect x="0.000000" y="0.000000" visibility="visible" fill="rgb(127,216,106)" fill-opacity="0.5" effectType="dropShadow" stdDeviation="30" radius="0" />
+		</g>
+		<filter id="filter_8" width="910.375977" height="135.843750" x="184.319336" y="91.843750" filterUnits="userSpaceOnUse" customEffect="url(#pixso_custom_effect_8)" color-interpolation-filters="sRGB">
+			<feFlood flood-opacity="0" result="BackgroundImageFix" />
+			<feOffset dx="0.000000" dy="0.000000" in="SourceAlpha" />
+			<feGaussianBlur stdDeviation="10" />
+			<feColorMatrix type="matrix" values="0 0 0 0 0.498039 0 0 0 0 0.847059 0 0 0 0 0.415686 0 0 0 0.5 0 " />
+			<feBlend result="effect_dropShadow_1" in2="BackgroundImageFix" mode="normal" />
+			<feBlend result="shape" in="SourceGraphic" in2="effect_dropShadow_1" mode="normal" />
+		</filter>
+		<linearGradient id="paint_linear_6" x1="210.000046" x2="1069.00024" y1="165.999985" y2="166.000031" gradientUnits="userSpaceOnUse">
+		   <stop stop-color="rgb(122,199,85)" offset="0" />
+		   <stop stop-color="rgb(149,255,147)" offset="0.2" />
+		   <stop stop-color="rgb(122,199,85)" offset="0.6" />
+		   <stop stop-color="rgb(149,255,147)" offset="0.8" />
+		   <stop stop-color="rgb(122,199,85)" offset="1" />
+
+			<animate xmlns="http://www.w3.org/2000/svg" attributeName="x1" from="-100%" to="100%" dur="5s" repeatCount="indefinite" />
+			<animate xmlns="http://www.w3.org/2000/svg" attributeName="x2" from="0%" to="200%" dur="5s" repeatCount="indefinite" />
+		</linearGradient>
+	</defs>
+	<rect id="moduls" width="1280.000000" height="332.000000" x="0.000000" y="0.000000" rx="30.000000" />
+	<g filter="url(#filter_6)">
+		<circle id="Эллипс 1" cx="69" cy="288" r="122" fill="rgb(188,255,188)" />
+	</g>
+	<g filter="url(#filter_7)">
+		<circle id="Эллипс 2" cx="1189" cy="44" r="122" fill="rgb(188,255,188)" />
+	</g>
+	<g filter="url(#filter_8)">
+		<path id="" d="M214.32 190L244.648 190L244.648 152.453L275.093 190L309.265 190L341.234 150.555L341.234 190L371.562 190L371.562 122.805L329.515 122.805L292.179 168.883L254.82 122.805L214.32 122.805L214.32 190ZM410.914 121.844C392.398 121.844 377.328 137.875 377.328 156.391C377.328 174.93 392.398 190.961 410.914 190.961L481.015 190.961C499.531 190.961 514.601 174.93 514.601 156.391C514.601 137.875 499.531 121.844 481.015 121.844L410.914 121.844ZM474.757 146.805C480.054 146.805 484.367 151.117 484.367 156.391C484.367 161.688 480.054 166 474.757 166L417.172 166C411.875 166 407.562 161.688 407.562 156.391C407.562 151.117 411.875 146.805 417.172 146.805L474.757 146.805ZM565.185 154.586C567.88 148.727 572.404 145.844 578.826 145.844L625.396 145.844L625.396 166.961L559.443 166.961L565.185 154.586ZM663.411 197.688L663.411 166.961L655.724 166.961L655.724 122.805L571.349 122.805C554.638 122.805 543.013 130.281 536.005 145.562L526.326 166.961L515.568 166.961L515.568 197.688L545.896 197.688L545.896 190L633.06 190L633.06 197.688L663.411 197.688ZM696.616 122.805L666.288 122.805L666.288 143.922C666.288 157.352 676.366 165.039 693.171 165.039L760.741 165.039L760.741 168.883C760.741 171.461 759.499 172.727 756.897 172.727L673.975 172.727L673.975 190L771.874 190C784.741 190 791.092 183.672 791.092 170.805L791.092 122.805L760.741 122.805L760.741 147.766L700.835 147.766C698.163 147.766 696.616 146.312 696.616 143.922L696.616 122.805ZM861.636 143.922L898.995 190L933.167 190L878.721 122.805L844.55 122.805L790.128 190L824.3 190L861.636 143.922ZM1064.7 122.805L1034.34 122.805L967.336 161.195L967.336 122.805L937.008 122.805L937.008 190L967.336 190L1034.34 151.609L1034.34 190L1064.7 190L1064.7 122.805Z" fill="url(#paint_linear_6)" fill-rule="nonzero" />
+	</g>
+</svg>
