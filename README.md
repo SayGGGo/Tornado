@@ -3,10 +3,7 @@
     <img src="for_rdm/ttext.svg" alt="TORNADO" width="80%">
 </a>
   <a href="http://89.111.168.223:3000/" title="Перейти на сайт">
-    <img src="for_rdm/1.svg" alt="DEMO — TORNADO.SAYDEF.XYZ">
-  </a>
-  <a href="http://89.111.168.223:3000/">
-    <img src="for_rdm/2.svg">
+    <img src="for_rdm/down.svg" alt="DEMO — TORNADO.SAYDEF.XYZ">
   </a>
 </p>
 
