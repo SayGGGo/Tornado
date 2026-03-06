@@ -20,6 +20,7 @@ except ImportError as lib:
 from config import Config, logger
 from botapi import register_bot_api
 from models import init_models, User, Chat, Message, ChatParticipant, db
+from utils import verify_turnstile, get_groups, get_randomization, verify_key, check_github_updates
 
 tg_api = False
 if Config.TELEGRAM_API_ACTIVE:
@@ -45,98 +46,6 @@ groups_cache = {"data": [], "last_updated": 0}
 
 if tg_api:
     logger.info("Teelgram API активен")
-
-def get_local_commit():
-    try:
-        return f"коммит: {subprocess.run(['git', 'rev-parse', '--short', 'HEAD'], capture_output=True, text=True, check=True).stdout.strip()}"
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        return "неизвестно"
-
-
-def get_local_version():
-    try:
-        return f"релиз: {subprocess.run(['git', 'describe', '--tags', '--abbrev=0'], capture_output=True, text=True, check=True).stdout.strip()}"
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        return get_local_commit()
-
-
-def check_github_updates():
-    headers = {"Accept": "application/vnd.github.v3+json"}
-    current_version = get_local_version()
-    current_commit = get_local_commit()
-
-    try:
-        url_releases = f"https://api.github.com/repos/SayGGGo/Tornado/releases"
-        res = requests.get(url_releases, headers=headers, timeout=5)
-
-        if res.status_code == 200 and res.json():
-            latest_release = res.json()[0]
-            latest_version = latest_release.get("tag_name")
-            if latest_version and latest_version != current_version:
-                logger.warning(f"Доступен новый релиз: {latest_version} (текущий {current_version})")
-            return
-
-        url_commits = f"https://api.github.com/repos/SayGGGo/Tornado/commits"
-        res_commits = requests.get(url_commits, headers=headers, timeout=5)
-
-        if res_commits.status_code == 200 and res_commits.json():
-            latest_commit = res_commits.json()[0].get("sha", "")[:7]
-            if latest_commit and latest_commit != current_commit:
-                logger.warning(f"Доступен новый коммит: {latest_commit} (текущий {current_commit})")
-
-    except requests.RequestException as error:
-        logger.error(f"Ошибка проверки обновлений GitHub: {error}")
-
-
-def verify_turnstile(token):
-    url = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
-    data = {
-        "secret": Config.TURNSTILE_SECRET,
-        "response": token
-    }
-    try:
-        response = requests.post(url, data=data, timeout=5)
-        return response.json().get("success", False)
-    except requests.RequestException as error:
-        logger.error(f"Ошибка проверки Turnstile: {error}")
-        return False
-
-
-def get_groups():
-    global groups_cache
-    current_time = time.time()
-
-    if groups_cache["data"] and (current_time - groups_cache["last_updated"] < 3600):
-        return groups_cache["data"]
-
-    url = "https://genius-school.kuzstu.ru/%D1%80%D0%B0%D1%81%D0%BF%D0%B8%D1%81%D0%B0%D0%BD%D0%B8%D0%B5/"
-    groups = []
-    try:
-        response = requests.get(url, timeout=10)
-        response.raise_for_status()
-        response.encoding = "utf-8"
-        soup = BeautifulSoup(response.text, "html.parser")
-        links = soup.select("table a")
-        for link in links:
-            name = link.get_text(strip=True)
-            if name:
-                groups.append({
-                    "name": name,
-                    "value": name.lower().replace(" ", "_")
-                })
-
-        if groups:
-            groups_cache["data"] = groups
-            groups_cache["last_updated"] = current_time
-            logger.info("Расписание групп успешно обновлено.")
-
-    except requests.RequestException as error:
-        logger.error(f"Ошибка загрузки расписания: {error}")
-        if groups_cache["data"]:
-            return groups_cache["data"]
-        groups = [{"name": "Ошибка загрузки расписания", "value": "error"}]
-
-    return groups
 
 
 @app.route("/")
@@ -188,65 +97,6 @@ def register():
     session["user_id"] = new_user.id
     return jsonify({"success": True, "redirect": url_for("chat")})
 
-
-# todo: Что-то придумать
-def get_randomization(text, power):
-    homoglyphs = {
-        "а": ["a", "а", "α", "𝕒", "а́", "а̇"], "б": ["б", "b", "6", "♭", "𝕓"],
-        "в": ["в", "b", "v", "𝕧", "ʙ"], "г": ["г", "r", "g", "𝕘", "г̓"],
-        "д": ["д", "d", "𝕕", "∂"], "е": ["е", "e", "е́", "℮", "𝕖", "є"],
-        "з": ["з", "3", "z", "𝕫"], "и": ["и", "u", "i", "𝕚", "і"],
-        "к": ["к", "k", "𝕜", "қ"], "л": ["л", "l", "𝕝", "љ"],
-        "м": ["м", "m", "𝕞", "ʍ"], "н": ["н", "n", "h", "𝕟", "ң"],
-        "о": ["о", "o", "0", "ο", "𝕠", "о̇"], "п": ["п", "n", "π", "𝕡"],
-        "р": ["р", "p", "ρ", "𝕡"], "с": ["с", "c", "𝕔", "ç"],
-        "т": ["т", "t", "𝕥", "τ"], "у": ["у", "y", "γ", "𝕪"],
-        "х": ["х", "x", "𝕩", "х̇"], "ч": ["ч", "4", "ҷ"],
-
-        "a": ["a", "а", "α", "𝕒", "а́"], "b": ["b", "в", "8", "𝕓", "ʙ"],
-        "c": ["c", "с", "ç", "𝕔", "с̇"], "d": ["d", "ԁ", "𝕕", "đ"],
-        "e": ["e", "е", "℮", "𝕖", "ё"], "f": ["f", "𝕗", "ƒ"],
-        "g": ["g", "𝕘", "ԍ", "ｇ"], "h": ["h", "н", "𝕙", "һ"],
-        "i": ["i", "і", "𝕚", "1", "ι"], "j": ["j", "ј", "𝕛"],
-        "k": ["k", "к", "𝕜", "κ"], "l": ["l", "𝕝", "ӏ", "ǀ"],
-        "m": ["m", "м", "𝕞", "ʍ"], "n": ["n", "п", "𝕟", "η"],
-        "o": ["o", "о", "0", "𝕠", "ο"], "p": ["p", "р", "𝕡", "ρ"],
-        "q": ["q", "𝕢", "ԛ"], "r": ["r", "г", "𝕣", "ʀ"],
-        "s": ["s", "𝕤", "ѕ", "ś"], "t": ["t", "т", "𝕥", "τ"],
-        "u": ["u", "и", "𝕦", "μ"], "v": ["v", "ѵ", "𝕧", "ν"],
-        "w": ["w", "𝕨", "ѡ"], "x": ["x", "х", "𝕩", "ҳ"],
-        "y": ["y", "у", "𝕪", "ү"], "z": ["z", "𝕫", "ᴢ"],
-
-        "0": ["0", "O", "Ο", "𝕠", "zero"], "1": ["1", "I", "l", "𝕚", "і"],
-        "2": ["2", "ℤ", "ᒿ"], "3": ["3", "з", "Ӡ", "ʒ"],
-        "4": ["4", "ч", "Ꮞ"], "5": ["5", "Ƽ", "𝟝"],
-        "6": ["6", "б", "б"], "7": ["7", "7", "𝟕"],
-        "8": ["8", "B", "𝟠", "Ȣ"], "9": ["9", "q", "𝟡"]
-    }
-
-    invisible_chars = ["\u200B", "\u200C", "\u200D", "\u2060"]
-    result = []
-
-    for char in text:
-        if char in [":", "/", ".", "?", "=", "&", "+"]:
-            result.append(char)
-            continue
-
-        char_lower = char.lower()
-        if char_lower in homoglyphs and random.random() < power:
-            replacement = random.choice(homoglyphs[char_lower])
-            new_char = replacement.upper() if char.isupper() else replacement
-        else:
-            new_char = char
-
-        result.append(new_char)
-
-        if char.isalnum() and random.random() < (power * 0.4):
-            result.append(random.choice(invisible_chars))
-
-    return "".join(result)
-
-
 @app.route("/ping")
 def fake_ping():
     messages = [
@@ -271,36 +121,6 @@ def fake_ping():
     ]
 
     return jsonify({"ok": True, "name": get_randomization(random.choice(messages), random.randint(1, 5))})
-
-
-# Реальный пинг
-def get_ip():
-    global server_ip_cache
-    if server_ip_cache:
-        return server_ip_cache
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.settimeout(2)
-        s.connect(("8.8.8.8", 80))
-        server_ip_cache = s.getsockname()[0]
-        s.close()
-        return server_ip_cache
-    except:
-        logger.error(f"Не удалось получить IP сервера")
-        return "127.0.0.1"
-
-
-def verify_key(key):
-    if not key:
-        return False
-    try:
-        raw_string = f"{get_ip()}:{Config.SERVER_NAME}:{Config.LICENSE_SALT}"
-        expected_key = hashlib.sha256(raw_string.encode()).hexdigest()
-
-        return key == expected_key
-    except Exception:
-        logger.error(f"Ошибка проверки ключа")
-        return False
 
 
 @app.route("/api/ping")
