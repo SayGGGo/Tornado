@@ -16,7 +16,7 @@
   <a href="for_rdm/TODO.md"><img src="https://img.shields.io/badge/План-Roadmap-34c759?style=for-the-badge&logo=googlesheets&logoColor=white"></a>
   <a href="for_rdm/SCHEME.md"><img src="https://img.shields.io/badge/Схема-Архитектура-8774e1?style=for-the-badge&logo=mermaid&logoColor=white"></a>
   <a href="for_rdm/MODULES.md"><img src="https://img.shields.io/badge/Система-Модули-ff9f0a?style=for-the-badge&logo=python&logoColor=white"></a>
-  <a href="for_rdm/BIZ.md"><img src="https://img.shields.io/badge/B2G-Концепция-ff3b30?style=for-the-badge&logo=target&logoColor=white"></a>
+  <a href="for_rdm/BIZ.md"><img src="https://img.shields.io/badge/B2G и B2B-Концепция-ff3b30?style=for-the-badge&logo=target&logoColor=white"></a>
   <a href="https://pypi.org/project/tornbot/0.1.0/"><img src="https://img.shields.io/badge/API-TornBot-007aff?style=for-the-badge&logo=telegram&logoColor=white"></a>
   <a href="https://github.com/SayGGGo/Tornado/actions"><img src="https://img.shields.io/badge/CI/CD-Actions-2088ff?style=for-the-badge&logo=githubactions&logoColor=white"></a>
   <a href="https://github.com/SayGGGo/Tornado/tree/149f881d0fce1777e9d3135e98fd1369636a6d32"><img src="https://img.shields.io/badge/ДО РЕДИЗАЙНА-Legacy-607d8b?style=for-the-badge&logo=stagetimer&logoColor=white"></a>
@@ -28,7 +28,7 @@
     <img height="30" src="for_rdm/ttext.svg">
 </h2>
 
-— это защищенная коммуникационная платформа, разработанная в рамках модели **B2G** (Business-to-Government). Система ориентирована на создание единого цифрового пространства для образовательных центров, ВУЗов и предприятий, обеспечивая безопасный обмен данными и интеграцию с внешними сервисами.
+— это защищенная коммуникационная платформа, разработанная в рамках модели **B2G и B2B**. Система ориентирована на создание единого цифрового пространства для образовательных центров, ВУЗов и предприятий, обеспечивая безопасный обмен данными и интеграцию с внешними сервисами.
 
 ---
 ## Содержание
