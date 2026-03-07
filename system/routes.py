@@ -5,30 +5,47 @@ import random
 
 
 def register_system(app):
-    @app.route("/ping")
-    def fake_ping():
-        messages = [
-            "Tornado is best",
-            "Лучший мессенджер - Tornado",
-            "Переходи в Tornado",
-            "А ведь Tornado лучше...",
-            "Tornado: твоя приватность под защитой",
-            "Попробуй Tornado прямо сейчас",
-            "Tornado — связь без границ",
-            "Добро пожаловать в Tornado",
-            "Tornado — это быстрее, чем ты думаешь",
-            "Выбирай лучшее — выбирай Tornado",
-            "Tornado — мессенджер нового поколения",
-            "Твой выбор сегодня — Tornado",
-            "Tornado — здесь все свои",
-            "Безопасность начинается с Tornado",
-            "Tornado — просто, быстро, надежно",
-            "Весь мир в одном Tornado",
-            "Tornado: будущее уже наступило",
-            "Хватит ждать, заходи в Tornado"
-        ]
+    messages = [
+        "Tornado is best",
+        "Лучший мессенджер - Tornado",
+        "Переходи в Tornado",
+        "А ведь Tornado лучше...",
+        "Tornado: твоя приватность под защитой",
+        "Попробуй Tornado прямо сейчас",
+        "Tornado — связь без границ",
+        "Добро пожаловать в Tornado",
+        "Tornado — это быстрее, чем ты думаешь",
+        "Выбирай лучшее — выбирай Tornado",
+        "Tornado — мессенджер нового поколения",
+        "Твой выбор сегодня — Tornado",
+        "Tornado — здесь все свои",
+        "Безопасность начинается с Tornado",
+        "Tornado — просто, быстро, надежно",
+        "Весь мир в одном Tornado",
+        "Tornado: будущее уже наступило",
+        "Хватит ждать, заходи в Tornado"
+    ]
 
+    @app.route("/ping", methods=["GET", "POST"])
+    def fake_ping():
+        logger.info(f"[FMSG Bypass] Пингуют")
         return jsonify({"ok": True, "name": get_randomization(random.choice(messages), random.randint(1, 5))})
+
+    @app.route("/handshake", methods=["POST"])
+    def fake_handshake():
+        try:
+            data = request.json
+            logger.info(f"[FMSG Bypass] Хендшейк {data.get('name')} ({data.get('ip')})")
+
+            return jsonify({
+                "ok": True,
+                "name": get_randomization(random.choice(messages), random.randint(1, 5)),
+                "ip": "0.0.0.0",
+                "pub_key": 0xDEADBEEF
+            })
+        except:
+            return jsonify({"ok": False})
+
 
     @app.route("/api/ping")
     def ping():
