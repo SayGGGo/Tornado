@@ -18,6 +18,7 @@
         <div class="resizer" id="resizer"></div>
 
         <div class="main-content" id="main-chat-connection-point">
+            <canvas id="topo-canvas"></canvas>
 
             <div id="no-chat-selected" class="no-chat-state">
                 <span>Выберите чат, чтобы начать общение</span>
@@ -63,5 +64,6 @@
 
     <script src="{{ url_for('static', filename='js/chat.js') }}"></script>
     <script src="{{ url_for('static', filename='dist/glass-bundle.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/bg.js') }}"></script>
 </body>
 </html>
