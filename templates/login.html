@@ -141,7 +141,7 @@
                 loginBtn.classList.add('locked');
 
                 try {
-                    const response = await fetch('/login', {
+                    const response = await fetch('/login' + window.location.search, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'

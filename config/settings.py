@@ -12,7 +12,8 @@ class Config:
     TURNSTILE_SECRET = os.getenv("TURNSTILE_SECRET", "1x0000000000000000000000000000000AA")
     TURNSTILE_SITEKEY = os.getenv("TURNSTILE_SITEKEY", "1")
 
-    SERVER_NAME = os.getenv("SERVER_NAME", "Tornado")
+    SERVER_NAME_PING = os.getenv("SERVER_NAME_PING", "Tornado")
+    SERVER_IMG_URL = os.getenv("SERVER_IMG_URL", "")
     SERVER_OPENKEY = os.getenv("SERVER_OPENKEY")
     SERVER_VERIFY = os.getenv("SERVER_VERIFY", "false")
     LICENSE_SALT = os.getenv("LICENSE_SALT")

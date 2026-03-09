@@ -12,7 +12,7 @@ def setup_logger():
         ]
     )
 
-    logger = logging.getLogger(Config.SERVER_NAME)
+    logger = logging.getLogger(Config.SERVER_NAME_PING)
     werkzeug_logger = logging.getLogger("werkzeug")
     werkzeug_logger.setLevel(logging.INFO)
 

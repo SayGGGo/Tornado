@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Авторизация — TORNADO</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/connect.css') }}">
+</head>
+<body data-token="{{ token }}">
+    <canvas id="topo-canvas"></canvas>
+    <div class="connect-card">
+        <div id="card-content">
+            <div class="user-profile">
+                <img src="{{ user_avatar|default(url_for('static', filename='img/default_avatar.png')) }}" alt="Avatar" class="user-avatar">
+                <div class="user-info">
+                    <div class="user-name">{{ user_name|default('SayGG') }}</div>
+                    <div class="user-email">{{ user_email|default('Вход в аккаунт') }}</div>
+                </div>
+            </div>
+
+            <div class="app-header">
+                {% if app_logo %}
+                <img src="{{ app_logo }}" alt="Logo" class="app-logo">
+                {% else %}
+                <div class="app-logo placeholder-logo">🛡️</div>
+                {% endif %}
+                <div class="app-name">{{ app_name }}</div>
+                <div class="req-text">запрашивает доступ к вашему аккаунту</div>
+            </div>
+
+            <div id="warnings-container"></div>
+
+            <div class="req-list">
+                {% for item in requested_data %}
+                <div>
+                    <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                    <span>{{ item }}</span>
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="btn-group">
+                <button class="btn btn-reject" id="btn-reject">Отклонить</button>
+                <button class="btn btn-approve" id="btn-approve">Подтвердить</button>
+            </div>
+        </div>
+
+        <div id="anim-container" class="anim-container"></div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/connect.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/bg.js') }}"></script>
+</body>
+</html>

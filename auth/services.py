@@ -2,6 +2,10 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flask import url_for, session
 from models import User, db
 from utils import verify_turnstile
+import uuid
+import time
+
+active_auth_requests = {}
 
 
 class AuthService:
@@ -46,6 +50,61 @@ class AuthService:
         user = User.query.filter_by(login=data.get("login")).first()
         if user and check_password_hash(user.password_hash, data.get("password", "")):
             session["user_id"] = user.id
-            return {"success": True, "redirect": url_for("chat")}
+            redirect_url = data.get("next") or url_for("chat")
+            return {"success": True, "redirect": redirect_url}
 
         return {"success": False, "message": "Неверный логин или пароль"}
+
+
+class ConnectService:
+    def create_auth_request(self, name, logo, info):
+        token = str(uuid.uuid4())
+        active_auth_requests[token] = {
+            "name": name,
+            "logo": logo,
+            "info": info,
+            "status": "pending",
+            "user_data": None,
+            "expires_at": time.time() + 300
+        }
+        return token
+
+    def get_request(self, token):
+        req = active_auth_requests.get(token)
+        if req and time.time() < req["expires_at"]:
+            return req
+        if req:
+            del active_auth_requests[token]
+        return None
+
+    def approve_request(self, token, user_id):
+        req = self.get_request(token)
+        if not req:
+            return False
+        user = db.session.get(User, user_id)
+        if not user:
+            return False
+
+        data = {}
+        if "1" in req["info"]: data["id"] = user.id
+        if "2" in req["info"]: data["login"] = user.login
+        if "3" in req["info"]: data["fio"] = user.fio
+        if "4" in req["info"]: data["premium"] = user.premium
+        if "5" in req["info"]: data["messages_access"] = True
+
+        req["status"] = "approved"
+        req["user_data"] = data
+        return True
+
+    def reject_request(self, token):
+        req = self.get_request(token)
+        if not req:
+            return False
+        req["status"] = "rejected"
+        return True
+
+    def check_status(self, token):
+        req = self.get_request(token)
+        if not req:
+            return {"status": "expired"}
+        return {"status": req["status"], "user_data": req.get("user_data")}

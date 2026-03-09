@@ -21,7 +21,7 @@ class SecurityManager:
         if not key:
             return False
         try:
-            raw_string = f"{server_ip}:{Config.SERVER_NAME}:{Config.LICENSE_SALT}"
+            raw_string = f"{server_ip}:{Config.SERVER_NAME_PING}:{Config.LICENSE_SALT}"
             expected_key = hashlib.sha256(raw_string.encode()).hexdigest()
             return key == expected_key
         except Exception as e:

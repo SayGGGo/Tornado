@@ -56,8 +56,9 @@ def register_system(app):
 
             return jsonify({
                 "ok": True,
-                "name": Config.SERVER_NAME,
+                "name": Config.SERVER_NAME_PING,
                 "verify": is_verified,
+                "img": Config.SERVER_IMG_URL,
                 "verify_key": open_key if verify_env == "true" else None
             })
         except Exception as error:
