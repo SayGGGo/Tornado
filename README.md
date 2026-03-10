@@ -109,7 +109,6 @@ python app.py
 
 <img src="for_rdm/price.svg" alt="Прайс">
 <p align="center">
-    <a><img width="50%"src="for_rdm/buy.svg"></a>
 </p>
 
 ## Тесты и автоматический деплой
