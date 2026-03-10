@@ -7,3 +7,4 @@ Flask-SQLAlchemy
 Flask-SocketIO
 SQLAlchemy
 pytest
+cryptography
