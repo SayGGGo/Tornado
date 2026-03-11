@@ -12,8 +12,8 @@ class Config:
     TURNSTILE_SECRET = os.getenv("TURNSTILE_SECRET", "0")
     TURNSTILE_SITEKEY = os.getenv("TURNSTILE_SITEKEY", "0")
 
-    YANDEX_SERVER = os.getenv("YANDEX_SERVER", "1x0000000000000000000000000000000AA")
-    YANDEX_SITEKEY = os.getenv("YANDEX_SITEKEY", "1")
+    YANDEX_SERVER = os.getenv("YANDEX_SERVER", "0")
+    YANDEX_SITEKEY = os.getenv("YANDEX_SITEKEY", "0")
 
     SERVER_NAME_PING = os.getenv("SERVER_NAME_PING", "Tornado")
     SERVER_IMG_URL = os.getenv("SERVER_IMG_URL", "")
