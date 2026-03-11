@@ -107,7 +107,7 @@ python app.py
 
 ## Лицензия и цены
 
-<img src="for_rdm/price.svg" alt="Прайс">
+<img src="for_rdm/price.png" alt="Прайс">
 <p align="center">
 </p>
 
