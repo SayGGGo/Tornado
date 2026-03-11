@@ -4,14 +4,14 @@ from models import User, db
 from utils import verify_turnstile
 import uuid
 import time
+from utils.security import SecurityManager
 
 active_auth_requests = {}
 
 
 class AuthService:
     def register_user(self, data):
-        token = data.get("cf-turnstile-response")
-        if not token or not verify_turnstile(token):
+        if not SecurityManager.verify_captcha(data):
             return {"success": False, "message": "Капча не пройдена"}
 
         required_fields = ["fio", "login", "password", "password_retry", "position"]
@@ -43,8 +43,7 @@ class AuthService:
         return {"success": True, "redirect": url_for("chat")}
 
     def login_user(self, data):
-        token = data.get("cf-turnstile-response")
-        if not token or not verify_turnstile(token):
+        if not SecurityManager.verify_captcha(data):
             return {"success": False, "message": "Капча не пройдена"}
 
         user = User.query.filter_by(login=data.get("login")).first()

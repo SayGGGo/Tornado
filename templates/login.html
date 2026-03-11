@@ -1,170 +1,652 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TORNADO — Вход</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&family=Varela+Round&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
-    {% include 'more.html' %}
-    <style>
-        .auth-links {
-            margin-top: 20px;
-            text-align: center;
-            font-size: 14px;
-            color: #a0a0a0;
-        }
-        .auth-links a {
-            color: #34c759;
-            text-decoration: none;
-            font-weight: 600;
-            transition: text-shadow 0.3s;
-        }
-        .auth-links a:hover {
-            text-shadow: 0 0 10px rgba(52, 199, 89, 0.5);
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TORNADO — Вход</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  {% if captcha_provider == 'turnstile' %}
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+  {% elif captcha_provider == 'yandex' %}
+  <script src="https://smartcaptcha.yandexcloud.net/captcha.js" defer></script>
+  {% endif %}
+
+  <style>
+    :root {
+      --green:        #34c759;
+      --green-dim:    rgba(52,199,89,0.12);
+      --green-glow:   rgba(52,199,89,0.25);
+      --green-border: rgba(52,199,89,0.35);
+      --bg:           #070708;
+      --card-bg:      rgba(10,10,12,0.85);
+      --card-border:  rgba(255,255,255,0.055);
+      --input-bg:     rgba(255,255,255,0.025);
+      --input-border: rgba(255,255,255,0.07);
+      --text:         #ffffff;
+      --text-dim:     rgba(255,255,255,0.45);
+      --text-muted:   rgba(255,255,255,0.22);
+      --text-placeholder: rgba(255,255,255,0.25);
+    }
+
+    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+
+    @font-face {
+      font-family: 'ak';
+      src: url('../static/fonts/akony.woff2') format('woff2');
+      font-weight: normal;
+      font-style: normal;
+      font-display: swap;
+
+    }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Outfit', sans-serif;
+      font-size: 14px;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 40px 20px;
+      -webkit-font-smoothing: antialiased;
+      overflow: hidden;
+    }
+
+    .bg-canvas { position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:0; }
+    #topo-canvas { position:absolute; inset:0; width:100%; height:100%; z-index:-1; opacity:0.8; }
+
+    .orb { position:absolute; border-radius:50%; filter:blur(100px); opacity:0; animation:orbEntry 2s forwards; }
+    .orb-1 {
+      width:700px; height:700px;
+      background:radial-gradient(circle,rgba(52,199,89,.18) 0%,transparent 65%);
+      top:-250px; left:-180px;
+      animation:orbEntry 2s forwards, floatOrb1 24s 2s ease-in-out infinite;
+    }
+    .orb-2 {
+      width:500px; height:500px;
+      background:radial-gradient(circle,rgba(30,120,55,.14) 0%,transparent 65%);
+      bottom:-150px; right:-100px;
+      animation:orbEntry 2.4s forwards, floatOrb2 30s 2.4s ease-in-out infinite;
+    }
+    .orb-3 {
+      width:350px; height:350px;
+      background:radial-gradient(circle,rgba(52,199,89,.09) 0%,transparent 65%);
+      top:45%; left:55%;
+      animation:orbEntry 3s forwards, floatOrb3 20s 3s ease-in-out infinite;
+    }
+
+    @keyframes orbEntry { to{opacity:1} }
+    @keyframes floatOrb1 {
+      0%,100%{transform:translate(0,0) scale(1)}30%{transform:translate(80px,60px) scale(1.08)}65%{transform:translate(-40px,120px) scale(.95)}
+    }
+    @keyframes floatOrb2 {
+      0%,100%{transform:translate(0,0) scale(1)}40%{transform:translate(-70px,-50px) scale(1.1)}70%{transform:translate(40px,-100px) scale(.92)}
+    }
+    @keyframes floatOrb3 { 0%,100%{transform:translate(0,0)}50%{transform:translate(-60px,70px)} }
+
+    .card-window {
+      position:relative; z-index:1;
+      width:100%; max-width:1080px;
+      background:var(--card-bg);
+      border:1px solid var(--card-border);
+      border-radius:28px;
+      backdrop-filter:blur(48px) saturate(150%);
+      -webkit-backdrop-filter:blur(48px) saturate(150%);
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,.02) inset,
+        0 40px 100px rgba(0,0,0,.75),
+        0 0 160px rgba(52,199,89,.05);
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      min-height:620px;
+      overflow:hidden;
+      opacity:0;
+      transform:translateY(28px) scale(0.984);
+      transition:opacity .65s cubic-bezier(.2,.8,.2,1), transform .65s cubic-bezier(.2,.8,.2,1);
+    }
+    .card-window.ready { opacity:1; transform:translateY(0) scale(1); }
+
+    .login-panel {
+      padding:52px 56px;
+      display:flex; flex-direction:column; justify-content:center;
+      border-right:1px solid rgba(255,255,255,0.05);
+    }
+
+    .header {
+      display:flex; align-items:center; gap:10px; margin-bottom:44px;
+    }
+    .logo { font-family:'ak',sans-serif; font-size:30px; letter-spacing:2px; color:var(--text); line-height:1; }
+    .logo-sub { font-size:13px; font-weight:400; color:var(--text-muted); letter-spacing:.3px; margin-left:2px; }
+
+    .status-badge {
+      display:inline-flex; align-items:center; gap:7px;
+      padding:6px 14px;
+      background:var(--green-dim);
+      border:1px solid var(--green-border);
+      border-radius:100px;
+      font-size:11px; font-weight:500; color:var(--green); letter-spacing:.4px;
+      margin-bottom:32px; align-self:flex-start;
+    }
+    .badge-dot { width:6px;height:6px;background:var(--green);border-radius:50%;animation:dotPulse 2s ease-in-out infinite;flex-shrink:0; }
+    @keyframes dotPulse { 0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.7)} }
+
+    .login-title { font-size:27px;font-weight:700;letter-spacing:-.4px;line-height:1.2;margin-bottom:6px; }
+    .login-subtitle { font-size:13px;color:var(--text-dim);margin-bottom:34px; }
+
+    .form-group { display:flex;flex-direction:column;gap:6px;margin-bottom:16px; }
+    .form-group label { font-size:11px;font-weight:600;color:var(--text-dim);letter-spacing:.5px;text-transform:uppercase; }
+
+    .glass-input {
+      width:100%;height:50px;padding:0 18px;
+      background:var(--input-bg);
+      border:1px solid var(--input-border);
+      border-radius:14px;
+      color:var(--text);font-family:'Outfit',sans-serif;font-size:14px;
+      outline:none;
+      transition:border-color .28s ease,background .28s ease,box-shadow .28s ease;
+    }
+    .glass-input::placeholder { color:var(--text-placeholder); }
+    .glass-input:hover { border-color:rgba(255,255,255,.12);background:rgba(255,255,255,.035); }
+    .glass-input:focus { border-color:var(--green-border);background:rgba(52,199,89,.04);box-shadow:0 0 0 3px rgba(52,199,89,.08); }
+
+    .glass-btn {
+      width:100%;height:52px;margin-top:22px;
+      display:flex;align-items:center;justify-content:center;gap:10px;
+      background:var(--green);border:none;border-radius:14px;
+      color:#000;font-family:'Outfit',sans-serif;font-size:14px;font-weight:700;letter-spacing:.3px;
+      cursor:pointer;
+      transition:background .28s,box-shadow .28s,transform .28s,opacity .28s;
+    }
+    .glass-btn:hover:not(.locked) { background:#41da65;box-shadow:0 8px 32px rgba(52,199,89,.45);transform:translateY(-2px); }
+    .glass-btn:active:not(.locked) { transform:translateY(0);box-shadow:none; }
+    .glass-btn.locked { background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.06);color:rgba(255,255,255,.18);pointer-events:none; }
+    .btn-arrow { width:16px;height:16px;flex-shrink:0;transition:transform .28s; }
+    .glass-btn:hover:not(.locked) .btn-arrow { transform:translateX(3px); }
+
+    .auth-links { text-align:center;margin-top:22px;font-size:13px;color:var(--text-muted); }
+    .auth-links a { color:var(--green);text-decoration:none;font-weight:600;transition:text-shadow .3s; }
+    .auth-links a:hover { text-shadow:0 0 10px rgba(52,199,89,.5); }
+
+    .error-message {
+      background:rgba(255,59,48,.1);border:1px solid rgba(255,59,48,.3);
+      color:#ff453a;padding:14px 18px;border-radius:12px;font-size:13px;font-weight:500;
+      margin-bottom:16px;display:none;transition:opacity .3s;
+    }
+
+    .viz-panel {
+      position:relative;overflow:hidden;
+      background:radial-gradient(ellipse 65% 65% at 50% 50%,rgba(52,199,89,.065),transparent 70%);
+    }
+    #three-canvas { width:100%;height:100%;display:block;cursor:grab; }
+    #three-canvas:active { cursor:grabbing; }
+
+    .esp-ui {
+      position:absolute;inset:0;pointer-events:none;
+      display:flex;flex-direction:column;justify-content:space-between;
+      padding:28px 28px;
+    }
+    .esp-top {
+      display:flex;justify-content:space-between;align-items:flex-start;
+    }
+    .esp-tag {
+      font-size:9px;font-weight:700;letter-spacing:2.5px;
+      color:rgba(52,199,89,.65);text-transform:uppercase;
+      border:1px solid rgba(52,199,89,.2);
+      padding:4px 8px;border-radius:4px;
+      background:rgba(52,199,89,.05);
+    }
+    .esp-version {
+      font-size:9px;letter-spacing:2px;color:rgba(255,255,255,.18);text-transform:uppercase;
+    }
+    .esp-bottom {
+      display:flex;justify-content:center;align-items:center;gap:6px;
+      font-size:10px;letter-spacing:1.5px;color:rgba(255,255,255,.18);
+      text-transform:uppercase;
+      transition:opacity 0.3s;
+    }
+    .esp-hint-icon { width:12px;height:12px;opacity:.4; }
+
+    @media (max-width:800px) {
+      body { padding:0; overflow-y:auto; }
+      .card-window { grid-template-columns:1fr;max-width:460px;border-radius:24px;min-height:auto; }
+      .viz-panel { height:360px; }
+      .login-panel { padding:40px 32px; }
+    }
+  </style>
 </head>
 <body>
-    <div class="card-window" style="max-width: 450px;">
-        <header class="header">
-            <span class="logo">TORNADO</span> <span class="logo-subtitle">Chat</span>
-        </header>
 
-        <form class="setup-form" id="loginForm" novalidate>
-            <div class="form-row" style="grid-template-columns: 1fr;">
-                <label for="login">Ваш логин</label>
-                <input type="text" id="login" class="glass-input" name="login" placeholder="SayGG" required>
-            </div>
+  <div class="bg-canvas" aria-hidden="true">
+    <canvas id="topo-canvas"></canvas>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+  </div>
 
-            <div class="form-row" style="grid-template-columns: 1fr;">
-                <label for="password">Пароль</label>
-                <input type="password" id="password" class="glass-input" name="password" placeholder="•••••••••••••" required>
-            </div>
+  <div class="card-window" id="cardWindow">
+    <div class="login-panel">
+      <header class="header">
+        <span class="logo">TORNADO</span>
+        <span class="logo-sub">Chat</span>
+      </header>
 
-            <div class="form-row action-row">
-                <div class="cf-turnstile" data-sitekey="{{ site_key }}" data-theme="dark"></div>
-            </div>
 
-            <div class="form-row action-row">
-                <button type="submit" class="glass-btn locked" id="loginBtn" disabled>Войти</button>
-            </div>
+      <div id="error-msg" class="error-message"></div>
 
-            <div class="auth-links">
-                Нет аккаунта? <a href="/">Создать</a>
-            </div>
-        </form>
+      <form id="loginForm" novalidate>
+        <div class="form-group">
+          <label for="login">Никнейм</label>
+          <input type="text" id="login" class="glass-input" name="login"
+                 placeholder="SayGG" required autocomplete="username">
+        </div>
+        <div class="form-group">
+          <label for="password">Пароль</label>
+          <input type="password" id="password" class="glass-input" name="password"
+                 placeholder="••••••••••••" required autocomplete="current-password">
+        </div>
+
+        <div id="captcha-box" style="margin: 15px 0;">
+            {% if captcha_provider == 'turnstile' %}
+            <div class="cf-turnstile"
+                 data-sitekey="{{ site_key }}"
+                 data-theme="dark"
+                 data-callback="onCaptchaSuccess"></div>
+            {% elif captcha_provider == 'yandex' %}
+            <div id="captcha-container"
+                 class="smart-captcha"
+                 data-sitekey="{{ site_key }}"
+                 data-callback="onCaptchaSuccess"
+                 style="height: 100px"></div>
+            {% endif %}
+        </div>
+
+        <button type="submit" class="glass-btn locked" id="loginBtn" disabled>
+          <span>Войти</span>
+          <svg class="btn-arrow" viewBox="0 0 16 16" fill="none">
+            <path d="M3 8H13M13 8L9 4M13 8L9 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </form>
+
+      <div class="auth-links">Нет аккаунта? <a href="/">Создать</a></div>
     </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const cardWindow = document.querySelector('.card-window');
-            cardWindow.style.opacity = '0';
-            cardWindow.style.transform = 'translateY(30px) scale(0.98)';
-            cardWindow.style.transition = 'all 0.8s cubic-bezier(0.2, 0.8, 0.2, 1)';
+    <div class="viz-panel" id="vizPanel">
+      <canvas id="three-canvas"></canvas>
+      <canvas id="esp-canvas" style="position:absolute;inset:0;pointer-events:none;"></canvas>
+      <div class="esp-ui">
+        <div class="esp-bottom" id="esp-bottom">
+          <svg class="esp-hint-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 9V5h4M19 9V5h-4M5 15v4h4M19 15v4h-4"/></svg>
+          <span id="dragHint">github.com/SayGGGo/Tornado</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="{{ url_for('static', filename='js/bg.js') }}"></script>
+  <script>
+  document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => document.getElementById('cardWindow').classList.add('ready'), 80);
+    const form = document.getElementById('loginForm');
+    const btn  = document.getElementById('loginBtn');
+    const errDiv = document.getElementById('error-msg');
+    function showError(msg) {
+      errDiv.textContent = msg; errDiv.style.display = 'block'; errDiv.style.opacity = '1';
+      setTimeout(() => { errDiv.style.opacity='0'; setTimeout(()=>{errDiv.style.display='none';errDiv.style.opacity='1';},300); },3500);
+    }
+    form.addEventListener('input', () => {
+      const ok = [...form.querySelectorAll('[required]')].every(i => i.value.trim());
+      btn.classList.toggle('locked', !ok); btn.disabled = !ok;
+    });
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault(); if (btn.classList.contains('locked')) return;
+      const data = Object.fromEntries(new FormData(form).entries());
+      const orig = btn.querySelector('span').textContent;
+      btn.querySelector('span').textContent = 'Загрузка...'; btn.classList.add('locked');
+      try {
+        const res = await fetch('/login'+window.location.search,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+        const r = await res.json();
+        if (r.success) { window.location.href = r.redirect; }
+        else { showError(r.message||'Неверный логин или пароль'); btn.querySelector('span').textContent=orig; btn.classList.remove('locked'); }
+      } catch { showError('Ошибка соединения с сервером'); btn.querySelector('span').textContent=orig; btn.classList.remove('locked'); }
+    });
+  });
 
-            setTimeout(() => {
-                cardWindow.style.opacity = '1';
-                cardWindow.style.transform = 'translateY(0) scale(1)';
-            }, 50);
+  (function() {
+    const panel   = document.getElementById('vizPanel');
+    const canvas3 = document.getElementById('three-canvas');
+    const espCvs  = document.getElementById('esp-canvas');
+    const hintCtn = document.getElementById('esp-bottom');
+    const renderer = new THREE.WebGLRenderer({ canvas: canvas3, antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setClearColor(0, 0);
+    const scene  = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(44, 1, 0.1, 100);
+    camera.position.set(0, 0, 7.5);
 
-            const form = document.getElementById('loginForm');
-            const loginBtn = document.getElementById('loginBtn');
+    function resize() {
+      const w = panel.clientWidth, h = panel.clientHeight;
+      renderer.setSize(w, h);
+      camera.aspect = w / h; camera.updateProjectionMatrix();
+      espCvs.width  = w * window.devicePixelRatio;
+      espCvs.height = h * window.devicePixelRatio;
+      espCvs.style.width = w + 'px'; espCvs.style.height = h + 'px';
+    }
+    resize();
+    window.addEventListener('resize', resize);
 
-            function showError(message) {
-                let errDiv = document.getElementById('error-msg');
-                if (!errDiv) {
-                    errDiv = document.createElement('div');
-                    errDiv.id = 'error-msg';
-                    errDiv.className = 'error-message';
-                    form.insertBefore(errDiv, document.querySelector('.action-row'));
-                }
-                errDiv.textContent = message;
-                errDiv.style.display = 'block';
-                setTimeout(() => {
-                    errDiv.style.opacity = '0';
-                    setTimeout(() => {
-                        errDiv.style.display = 'none';
-                        errDiv.style.opacity = '1';
-                    }, 300);
-                }, 3000);
-            }
+    scene.add(new THREE.AmbientLight(0xffffff, 0.25));
+    const dl = new THREE.DirectionalLight(0x34c759, 2.2); dl.position.set(3,5,5); scene.add(dl);
+    const dl2 = new THREE.DirectionalLight(0xffffff, 0.6); dl2.position.set(-5,-2,-4); scene.add(dl2);
+    const pl = new THREE.PointLight(0x34c759, 3, 14); pl.position.set(0, 2, 3); scene.add(pl);
+    const pl2 = new THREE.PointLight(0x82ff9e, 1.5, 10); pl2.position.set(-3, -2, 2); scene.add(pl2);
 
-            function validateForm() {
-                let isValid = true;
-                const requiredInputs = form.querySelectorAll('[required]');
+    const rawPts = [
+      [442.493, 592],[687.802, 384.673],[687.802, 235.834],
+      [811.937, 235.834],[1082, 50],[334.072, 50],
+      [50, 235.834],[442.493, 235.834]
+    ];
+    const cx0 = 566, cy0 = 321, sc0 = 3.6 / 542;
+    const shape = new THREE.Shape();
+    rawPts.forEach(([x, y], i) => {
+      const nx = (x - cx0) * sc0, ny = -(y - cy0) * sc0;
+      i === 0 ? shape.moveTo(nx, ny) : shape.lineTo(nx, ny);
+    });
+    shape.closePath();
 
-                requiredInputs.forEach(input => {
-                    if (!input.value.trim()) {
-                        isValid = false;
-                    }
-                });
+    const extrudeOpts = { depth: 0.4, bevelEnabled: true, bevelThickness: 0.08, bevelSize: 0.05, bevelSegments: 4 };
+    const geo = new THREE.ExtrudeGeometry(shape, extrudeOpts);
+    geo.center();
 
-                if (isValid) {
-                    loginBtn.classList.remove('locked');
-                    loginBtn.disabled = false;
-                } else {
-                    loginBtn.classList.add('locked');
-                    loginBtn.disabled = true;
-                }
-            }
+    const mat = new THREE.MeshPhysicalMaterial({
+      color: 0xffffff, metalness: 0.72, roughness: 0.12, reflectivity: 0.9, clearcoat: 0.6, clearcoatRoughness: 0.1,
+    });
+    const logo = new THREE.Mesh(geo, mat);
+    logo.scale.set(0.6, 0.6, 0.6);
+    scene.add(logo);
 
-            form.addEventListener('input', validateForm);
+    const egeo = new THREE.EdgesGeometry(geo);
+    const emat = new THREE.LineBasicMaterial({ color: 0x34c759, transparent: true, opacity: 0.5 });
+    const edges = new THREE.LineSegments(egeo, emat);
+    logo.add(edges);
 
-            document.querySelectorAll('.glass-input').forEach(input => {
-                input.addEventListener('mousemove', e => {
-                    const rect = input.getBoundingClientRect();
-                    const x = e.clientX - rect.left;
-                    const y = e.clientY - rect.top;
-                    input.style.setProperty('--mouse-x', `${x}px`);
-                    input.style.setProperty('--mouse-y', `${y}px`);
-                });
+    const wmat = new THREE.MeshBasicMaterial({ color: 0x34c759, wireframe: true, transparent: true, opacity: 0.04 });
+    const wframe = new THREE.Mesh(geo, wmat);
+    wframe.scale.set(0.6, 0.6, 0.6);
+    scene.add(wframe);
 
-                input.addEventListener('mouseleave', () => {
-                    input.style.setProperty('--mouse-x', `-500px`);
-                    input.style.setProperty('--mouse-y', `-500px`);
-                });
-            });
+    const PCount = 36;
+    const pGeo = new THREE.BufferGeometry();
+    const pPos = new Float32Array(PCount * 3);
+    const pPhase = new Float32Array(PCount);
+    for (let i = 0; i < PCount; i++) {
+      const a = (i / PCount) * Math.PI * 2;
+      const r = 2.4 + (Math.random() - 0.5) * 0.7;
+      pPos[i*3]   = Math.cos(a) * r;
+      pPos[i*3+1] = (Math.random() - 0.5) * 1.8;
+      pPos[i*3+2] = Math.sin(a) * r;
+      pPhase[i] = Math.random() * Math.PI * 2;
+    }
+    pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+    const pmat = new THREE.PointsMaterial({ color: 0x34c759, size: 0.04, transparent: true, opacity: 0.65 });
+    const particles = new THREE.Points(pGeo, pmat);
+    scene.add(particles);
 
-            form.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                if (loginBtn.classList.contains('locked')) return;
+    function makeRing(r, t, ox, oy, oz) {
+      const m = new THREE.Mesh(
+        new THREE.TorusGeometry(r, 0.007, 2, 140),
+        new THREE.MeshBasicMaterial({ color: 0x34c759, transparent: true, opacity: t })
+      );
+      m.rotation.set(ox, oy, oz); return m;
+    }
+    const rings = [
+      makeRing(2.7, 0.15, Math.PI/2.5, 0, 0),
+      makeRing(3.3, 0.08, Math.PI/3, 0.7, 0),
+      makeRing(3.8, 0.05, Math.PI/1.8, 1.2, 0.3),
+    ];
+    rings.forEach(r => scene.add(r));
 
-                const formData = new FormData(form);
-                const data = Object.fromEntries(formData.entries());
+    let isDrag = false, px = 0, py = 0;
+    let rotX = 0.18, rotY = 0, velX = 0, velY = 0.005;
+    let autoRot = true;
+    let resumeTimeout;
 
-                const originalBtnText = loginBtn.textContent;
-                loginBtn.textContent = 'Загрузка...';
-                loginBtn.classList.add('locked');
+    function startDrag(clientX, clientY) {
+      isDrag = true; px = clientX; py = clientY; autoRot = false; hintCtn.style.opacity = '0';
+      clearTimeout(resumeTimeout);
+    }
+    function endDrag() {
+      isDrag = false;
+      resumeTimeout = setTimeout(() => { autoRot = true; }, 1500);
+    }
+    function moveDrag(clientX, clientY) {
+      if (!isDrag) return;
+      velY = (clientX - px) * 0.006; velX = (clientY - py) * 0.006;
+      px = clientX; py = clientY;
+    }
 
-                try {
-                    const response = await fetch('/login' + window.location.search, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(data)
-                    });
+    canvas3.addEventListener('mousedown', e => startDrag(e.clientX, e.clientY));
+    canvas3.addEventListener('touchstart', e => startDrag(e.touches[0].clientX, e.touches[0].clientY), {passive:true});
+    window.addEventListener('mouseup', endDrag);
+    window.addEventListener('touchend', endDrag);
+    window.addEventListener('mousemove', e => moveDrag(e.clientX, e.clientY));
+    window.addEventListener('touchmove', e => moveDrag(e.touches[0].clientX, e.touches[0].clientY), {passive:true});
 
-                    const result = await response.json();
+    const ctx = espCvs.getContext('2d');
+    const dpr = window.devicePixelRatio;
+    function W() { return espCvs.width / dpr; }
+    function H() { return espCvs.height / dpr; }
+    function projectPt(x, y, z) {
+      const v = new THREE.Vector3(x, y, z).project(camera);
+      return { x: (v.x * .5 + .5) * W(), y: (1 - (v.y * .5 + .5)) * H() };
+    }
+    function espBracket(cx, cy, w, h, arm, color, alpha) {
+      ctx.save();
+      ctx.strokeStyle = color; ctx.globalAlpha = alpha;
+      ctx.lineWidth = 1.8; ctx.lineCap = 'round';
+      const x = cx - w/2, y = cy - h/2;
+      [[x,y,1,1],[x+w,y,-1,1],[x,y+h,1,-1],[x+w,y+h,-1,-1]].forEach(([bx,by,sx,sy]) => {
+        ctx.beginPath();
+        ctx.moveTo(bx+sx*arm, by); ctx.lineTo(bx, by); ctx.lineTo(bx, by+sy*arm);
+        ctx.stroke();
+      });
+      ctx.restore();
+    }
+    function espLine(x1, y1, x2, y2, color, alpha) {
+      ctx.save();
+      ctx.strokeStyle = color; ctx.globalAlpha = alpha; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+      ctx.restore();
+    }
+    function espText(x, y, text, color, alpha, size) {
+      ctx.save();
+      ctx.fillStyle = color; ctx.globalAlpha = alpha;
+      ctx.font = `600 ${size||10}px Outfit, monospace`;
+      ctx.letterSpacing = '1px'; ctx.textAlign = 'center';
+      ctx.fillText(text, x, y);
+      ctx.restore();
+    }
+    function espDot(x, y, r, color, alpha) {
+      ctx.save();
+      ctx.fillStyle = color; ctx.globalAlpha = alpha;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI*2); ctx.fill();
+      ctx.restore();
+    }
 
-                    if (result.success) {
-                        window.location.href = result.redirect;
-                    } else {
-                        showError(result.message);
-                        loginBtn.textContent = originalBtnText;
-                        loginBtn.classList.remove('locked');
-                    }
-                } catch (error) {
-                    showError('Ошибка соединения с сервером');
-                    loginBtn.textContent = originalBtnText;
-                    loginBtn.classList.remove('locked');
-                }
-            });
+    const floaters = [
+      { r:2.0, phase:0,    speed:0.55, ry:0.5,  sz:20 },
+      { r:2.4, phase:2.09, speed:0.42, ry:-0.7, sz:16 },
+      { r:1.8, phase:4.18, speed:0.70, ry:0.9,  sz:14 },
+    ];
+
+    let t = 0;
+    function animate() {
+      requestAnimationFrame(animate);
+      t += 0.016;
+
+      if (autoRot) {
+        velY = velY * 0.95 + 0.005 * 0.05;
+        velX *= 0.95;
+      } else {
+        velX *= 0.95;
+        velY *= 0.95;
+      }
+      rotX += velX; rotY += velY;
+      logo.rotation.x = rotX; logo.rotation.y = rotY;
+      wframe.rotation.x = rotX; wframe.rotation.y = rotY;
+
+      rings[0].rotation.z = t * 0.09;
+      rings[1].rotation.y = t * 0.07;
+      rings[2].rotation.x = t * 0.05;
+      particles.rotation.y = t * 0.14;
+      pl.position.x = Math.sin(t * 0.8) * 3.5;
+      pl.position.y = Math.cos(t * 0.5) * 2;
+      pl2.position.x = Math.cos(t * 0.6) * 3;
+      pl2.position.y = Math.sin(t * 0.4) * 2;
+      emat.opacity = 0.35 + 0.22 * Math.sin(t * 2.2);
+
+      renderer.render(scene, camera);
+
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, W(), H());
+
+      const box = new THREE.Box3().setFromObject(logo);
+      const c8 = [
+        [box.min.x,box.min.y,box.min.z],[box.max.x,box.min.y,box.min.z],
+        [box.min.x,box.max.y,box.min.z],[box.max.x,box.max.y,box.min.z],
+        [box.min.x,box.min.y,box.max.z],[box.max.x,box.min.y,box.max.z],
+        [box.min.x,box.max.y,box.max.z],[box.max.x,box.max.y,box.max.z],
+      ];
+      let x1=Infinity,y1=Infinity,x2=-Infinity,y2=-Infinity;
+      c8.forEach(([x,y,z]) => {
+        const p = projectPt(x,y,z);
+        if(p.x<x1)x1=p.x;if(p.x>x2)x2=p.x;
+        if(p.y<y1)y1=p.y;if(p.y>y2)y2=p.y;
+      });
+
+      const bw = x2-x1, bh = y2-y1, bcx = x1+bw/2, bcy = y1+bh/2;
+      const pad = 20;
+      const pulse = 0.7 + 0.3 * Math.sin(t * 2.4);
+      const bxp = x1-pad, byp = y1-pad, bwp = bw+pad*2, bhp = bh+pad*2;
+
+      espBracket(bcx, bcy, bwp, bhp, 22, '#34c759', 0.9 * pulse);
+      espBracket(bcx, bcy, bw+6, bh+6, 10, 'rgba(52,199,89,0.35)', 0.4*pulse);
+
+      ctx.save();
+      ctx.strokeStyle = '#34c759'; ctx.globalAlpha = 0.35 * pulse; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(bcx-7,bcy); ctx.lineTo(bcx+7,bcy);
+      ctx.moveTo(bcx,bcy-7); ctx.lineTo(bcx,bcy+7); ctx.stroke();
+      ctx.restore();
+
+      espText(bcx, byp + bhp + 14, `TORNADO`, '#34c759', 0.55 * pulse);
+
+      for (let i = 0; i < 5; i++) {
+        const ty = byp + (bhp / 4) * i;
+        espLine(bxp - 24, ty, bxp - 12, ty, '#34c759', 0.2 * pulse);
+        ctx.save();
+        ctx.globalAlpha = 0.3 * pulse; ctx.fillStyle = '#34c759';
+        ctx.font = '8px Outfit, monospace'; ctx.textAlign = 'right';
+        ctx.fillText((i*25)+'%', bxp - 14, ty + 3);
+        ctx.restore();
+      }
+
+      espLine(bxp, byp - 10, bxp + bwp*.35, byp - 10, '#34c759', 0.18*pulse);
+      espLine(bxp + bwp*.65, byp - 10, bxp + bwp, byp - 10, '#34c759', 0.18*pulse);
+
+      floaters.forEach((f, fi) => {
+        const angle = t * f.speed + f.phase;
+        const wx = f.r * Math.cos(angle);
+        const wy = f.ry + 0.4 * Math.sin(t * 0.8 + f.phase);
+        const wz = f.r * Math.sin(angle);
+        const sp = projectPt(wx, wy, wz);
+        const fa = 0.3 + 0.2 * Math.sin(t * 1.8 + fi);
+        espBracket(sp.x, sp.y, f.sz, f.sz * 0.65, 5, '#34c759', fa);
+        espDot(sp.x, sp.y, 1.5, '#34c759', fa + 0.1);
+        espLine(sp.x, sp.y, bcx + (sp.x-bcx)*0.15, bcy + (sp.y-bcy)*0.15, 'rgba(52,199,89,0.12)', fa*0.5);
+      });
+    }
+
+    animate();
+  })();
+
+  document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => document.getElementById('cardWindow').classList.add('ready'), 80);
+
+    const form = document.getElementById('loginForm');
+    const btn = document.getElementById('loginBtn');
+    const errDiv = document.getElementById('error-msg');
+    let captchaSolved = false;
+
+    window.onCaptchaSuccess = function(token) {
+      captchaSolved = true;
+      checkFormValidity();
+    };
+
+    function showError(msg) {
+      errDiv.textContent = msg;
+      errDiv.style.display = 'block';
+      errDiv.style.opacity = '1';
+      setTimeout(() => {
+        errDiv.style.opacity = '0';
+        setTimeout(() => {
+          errDiv.style.display = 'none';
+          errDiv.style.opacity = '1';
+        }, 300);
+      }, 3500);
+    }
+
+    function checkFormValidity() {
+      const inputsFilled = [...form.querySelectorAll('input[required]')].every(i => i.value.trim());
+      const isReady = inputsFilled && captchaSolved;
+      btn.classList.toggle('locked', !isReady);
+      btn.disabled = !isReady;
+    }
+
+    form.addEventListener('input', checkValidity);
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (btn.classList.contains('locked')) return;
+
+      const formData = new FormData(form);
+      const data = Object.fromEntries(formData.entries());
+      const origText = btn.querySelector('span').textContent;
+
+      btn.querySelector('span').textContent = 'Загрузка...';
+      btn.classList.add('locked');
+
+      try {
+        const res = await fetch('/login' + window.location.search, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
         });
-    </script>
+        const r = await res.json();
+
+        if (r.success) {
+          window.location.href = r.redirect;
+        } else {
+          showError(r.message || 'Неверный логин или пароль');
+          btn.querySelector('span').textContent = origText;
+
+          if (window.turnstile) {
+            turnstile.reset();
+          } else if (window.smartCaptcha) {
+            window.smartCaptcha.reset();
+          }
+
+          captchaSolved = false;
+          checkFormValidity();
+        }
+      } catch (err) {
+        showError('Ошибка соединения с сервером');
+        btn.querySelector('span').textContent = origText;
+        btn.classList.remove('locked');
+      }
+    });
+  });
+  </script>
 </body>
 </html>

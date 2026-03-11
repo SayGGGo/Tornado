@@ -1,7 +1,9 @@
 from flask import render_template, request, jsonify, session, redirect, url_for
 from config import logger, Config
+from models import User, db
 from utils import get_groups
 from .services import AuthService, ConnectService
+from utils.security import CaptchaManager
 
 
 def register_auth(app):
@@ -12,7 +14,14 @@ def register_auth(app):
     def index():
         if "user_id" in session:
             return redirect(url_for("chat"))
-        return render_template("start.html", groups=get_groups(), site_key=Config.TURNSTILE_SITEKEY)
+
+        provider, site_key = CaptchaManager.get_active_provider()
+        return render_template(
+            "start.html",
+            groups=get_groups(),
+            captcha_provider=provider,
+            site_key=site_key
+        )
 
     @app.route("/api/register", methods=["POST"])
     def register():
@@ -35,7 +44,12 @@ def register_auth(app):
             result = auth_service.login_user(data)
             return jsonify(result)
 
-        return render_template("login.html", site_key=Config.TURNSTILE_SITEKEY)
+        provider, site_key = CaptchaManager.get_active_provider()
+        return render_template(
+            "login.html",
+            captcha_provider=provider,
+            site_key=site_key
+        )
 
     @app.route("/logout")
     def logout():
@@ -61,19 +75,31 @@ def register_auth(app):
         if "user_id" not in session:
             return redirect(url_for("login", next=request.path))
 
+        user = db.session.get(User, session["user_id"])
+        if not user:
+            return redirect(url_for("login"))
+
         req = connect_service.get_request(token)
         if not req or req["status"] != "pending":
             return render_template("error.html", error_code=403)
 
         requested_data = []
         if "1" in req["info"]: requested_data.append("ID профиля")
-        if "2" in req["info"]: requested_data.append("Логин")
+        if "2" in req["info"]: requested_data.append("Логин и аватарка")
         if "3" in req["info"]: requested_data.append("ФИО")
         if "4" in req["info"]: requested_data.append("Статус Premium")
         if "5" in req["info"]: requested_data.append("Доступ к перепискам")
 
-        return render_template("connect.html", token=token, app_name=req["name"], app_logo=req["logo"],
-                               requested_data=requested_data)
+        return render_template(
+            "connect.html",
+            token=token,
+            app_name=req["name"],
+            app_logo=req["logo"],
+            requested_data=requested_data,
+            user_name=user.login,
+            user_fio=user.fio,
+            user_avatar=user.avatar
+        )
 
     @app.route("/api/auth/<token>/approve", methods=["POST"])
     def approve_auth(token):

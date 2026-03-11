@@ -1,16 +1,14 @@
 document.addEventListener('DOMContentLoaded', () => {
+
     const cardWindow = document.querySelector('.card-window');
-    cardWindow.style.opacity = '0';
-    cardWindow.style.transform = 'translateY(30px) scale(0.98)';
-    cardWindow.style.transition = 'all 0.8s cubic-bezier(0.2, 0.8, 0.2, 1)';
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            cardWindow.classList.add('ready');
+        });
+    });
 
-    setTimeout(() => {
-        cardWindow.style.opacity = '1';
-        cardWindow.style.transform = 'translateY(0) scale(1)';
-    }, 50);
-
-    const form = document.getElementById('setupForm');
-    const nextBtn = document.getElementById('nextBtn');
+    const form          = document.getElementById('setupForm');
+    const nextBtn       = document.getElementById('nextBtn');
     const dynamicFields = document.getElementById('dynamic-fields');
     const positionInput = document.getElementById('position_input');
 
@@ -20,47 +18,45 @@ document.addEventListener('DOMContentLoaded', () => {
             errDiv = document.createElement('div');
             errDiv.id = 'error-msg';
             errDiv.className = 'error-message';
-            form.insertBefore(errDiv, document.querySelector('.action-row'));
+            const actionRow = form.querySelector('.action-row');
+            form.insertBefore(errDiv, actionRow);
         }
         errDiv.textContent = message;
         errDiv.style.display = 'block';
-        setTimeout(() => {
+        errDiv.style.opacity  = '1';
+        clearTimeout(errDiv._timeout);
+        errDiv._timeout = setTimeout(() => {
             errDiv.style.opacity = '0';
             setTimeout(() => {
                 errDiv.style.display = 'none';
-                errDiv.style.opacity = '1';
+                errDiv.style.opacity  = '1';
             }, 300);
-        }, 3000);
+        }, 3500);
     }
 
     nextBtn.addEventListener('click', async () => {
         if (nextBtn.classList.contains('locked')) return;
 
         const formData = new FormData(form);
-        const data = Object.fromEntries(formData.entries());
+        const data     = Object.fromEntries(formData.entries());
 
-        const premiumInput = form.querySelector('[name="premium_sub"]');
         const termsInput = form.querySelector('[name="terms"]');
-
-        data.premium_sub = premiumInput ? premiumInput.checked : false;
-        data.terms = termsInput ? termsInput.checked : false;
+        data.terms       = termsInput ? termsInput.checked : false;
 
         if (data.password !== data.password_retry) {
             showError('Пароли не совпадают');
             return;
         }
 
-        const originalBtnText = nextBtn.textContent;
-        nextBtn.textContent = 'Загрузка...';
+        const originalHTML = nextBtn.innerHTML;
+        nextBtn.innerHTML  = '<span class="btn-text">Загрузка…</span>';
         nextBtn.classList.add('locked');
 
         try {
             const response = await fetch('/api/register', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(data)
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify(data),
             });
 
             const result = await response.json();
@@ -69,169 +65,172 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.location.href = result.redirect;
             } else {
                 showError(result.message);
-                nextBtn.textContent = originalBtnText;
+                nextBtn.innerHTML = originalHTML;
                 nextBtn.classList.remove('locked');
             }
-        } catch (error) {
+        } catch {
             showError('Ошибка соединения с сервером');
-            nextBtn.textContent = originalBtnText;
+            nextBtn.innerHTML = originalHTML;
             nextBtn.classList.remove('locked');
         }
     });
 
     function validateForm() {
-        let isValid = true;
         const isDynamicVisible = dynamicFields.style.display !== 'none';
-        const requiredInputs = form.querySelectorAll('[required]');
+        let isValid = true;
 
-        requiredInputs.forEach(input => {
-            if (!isDynamicVisible && dynamicFields.contains(input)) {
-                return;
-            }
+        form.querySelectorAll('[required]').forEach(input => {
+            if (!isDynamicVisible && dynamicFields.contains(input)) return;
 
             if (input.type === 'checkbox') {
-                if (!input.checked) {
-                    isValid = false;
-                }
+                if (!input.checked) isValid = false;
             } else if (input.type === 'email') {
-                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                if (!emailRegex.test(input.value)) {
-                    isValid = false;
-                }
+                if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.value)) isValid = false;
             } else {
-                if (!input.value.trim()) {
-                    isValid = false;
-                }
+                if (!input.value.trim()) isValid = false;
             }
         });
 
-        if (isValid) {
-            nextBtn.classList.remove('locked');
-            nextBtn.disabled = false;
-        } else {
-            nextBtn.classList.add('locked');
-            nextBtn.disabled = true;
-        }
+        nextBtn.disabled = !isValid;
+        nextBtn.classList.toggle('locked', !isValid);
     }
 
     form.addEventListener('input', validateForm);
 
-    document.querySelectorAll('.glass-input').forEach(input => {
-        input.addEventListener('mousemove', e => {
-            const rect = input.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-            input.style.setProperty('--mouse-x', `${x}px`);
-            input.style.setProperty('--mouse-y', `${y}px`);
+    function closeAllDropdowns() {
+        document.querySelectorAll('.custom-select, .custom-multiselect').forEach(el => {
+            el.classList.remove('active');
+            const row = el.closest('.form-row, .select-row');
+            if (row) row.style.zIndex = '';
         });
+    }
 
-        input.addEventListener('mouseleave', () => {
-            input.style.setProperty('--mouse-x', `-500px`);
-            input.style.setProperty('--mouse-y', `-500px`);
-        });
-    });
+    function openDropdown(el) {
+        closeAllDropdowns();
+        el.classList.add('active');
+        const row = el.closest('.form-row');
+        if (row) row.style.zIndex = '200';
+    }
 
-    const customSelects = document.querySelectorAll('.custom-select');
-    customSelects.forEach(cs => {
-        const display = cs.querySelector('.cs-display');
-        const options = cs.querySelectorAll('.cs-option');
+    document.querySelectorAll('.custom-select').forEach(cs => {
+        const display     = cs.querySelector('.cs-display');
+        const options     = cs.querySelectorAll('.cs-option');
         const placeholder = cs.querySelector('.cs-placeholder');
         const hiddenInput = cs.querySelector('input[type="hidden"]');
 
-        display.addEventListener('click', () => {
+        display.addEventListener('click', (e) => {
+            e.stopPropagation();
             const isActive = cs.classList.contains('active');
-            document.querySelectorAll('.custom-select, .custom-multiselect').forEach(el => el.classList.remove('active'));
-            if (!isActive) cs.classList.add('active');
+            if (isActive) {
+                cs.classList.remove('active');
+                const row = cs.closest('.form-row');
+                if (row) row.style.zIndex = '';
+            } else {
+                openDropdown(cs);
+            }
         });
 
         options.forEach(option => {
             option.addEventListener('click', (e) => {
                 e.stopPropagation();
-                options.forEach(opt => opt.classList.remove('selected'));
+                options.forEach(o => o.classList.remove('selected'));
                 option.classList.add('selected');
 
                 const value = option.getAttribute('data-value');
-                const text = option.textContent;
+                const text  = option.textContent.trim();
 
                 let valueSpan = display.querySelector('.cs-value');
                 if (!valueSpan) {
                     valueSpan = document.createElement('span');
                     valueSpan.className = 'cs-value';
-                    display.appendChild(valueSpan);
+                    placeholder.insertAdjacentElement('afterend', valueSpan);
                 }
-                valueSpan.textContent = text;
+                valueSpan.textContent    = text;
                 placeholder.style.display = 'none';
 
                 hiddenInput.value = value;
-                cs.classList.remove('active');
 
-                if (hiddenInput.id === 'position_input') {
+                cs.classList.remove('active');
+                const row = cs.closest('.form-row');
+                if (row) row.style.zIndex = '';
+
+                if (hiddenInput.name === 'position' || hiddenInput.id === 'position_input') {
                     dynamicFields.style.display = 'flex';
-                    setTimeout(() => {
-                        dynamicFields.style.opacity = '1';
-                    }, 10);
+                    requestAnimationFrame(() => {
+                        requestAnimationFrame(() => {
+                            dynamicFields.style.opacity = '1';
+                        });
+                    });
                 }
+
                 validateForm();
             });
         });
     });
 
-    const multiselects = document.querySelectorAll('.custom-multiselect');
-    multiselects.forEach(ms => {
-        const display = ms.querySelector('.ms-display');
-        const options = ms.querySelectorAll('.ms-option');
+    document.querySelectorAll('.custom-multiselect').forEach(ms => {
+        const display       = ms.querySelector('.ms-display');
+        const options       = ms.querySelectorAll('.ms-option');
         const tagsContainer = ms.querySelector('.ms-tags');
-        const placeholder = ms.querySelector('.ms-placeholder');
-        const hiddenInput = ms.querySelector('input[type="hidden"]');
-        let selectedValues = [];
+        const placeholder   = ms.querySelector('.ms-placeholder');
+        const hiddenInput   = ms.querySelector('input[type="hidden"]');
+        let selectedValues  = [];
 
         display.addEventListener('click', (e) => {
-            if(e.target.closest('.ms-tag-remove')) return;
+            if (e.target.closest('.ms-tag-remove')) return;
+            e.stopPropagation();
             const isActive = ms.classList.contains('active');
-            document.querySelectorAll('.custom-select, .custom-multiselect').forEach(el => el.classList.remove('active'));
-            if (!isActive) ms.classList.add('active');
+            if (isActive) {
+                ms.classList.remove('active');
+                const row = ms.closest('.form-row');
+                if (row) row.style.zIndex = '';
+            } else {
+                openDropdown(ms);
+            }
         });
 
         options.forEach(option => {
             option.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const value = option.getAttribute('data-value');
-                const text = option.textContent;
+                const text  = option.textContent.trim();
 
-                if (selectedValues.some(item => item.value === value)) {
-                    selectedValues = selectedValues.filter(item => item.value !== value);
+                if (selectedValues.some(i => i.value === value)) {
+                    selectedValues = selectedValues.filter(i => i.value !== value);
                     option.classList.remove('selected');
                 } else {
                     selectedValues.push({ value, text });
                     option.classList.add('selected');
                 }
-                updateTags();
+                renderTags();
             });
         });
 
-        function updateTags() {
+        function renderTags() {
             tagsContainer.innerHTML = '';
             if (selectedValues.length > 0) {
                 placeholder.style.display = 'none';
-                selectedValues.forEach(item => {
-                    const tag = document.createElement('div');
+                selectedValues.forEach(({ value, text }) => {
+                    const tag = document.createElement('span');
                     tag.className = 'ms-tag';
-                    tag.innerHTML = `<span>${item.text}</span><span class="ms-tag-remove" data-value="${item.value}">&times;</span>`;
+                    tag.innerHTML = `${text}<span class="ms-tag-remove" data-value="${value}" aria-label="Удалить">×</span>`;
                     tagsContainer.appendChild(tag);
                 });
             } else {
-                placeholder.style.display = 'block';
+                placeholder.style.display = '';
             }
-            hiddenInput.value = selectedValues.map(item => item.value).join(',');
+
+            hiddenInput.value = selectedValues.map(i => i.value).join(',');
             validateForm();
 
-            tagsContainer.querySelectorAll('.ms-tag-remove').forEach(rmBtn => {
-                rmBtn.addEventListener('click', (e) => {
+            tagsContainer.querySelectorAll('.ms-tag-remove').forEach(btn => {
+                btn.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    const valToRemove = rmBtn.getAttribute('data-value');
-                    selectedValues = selectedValues.filter(item => item.value !== valToRemove);
-                    ms.querySelector(`.ms-option[data-value="${valToRemove}"]`).classList.remove('selected');
-                    updateTags();
+                    const val = btn.getAttribute('data-value');
+                    selectedValues = selectedValues.filter(i => i.value !== val);
+                    const opt = ms.querySelector(`.ms-option[data-value="${val}"]`);
+                    if (opt) opt.classList.remove('selected');
+                    renderTags();
                 });
             });
         }
@@ -239,29 +238,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.addEventListener('click', (e) => {
         if (!e.target.closest('.custom-select') && !e.target.closest('.custom-multiselect')) {
-            document.querySelectorAll('.custom-select, .custom-multiselect').forEach(el => el.classList.remove('active'));
+            closeAllDropdowns();
         }
     });
 
-    const track = document.getElementById('track');
-    const wrapper = document.getElementById('knobWrapper');
-    const knob = document.getElementById('knob');
-    const knobSpecular = document.getElementById('knobSpecular');
-    const checkbox = document.getElementById('toggle');
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeAllDropdowns();
+    });
 
     const MAX_TRAVEL = 244;
-    const COLOR_OFF = 0x121212;
-    const COLOR_ON = 0x34c759;
-    const SCALE = 0.24;
+    const COLOR_OFF  = 0x111113;
+    const COLOR_ON   = 0x34c759;
+    const SCALE      = 0.24;
 
-    let isDragging = false;
-    let hasMoved = false;
-    let startX = 0;
-    let currentX = 0;
-    let initialX = 0;
     let audioCtx;
 
-function initAudio() {
+    function initAudio() {
         if (!audioCtx) {
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         }
@@ -270,73 +262,53 @@ function initAudio() {
     function playClickSound() {
         if (!audioCtx) return;
         if (audioCtx.state === 'suspended') audioCtx.resume();
-        const oscillator = audioCtx.createOscillator();
-        const gainNode = audioCtx.createGain();
-        oscillator.connect(gainNode);
-        gainNode.connect(audioCtx.destination);
-        oscillator.type = 'sine';
-        oscillator.frequency.setValueAtTime(600, audioCtx.currentTime);
-        oscillator.frequency.exponentialRampToValueAtTime(200, audioCtx.currentTime + 0.05);
-        gainNode.gain.setValueAtTime(0.05, audioCtx.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
-        oscillator.start(audioCtx.currentTime);
-        oscillator.stop(audioCtx.currentTime + 0.05);
+        const osc  = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(700, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(200, audioCtx.currentTime + 0.06);
+        gain.gain.setValueAtTime(0.04, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.06);
+        osc.start(audioCtx.currentTime);
+        osc.stop(audioCtx.currentTime + 0.06);
     }
 
-    const lerpColor = (colorA, colorB, amount) => {
-        const rA = colorA >> 16;
-        const gA = colorA >> 8 & 0xff;
-        const bA = colorA & 0xff;
-        const rB = colorB >> 16;
-        const gB = colorB >> 8 & 0xff;
-        const bB = colorB & 0xff;
-        const rFinal = Math.round(rA + amount * (rB - rA));
-        const gFinal = Math.round(gA + amount * (gB - gA));
-        const bFinal = Math.round(bA + amount * (bB - bA));
-        return `rgb(${rFinal}, ${gFinal}, ${bFinal})`;
-    };
+    function lerpColor(colorA, colorB, t) {
+        const rA = (colorA >> 16) & 0xff, gA = (colorA >> 8) & 0xff, bA = colorA & 0xff;
+        const rB = (colorB >> 16) & 0xff, gB = (colorB >> 8) & 0xff, bB = colorB & 0xff;
+        return `rgb(${Math.round(rA + t * (rB - rA))},${Math.round(gA + t * (gB - gA))},${Math.round(bA + t * (bB - bA))})`;
+    }
 
     function initSwitcher(container) {
-        const track = container.querySelector('.track');
-        const wrapper = container.querySelector('.knob-wrapper');
-        const knob = container.querySelector('.knob');
+        const track    = container.querySelector('.track');
+        const wrapper  = container.querySelector('.knob-wrapper');
+        const knob     = container.querySelector('.knob');
         const specular = container.querySelector('.knob-specular');
         const checkbox = container.querySelector('.switch-input');
 
-        let isDragging = false;
-        let hasMoved = false;
-        let startX = 0;
-        let currentX = 0;
-        let initialX = 0;
+        let isDragging = false, hasMoved = false;
+        let startX = 0, currentX = 0, initialX = 0;
 
         function updateVisuals() {
-            if (checkbox.checked) {
-                track.classList.add('active-bg');
-            } else {
-                track.classList.remove('active-bg');
-            }
+            track.classList.toggle('active-bg', checkbox.checked);
         }
 
         function setPosition(px) {
             wrapper.style.transform = `translateX(${px}px)`;
         }
 
-        function updateSpecularPosition(clientX, clientY) {
-            const knobRect = knob.getBoundingClientRect();
-            const x = clientX - knobRect.left;
-            const y = clientY - knobRect.top;
-            const xPercent = (x / knobRect.width) * 100;
-            const yPercent = (y / knobRect.height) * 100;
-            specular.style.setProperty('--light-x', `${xPercent}%`);
-            specular.style.setProperty('--light-y', `${yPercent}%`);
+        function updateSpecular(clientX, clientY) {
+            const r = knob.getBoundingClientRect();
+            specular.style.setProperty('--light-x', `${((clientX - r.left) / r.width)  * 100}%`);
+            specular.style.setProperty('--light-y', `${((clientY - r.top)  / r.height) * 100}%`);
         }
 
         function snapToCurrent() {
             track.style.backgroundColor = '';
-            const targetX = checkbox.checked ? MAX_TRAVEL : 0;
-            setPosition(targetX);
+            setPosition(checkbox.checked ? MAX_TRAVEL : 0);
             updateVisuals();
-
             validateForm();
         }
 
@@ -350,38 +322,27 @@ function initAudio() {
         function startDrag(e) {
             initAudio();
             isDragging = true;
-            hasMoved = false;
+            hasMoved   = false;
             wrapper.classList.add('active', 'dragging');
             track.classList.add('dragging');
-            const clientX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
-            const clientY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
-            startX = clientX;
+            const cx = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+            const cy = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
+            startX   = cx;
             initialX = checkbox.checked ? MAX_TRAVEL : 0;
-            updateSpecularPosition(clientX, clientY);
+            updateSpecular(cx, cy);
         }
 
         function onDrag(e) {
             if (!isDragging) return;
-            const clientX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
-            const clientY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
-            const deltaX = (clientX - startX) / SCALE;
+            const cx    = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+            const cy    = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
+            const delta = (cx - startX) / SCALE;
+            if (Math.abs(delta) > 3) hasMoved = true;
 
-            if (Math.abs(deltaX) > 3) {
-                hasMoved = true;
-            }
-
-            let newPos = initialX + deltaX;
-            newPos = Math.max(0, Math.min(newPos, MAX_TRAVEL));
-            currentX = newPos;
-
-            setPosition(newPos);
-
-            const percent = newPos / MAX_TRAVEL;
-            track.style.backgroundColor = lerpColor(COLOR_OFF, COLOR_ON, percent);
-
-            requestAnimationFrame(() => {
-                updateSpecularPosition(clientX, clientY);
-            });
+            currentX = Math.max(0, Math.min(initialX + delta, MAX_TRAVEL));
+            setPosition(currentX);
+            track.style.backgroundColor = lerpColor(COLOR_OFF, COLOR_ON, currentX / MAX_TRAVEL);
+            requestAnimationFrame(() => updateSpecular(cx, cy));
         }
 
         function endDrag() {
@@ -390,43 +351,28 @@ function initAudio() {
             wrapper.classList.remove('active', 'dragging');
             track.classList.remove('dragging');
 
-            if (!hasMoved) {
-                toggleState();
-                return;
-            }
+            if (!hasMoved) { toggleState(); return; }
 
-            const prevState = checkbox.checked;
-            if (currentX > MAX_TRAVEL / 2) {
-                checkbox.checked = true;
-            } else {
-                checkbox.checked = false;
-            }
-
-            if (prevState !== checkbox.checked) {
-                playClickSound();
-            }
+            const prev = checkbox.checked;
+            checkbox.checked = currentX > MAX_TRAVEL / 2;
+            if (prev !== checkbox.checked) playClickSound();
             snapToCurrent();
         }
 
-        knob.addEventListener('mousedown', startDrag);
+        knob.addEventListener('mousedown',  startDrag);
         knob.addEventListener('touchstart', startDrag, { passive: false });
-
         window.addEventListener('mousemove', onDrag);
-        window.addEventListener('touchmove', onDrag, { passive: false });
-
-        window.addEventListener('mouseup', endDrag);
-        window.addEventListener('touchend', endDrag);
+        window.addEventListener('touchmove', onDrag,  { passive: false });
+        window.addEventListener('mouseup',   endDrag);
+        window.addEventListener('touchend',  endDrag);
 
         track.addEventListener('click', (e) => {
-            if (e.target === knob || e.target === wrapper) return;
+            if (wrapper.contains(e.target)) return;
             toggleState();
         });
 
         snapToCurrent();
     }
 
-    const allSwitchers = document.querySelectorAll('.switch-container');
-    allSwitchers.forEach(container => {
-        initSwitcher(container);
-    });
+    document.querySelectorAll('.switch-container').forEach(initSwitcher);
 });

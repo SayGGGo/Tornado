@@ -1,6 +1,47 @@
 import hashlib
 import requests
+from datetime import datetime
+from flask import request
 from config import Config, logger
+from models import db
+from models.server import CaptchaStats
+from .network import NetworkTools
+
+
+class CaptchaManager:
+    @staticmethod
+    def get_current_stats():
+        now = datetime.now()
+        stats = CaptchaStats.query.filter_by(month=now.month, year=now.year).first()
+        if not stats:
+            stats = CaptchaStats(month=now.month, year=now.year, count=0)
+            db.session.add(stats)
+            db.session.commit()
+        return stats
+
+    @staticmethod
+    def increment_usage():
+        stats = CaptchaManager.get_current_stats()
+        stats.count += 1
+        db.session.commit()
+
+    @staticmethod
+    def get_active_provider():
+        has_yandex = True if Config.YANDEX_SITEKEY != "0" and Config.YANDEX_SERVER != "0" else False
+        has_turnstile = True if Config.TURNSTILE_SITEKEY != "0" and Config.TURNSTILE_SECRET != "0" else False
+
+        if has_yandex and has_turnstile:
+            if CaptchaManager.get_current_stats().count < 7500: # Фри тариф 10К, запас 2.5К
+                return "yandex", Config.YANDEX_SITEKEY
+            return "turnstile", Config.TURNSTILE_SITEKEY
+
+        elif has_yandex:
+            return "yandex", Config.YANDEX_SITEKEY
+        elif has_turnstile:
+            return "turnstile", Config.TURNSTILE_SITEKEY
+
+        return None, None
+
 
 class SecurityManager:
     @staticmethod
@@ -15,6 +56,41 @@ class SecurityManager:
         except requests.RequestException as e:
             logger.error(f"Turnstile error: {e}")
             return False
+
+    @staticmethod
+    def verify_yandex(token: str, ip: str) -> bool:
+        if not token:
+            return False
+        url = "https://smartcaptcha.yandexcloud.net/validate"
+        params = {
+            "secret": Config.YANDEX_SERVER,
+            "token": token,
+            "ip": ip
+        }
+        try:
+            response = requests.get(url, params=params, timeout=5)
+            if response.status_code != 200:
+                return True
+
+            result = response.json().get("status") == "ok"
+            if result:
+                CaptchaManager.increment_usage()
+            return result
+        except Exception as e:
+            logger.error(f"Yandex SmartCaptcha error: {e}")
+            return True
+
+    @staticmethod
+    def verify_captcha(data: dict) -> bool:
+        yandex_token = data.get("smart-token")
+        turnstile_token = data.get("cf-turnstile-response")
+
+        if yandex_token:
+            return SecurityManager.verify_yandex(yandex_token, request.remote_addr)
+        elif turnstile_token:
+            return SecurityManager.verify_turnstile(turnstile_token)
+
+        return False
 
     @staticmethod
     def verify_license_key(key: str, server_ip: str) -> bool:

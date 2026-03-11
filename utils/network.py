@@ -1,12 +1,21 @@
+import hashlib
 import socket
 import time
 import requests
 from bs4 import BeautifulSoup
 from config import logger
+import subprocess
 
 
 class NetworkTools:
     _ip_cache = None
+
+    @classmethod
+    def get_hwid(cls):
+        cmd = 'wmic csproduct get uuid'
+        uuid = str(subprocess.check_output(cmd, shell=True))
+        return hashlib.sha256(uuid.encode()).hexdigest()
+
 
     @classmethod
     def get_server_ip(cls) -> str:
