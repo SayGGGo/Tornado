@@ -5,6 +5,8 @@ db = SQLAlchemy()
 from .user import User
 from .chat import Chat, ChatParticipant
 from .message import Message
+from .server import CaptchaStats
+from .admin import Admin
 
 def init_models(app):
     db.init_app(app)

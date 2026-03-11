@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TORNADO — Терминал Управления</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+
+    {% if captcha_provider == 'turnstile' %}
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    {% elif captcha_provider == 'yandex' %}
+    <script src="https://smartcaptcha.yandexcloud.net/captcha.js" defer></script>
+    {% endif %}
+</head>
+<body>
+
+    <div class="bg-canvas" aria-hidden="true">
+        <canvas id="topo-canvas"></canvas>
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
+        <div class="grid-dots"></div>
+    </div>
+
+    <div class="card-window ready" style="max-width: 500px;">
+
+        <header class="header">
+            <div class="logo-wrap">
+                <div class="logo-text-group">
+                    <span class="logo">TORNADO</span>
+                </div>
+            </div>
+        </header>
+        <form class="setup-form" id="adminLoginForm">
+            <div class="form-group" style="margin-bottom: 20px;">
+                <label style="margin-bottom: 8px; display: block; font-size: 11px; font-weight: 600; color: var(--text-dim); text-transform: uppercase;">Идентификатор</label>
+                <input type="text" id="username" class="glass-input"
+                       placeholder="admin" required autocomplete="username">
+            </div>
+
+            <div class="form-group" style="margin-bottom: 24px;">
+                <label style="margin-bottom: 8px; display: block; font-size: 11px; font-weight: 600; color: var(--text-dim); text-transform: uppercase;">Ключ доступа</label>
+                <input type="password" id="password" class="glass-input"
+                       placeholder="••••••••••••" required autocomplete="current-password">
+            </div>
+
+            <div class="action-row" style="flex-direction: column; align-items: stretch; gap: 20px;">
+
+                <div style="display: flex; justify-content: center; width: 100%;">
+                    {% if captcha_provider == 'turnstile' %}
+                    <div class="cf-turnstile" data-sitekey="{{ site_key }}" data-theme="dark" data-callback="onCaptchaSuccess"></div>
+                    {% elif captcha_provider == 'yandex' %}
+                    <div id="captcha-container" class="smart-captcha" data-sitekey="{{ site_key }}" data-callback="onCaptchaSuccess" style="height: 100px; width: 100%;"></div>
+                    {% endif %}
+                </div>
+
+                <button type="submit" class="glass-btn" id="submitBtn">
+                    <span class="btn-text">Авторизация</span>
+                </button>
+            </div>
+
+        </form>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/bg.js') }}"></script>
+    <script>
+        let captchaToken = "";
+        function onCaptchaSuccess(token) {
+            captchaToken = token;
+        }
+
+        document.getElementById('adminLoginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const btn = document.getElementById('submitBtn');
+            btn.classList.add('locked');
+            btn.innerHTML = '<span class="btn-text">Проверка...</span>';
+
+            try {
+                const response = await fetch('/{{ key }}/login', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        username: document.getElementById('username').value,
+                        password: document.getElementById('password').value,
+                        captcha_token: captchaToken
+                    })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    window.location.href = '/{{ key }}/dashboard';
+                } else {
+                    alert(result.message || "Ошибка доступа");
+                    btn.classList.remove('locked');
+                    btn.innerHTML = '<span class="btn-text">Авторизация</span>';
+                    if (typeof turnstile !== 'undefined') turnstile.reset();
+                }
+            } catch (err) {
+                btn.classList.remove('locked');
+                btn.innerHTML = '<span class="btn-text">Авторизация</span>';
+            }
+        });
+    </script>
+</body>
+</html>

@@ -25,6 +25,7 @@ from auth import register_auth
 from system import register_system
 from chat import register_chat
 from telegram import register_tg
+from admin import register_admin
 
 tg_api = False
 if Config.TELEGRAM_API_ACTIVE:
@@ -43,6 +44,8 @@ if Config.TELEGRAM_API_ACTIVE:
 
 app = Flask(__name__)
 app.config.from_object(Config)
+app.config['SECRET_KEY'] = Config.SECRET_KEY
+
 init_models(app)
 
 server_ip_cache = None
@@ -60,5 +63,6 @@ if __name__ == "__main__":
     register_system(app)
     register_chat(app)
     register_tg(app)
+    register_admin(app)
 
     app.run(host=Config.FLASK_HOST,  port=Config.FLASK_PORT)
