@@ -12,10 +12,10 @@
     <div class="connect-card">
         <div id="card-content">
             <div class="user-profile">
-                <img src="{{ user_avatar|default(url_for('static', filename='img/default_avatar.png')) }}" alt="Avatar" class="user-avatar">
+                <img src="{{ user_avatar if user_avatar else 'https://ui-avatars.com/api/?name=' ~ user_fio|urlencode ~ '&background=random&color=fff&rounded=true&bold=true&uppercase=true' }}" alt="Аватарка" class="user-avatar">
                 <div class="user-info">
-                    <div class="user-name">{{ user_name|default('SayGG') }}</div>
-                    <div class="user-email">{{ user_email|default('Вход в аккаунт') }}</div>
+                    <div class="user-name">{{ user_name }}</div>
+                    <div class="user-email">{{ user_fio }}</div>
                 </div>
             </div>
 

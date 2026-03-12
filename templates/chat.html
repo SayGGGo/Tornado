@@ -25,6 +25,13 @@
             </div>
 
             <div class="chat-layout" id="active-chat-layout" style="display: none;">
+                <div id="chat-preloader" class="chat-preloader">
+                    <div class="crypto-loader">
+                        <div class="crypto-ring"></div>
+                        <img src="{{ url_for('static', filename='icons/logo.svg') }}" class="crypto-logo">
+                    </div>
+                </div>
+
                 <div class="chat-header-wrapper">
                     <div class="chat-layout-header liquid-glass">
                         <div class="chat-user-info">

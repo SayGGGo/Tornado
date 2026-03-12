@@ -36,7 +36,7 @@
 
     <div class="chat-list">
         {% for chat_id, chat in msg_data.items() %}
-        <div class="chat-item" data-chat-id="{{ chat_id }}">
+        <div class="chat-item" data-chat-id="{{ chat_id }}" data-target-id="{{ chat.target_user_id }}">
             <img src="{{ chat.avatar }}" alt="Avatar" class="avatar">
             <div class="chat-info">
                 <div class="chat-header">

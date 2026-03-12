@@ -62,7 +62,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         <path class="path-cross" fill="none" stroke="#ff453a" stroke-width="4" stroke-linecap="round" d="M16 16 36 36 M36 16 16 36" />
                     </svg>
                     <h2>Отклонено</h2>
-                    <p class="anim-subtext">Запрос был отменен</p>
+                    <p class="anim-subtext">Вы можете закрыть эту страницу</p>
                 `;
             }
         }, 400);

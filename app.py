@@ -17,9 +17,9 @@ try:
 except ImportError as lib:
     sys.exit(f"Пожалуйста, установите библиотеку {lib}")
 
-from config import Config, logger
+from config import Config, logger, setup_settings
 from botapi import register_bot_api
-from models import init_models, User, Chat, Message, ChatParticipant, db
+from models import init_models, User, Chat, Message, ChatParticipant, Settings, db
 from utils import verify_turnstile, get_groups, get_randomization, verify_key, check_github_updates
 from auth import register_auth
 from system import register_system
@@ -57,7 +57,7 @@ if tg_api:
 
 if __name__ == "__main__":
     # check_github_updates()
-
+    setup_settings(app, db, Settings)
     register_bot_api(app)
     register_auth(app)
     register_system(app)

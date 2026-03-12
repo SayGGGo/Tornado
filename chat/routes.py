@@ -17,17 +17,8 @@ def register_chat(app):
             return redirect(url_for("login"))
 
         folders = [{"name": "Все", "count": 0, "active": True}]
-        msg_data = {
-            "1": {"name": "LuckyTools AI", "avatar": "https://i.ibb.co/dsKqPRtX/ltlogo.png", "active": False,
-                  "last_msg": "Нейросеть от LuckyTools", "last_time": "", "last_status": False, "unread": 0,
-                  "pinned": False, "muted": False, "tags": [], "premium": "1"},
-            "2": {"name": "Tornado", "avatar": "https://i.ibb.co/XZ3kSFyf/tlogo.png", "active": False,
-                  "last_msg": "Служебные сообщения", "last_time": "", "last_status": False, "unread": 0,
-                  "pinned": False, "muted": False, "premium": "1"},
-            "3": {"name": "Test", "avatar": "https://cdn.worldvectorlogo.com/logos/telegram-1.svg", "active": False,
-                  "last_msg": "/start", "last_time": "17:21", "last_status": True, "unread": 0, "pinned": False,
-                  "muted": False, "premium": "0"}
-        }
+        msg_data = chat_service.get_user_chats(user.id)
+
         return render_template("chat.html", current_user=user, msg_data=msg_data, folders=folders)
 
     @app.route("/api/messages", methods=["GET"])
@@ -35,8 +26,14 @@ def register_chat(app):
         if "user_id" not in session:
             return jsonify({"error": "Unauthorized"}), 401
 
+        chat_id = request.args.get("chat_id")
         last_id = request.args.get("last_id", 0, type=int)
-        return jsonify(chat_service.get_recent_messages(last_id))
+        first_id = request.args.get("first_id", 0, type=int)
+
+        if not chat_id or chat_id == 'null':
+            return jsonify([])
+
+        return jsonify(chat_service.get_recent_messages(session["user_id"], int(chat_id), last_id, first_id))
 
     @app.route("/api/messages", methods=["POST"])
     def send_message():
@@ -44,7 +41,41 @@ def register_chat(app):
             return jsonify({"error": "Unauthorized"}), 401
 
         data = request.json or {}
-        result = chat_service.post_message(session["user_id"], data.get("content"))
-        if "error" in result:
-            return jsonify(result), 400
+        chat_id = data.get("chat_id")
+        target_user_id = data.get("target_user_id")
+
+        if not chat_id and target_user_id:
+            chat_data = chat_service.get_or_create_personal_chat(session["user_id"], target_user_id)
+            chat_id = chat_data["chat_id"]
+
+        result = chat_service.post_message(session["user_id"], chat_id, data.get("content"))
+        if "success" in result:
+            result["chat_id"] = chat_id
+
+        return jsonify(result), 200 if "success" in result else 400
+
+    @app.route("/api/users/search", methods=["GET"])
+    def search_users_api():
+        if "user_id" not in session:
+            return jsonify([]), 401
+
+        query = request.args.get("q", "")
+        return jsonify(chat_service.search_users(query, session["user_id"]))
+
+    @app.route("/api/chats/get_or_create", methods=["POST"])
+    def get_or_create_chat():
+        if "user_id" not in session:
+            return jsonify({"error": "Unauthorized"}), 401
+
+        target_user_id = request.json.get("target_user_id")
+        if not target_user_id:
+            return jsonify({"error": "Missing target"}), 400
+
+        result = chat_service.get_or_create_personal_chat(session["user_id"], target_user_id)
         return jsonify(result)
+
+    @app.route("/api/chats", methods=["GET"])
+    def get_chats_api():
+        if "user_id" not in session:
+            return jsonify({})
+        return jsonify(chat_service.get_user_chats(session["user_id"]))
