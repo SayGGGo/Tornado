@@ -30,3 +30,6 @@ class Config:
     FLASK_PORT = os.getenv("FLASK_PORT", "3000")
 
     ADMIN_SESSION_IND = os.getenv("ADMIN_PAGE", "0")
+
+    AGORA_APP_ID = os.getenv("AGORA_APP_ID", "0")
+    AGORA_APP_CERTIFICATE = os.getenv("AGORA_APP_CERTIFICATE", "0")

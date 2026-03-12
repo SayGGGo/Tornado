@@ -7,6 +7,9 @@ from sqlalchemy import or_
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from config import Config
+from agora_token_builder import RtcTokenBuilder
+import time
 
 class EncryptionService:
     @staticmethod
@@ -66,7 +69,6 @@ class EncryptionService:
             return (decryptor.update(encrypted_text) + decryptor.finalize()).decode()
         except:
             return "[ Это сообщение слишком старое ]"
-
 
 class ChatService:
     def __init__(self):
@@ -194,3 +196,23 @@ class ChatService:
                             ChatParticipant(user_id=user2_id, chat_id=new_chat.id)])
         db.session.commit()
         return {"chat_id": new_chat.id, "is_new": True}
+
+class AgoraService:
+    def __init__(self):
+        self.app_id = Config.AGORA_APP_ID
+        self.app_certificate = Config.AGORA_APP_CERTIFICATE
+
+    def generate_rtc_token(self, channel_name, user_id, role=1):
+        expiration_time_in_seconds = 3600
+        current_timestamp = int(time.time())
+        privilege_expired_ts = current_timestamp + expiration_time_in_seconds
+
+        token = RtcTokenBuilder.buildTokenWithUid(
+            self.app_id,
+            self.app_certificate,
+            channel_name,
+            user_id,
+            role,
+            privilege_expired_ts
+        )
+        return token

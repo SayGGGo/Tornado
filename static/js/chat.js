@@ -14,10 +14,12 @@ const headerContainer = document.querySelector('.header');
 const currentUserMeta = document.querySelector('meta[name="current-user"]');
 const currentUser = currentUserMeta ? currentUserMeta.content : '';
 const chatPreloader = document.getElementById('chat-preloader');
+const chatInputWrapper = document.getElementById('chat-input-wrapper-el');
 
 let isResizing = false;
 let currentChatId = null;
 let currentTargetId = null;
+let currentChatAvatar = '';
 let isLoadingHistory = false;
 let fetchAbortController = null;
 let isFetchingInitial = false;
@@ -32,6 +34,83 @@ style.textContent = `
 }
 .msg-animate {
     animation: smoothFadeIn 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+}
+
+.call-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 18px;
+    background: rgba(52,199,89,0.07);
+    border: 1px solid rgba(52,199,89,0.25);
+    border-radius: 18px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    text-decoration: none;
+    max-width: 320px;
+    margin: 2px 0;
+    position: relative;
+    overflow: hidden;
+}
+.call-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 80% 60% at 20% 50%, rgba(52,199,89,0.08), transparent);
+    pointer-events: none;
+}
+.call-card:hover {
+    background: rgba(52,199,89,0.13);
+    border-color: rgba(52,199,89,0.4);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(52,199,89,0.15);
+}
+.call-card-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: rgba(52,199,89,0.15);
+    border: 1px solid rgba(52,199,89,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    animation: callIconPulse 2.5s ease-in-out infinite;
+}
+@keyframes callIconPulse {
+    0%,100%{box-shadow:0 0 0 0 rgba(52,199,89,0.3)}
+    50%{box-shadow:0 0 0 8px rgba(52,199,89,0)}
+}
+.call-card-icon svg {
+    width: 22px;
+    height: 22px;
+    fill: #34c759;
+}
+.call-card-info {
+    flex: 1;
+    min-width: 0;
+}
+.call-card-title {
+    font-size: 14px;
+    font-weight: 800;
+    color: #34c759;
+    letter-spacing: -0.1px;
+    margin-bottom: 3px;
+}
+.call-card-subtitle {
+    font-size: 12px;
+    color: rgba(255,255,255,0.45);
+    font-weight: 600;
+}
+.call-card-arrow {
+    width: 20px;
+    height: 20px;
+    fill: rgba(52,199,89,0.5);
+    flex-shrink: 0;
+    transition: transform 0.2s ease;
+}
+.call-card:hover .call-card-arrow {
+    transform: translateX(3px);
 }
 `;
 document.head.appendChild(style);
@@ -70,9 +149,7 @@ function onChatClick(e) {
 
     if (currentChatId === clickedChatId && clickedChatId !== 'null') return;
 
-    if (fetchAbortController) {
-        fetchAbortController.abort();
-    }
+    if (fetchAbortController) fetchAbortController.abort();
 
     if (currentChatId && chatCache[currentChatId]) {
         chatCache[currentChatId].scrollPos = messagesContainer.scrollTop;
@@ -83,6 +160,7 @@ function onChatClick(e) {
 
     currentChatId = clickedChatId;
     currentTargetId = item.getAttribute('data-target-id');
+    currentChatAvatar = item.querySelector('.avatar')?.src || '';
 
     chatNameEl.textContent = item.querySelector('.chat-name').childNodes[0].textContent.trim();
     chatAvatarEl.src = item.querySelector('.avatar').src;
@@ -98,6 +176,7 @@ function onChatClick(e) {
 
     noChatState.style.display = 'none';
     activeChatLayout.style.display = 'flex';
+    if (chatInputWrapper) chatInputWrapper.style.display = 'flex';
 
     messagesContainer.innerHTML = '';
     isLoadingHistory = false;
@@ -119,12 +198,9 @@ function onChatClick(e) {
         if (cache.messages.length > 0) {
             chatPreloader.style.display = 'none';
             const fragment = document.createDocumentFragment();
-            cache.messages.forEach(msg => {
-                fragment.appendChild(createMessageElement(msg, false));
-            });
+            cache.messages.forEach(msg => fragment.appendChild(createMessageElement(msg, false)));
             messagesContainer.appendChild(fragment);
             messagesContainer.scrollTop = cache.scrollPos || messagesContainer.scrollHeight;
-
             pollNewMessages();
         } else {
             chatPreloader.style.display = 'flex';
@@ -174,17 +250,76 @@ messagesContainer.addEventListener('scroll', () => {
     }
 });
 
+function parseCallInvite(content) {
+    if (!content || !content.startsWith('__CALL_INVITE__')) return null;
+    const parts = content.split('|');
+    const channelName = parts[0].replace('__CALL_INVITE__', '');
+    return {
+        channel: channelName,
+        callerName: parts[1] || 'Пользователь',
+        callerAvatar: parts[2] || `https://ui-avatars.com/api/?name=${encodeURIComponent(parts[1] || 'U')}&background=random`
+    };
+}
+
+function createCallCard(callData, isOwn) {
+    const card = document.createElement('a');
+    card.className = 'call-card';
+    card.href = '#';
+    card.innerHTML = `
+        <div class="call-card-icon">
+            <svg viewBox="0 0 24 24"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
+        </div>
+        <div class="call-card-info">
+            <div class="call-card-title">${isOwn ? 'Вы начали звонок' : callData.callerName + ' начинает звонок'}</div>
+            <div class="call-card-subtitle">Внимание! Данная система в разработке, заходите в звонки только к тем, кому доверяете и не вводите никакие коды.</div>
+        </div>
+        <svg class="call-card-arrow" viewBox="0 0 24 24"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/></svg>
+    `;
+    card.addEventListener('click', (e) => {
+        e.preventDefault();
+        const callUrl = `/call?channel=${callData.channel}`;
+        const width = 1200;
+        const height = 800;
+        const left = Math.round((window.screen.width - width) / 2);
+        const top = Math.round((window.screen.height - height) / 2);
+        window.open(callUrl, `call_${callData.channel}`, `width=${width},height=${height},top=${top},left=${left},menubar=no,toolbar=no,status=no`);
+    });
+    return card;
+}
+
 function createMessageElement(msg, animate = false) {
     const isOwn = msg.login === currentUser;
     const msgDiv = document.createElement('div');
     msgDiv.className = `message-box ${isOwn ? 'msg-own' : 'msg-other'}`;
-    if (animate) {
-        msgDiv.classList.add('msg-animate');
-    }
+    if (animate) msgDiv.classList.add('msg-animate');
     msgDiv.setAttribute('data-msg-id', msg.id);
 
+    const callData = parseCallInvite(msg.content);
+
+    if (callData) {
+        const authorHtml = isOwn ? '' : `<div class="msg-author">${msg.login}</div>`;
+        msgDiv.innerHTML = authorHtml;
+        const metaDiv = document.createElement('div');
+        metaDiv.className = 'msg-content';
+        metaDiv.style.padding = '4px 0';
+        metaDiv.style.background = 'transparent';
+        metaDiv.style.border = 'none';
+        metaDiv.style.boxShadow = 'none';
+        const card = createCallCard(callData, isOwn);
+        const timeDiv = document.createElement('div');
+        timeDiv.className = 'msg-meta';
+        timeDiv.style.marginTop = '6px';
+        timeDiv.innerHTML = `<span class="msg-time">${msg.timestamp}</span>`;
+        metaDiv.appendChild(card);
+        metaDiv.appendChild(timeDiv);
+        msgDiv.appendChild(metaDiv);
+        return msgDiv;
+    }
+
     const authorHtml = isOwn ? '' : `<div class="msg-author">${msg.login}</div>`;
-    const ticksHtml = isOwn ? (msg.is_read ? `<svg class="read" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4CAF50" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 6 7 17 2 12"></polyline><polyline points="22 6 11 17 11 17"></polyline></svg>` : `<svg class="unread" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`) : '';
+    const ticksHtml = isOwn ? (msg.is_read
+        ? `<svg class="read" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4CAF50" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 6 7 17 2 12"></polyline><polyline points="22 6 11 17 11 17"></polyline></svg>`
+        : `<svg class="unread" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`) : '';
 
     msgDiv.innerHTML = `
         ${authorHtml}
@@ -205,9 +340,7 @@ async function fetchMessages(isHistory = false) {
     if (isHistory && (isLoadingHistory || !cache.hasMoreHistory)) return;
 
     if (!isHistory) {
-        if (fetchAbortController) {
-            fetchAbortController.abort();
-        }
+        if (fetchAbortController) fetchAbortController.abort();
         fetchAbortController = new AbortController();
     }
 
@@ -222,9 +355,7 @@ async function fetchMessages(isHistory = false) {
     }
 
     try {
-        const response = await fetch(url, {
-            signal: isHistory ? undefined : fetchAbortController.signal
-        });
+        const response = await fetch(url, { signal: isHistory ? undefined : fetchAbortController.signal });
 
         if (response.ok) {
             const messages = await response.json();
@@ -241,28 +372,22 @@ async function fetchMessages(isHistory = false) {
                     cache.hasMoreHistory = false;
                     return;
                 }
-
                 const oldScrollHeight = messagesContainer.scrollHeight;
                 const fragment = document.createDocumentFragment();
-
                 messages.forEach(msg => {
                     if (!messagesContainer.querySelector(`[data-msg-id="${msg.id}"]`)) {
                         fragment.appendChild(createMessageElement(msg, false));
                     }
                     cache.firstMessageId = Math.min(cache.firstMessageId === 0 ? msg.id : cache.firstMessageId, msg.id);
                 });
-
                 const uniqueNewMsgs = messages.filter(m => !cache.messages.some(cm => cm.id === m.id));
                 cache.messages = [...uniqueNewMsgs, ...cache.messages];
-
                 messagesContainer.insertBefore(fragment, messagesContainer.firstChild);
                 messagesContainer.scrollTop = messagesContainer.scrollHeight - oldScrollHeight;
-
             } else {
                 if (messages.length > 0) {
                     const isAtBottom = messagesContainer.scrollHeight - messagesContainer.scrollTop <= messagesContainer.clientHeight + 150;
                     const isInitialLoad = cache.lastMessageId === 0;
-
                     messages.forEach(msg => {
                         if (!messagesContainer.querySelector(`[data-msg-id="${msg.id}"]`)) {
                             messagesContainer.appendChild(createMessageElement(msg, !isInitialLoad));
@@ -271,19 +396,13 @@ async function fetchMessages(isHistory = false) {
                         cache.lastMessageId = Math.max(cache.lastMessageId, msg.id);
                         if (cache.firstMessageId === 0 || msg.id < cache.firstMessageId) cache.firstMessageId = msg.id;
                     });
-
-                    if (isInitialLoad || isAtBottom) {
-                       scrollToBottom();
-                    }
+                    if (isInitialLoad || isAtBottom) scrollToBottom();
                 }
             }
         }
     } catch (e) {
         if (e.name !== 'AbortError') {
-            if (!isHistory) {
-                chatPreloader.style.display = 'none';
-                isFetchingInitial = false;
-            }
+            if (!isHistory) { chatPreloader.style.display = 'none'; isFetchingInitial = false; }
             if (isHistory) isLoadingHistory = false;
         }
     }
@@ -293,17 +412,14 @@ async function pollNewMessages() {
     if (!currentChatId || currentChatId === 'null' || isFetchingInitial) return;
     const requestedChatId = currentChatId;
     const cache = chatCache[currentChatId];
-
     let url = `/api/messages?chat_id=${currentChatId}&last_id=${cache.lastMessageId}`;
     try {
         const response = await fetch(url);
         if (response.ok) {
             const messages = await response.json();
             if (requestedChatId !== currentChatId) return;
-
             if (messages.length > 0) {
                 const isAtBottom = messagesContainer.scrollHeight - messagesContainer.scrollTop <= messagesContainer.clientHeight + 150;
-
                 messages.forEach(msg => {
                     if (!messagesContainer.querySelector(`[data-msg-id="${msg.id}"]`)) {
                         messagesContainer.appendChild(createMessageElement(msg, true));
@@ -312,10 +428,7 @@ async function pollNewMessages() {
                     cache.lastMessageId = Math.max(cache.lastMessageId, msg.id);
                     if (cache.firstMessageId === 0 || msg.id < cache.firstMessageId) cache.firstMessageId = msg.id;
                 });
-
-                if (isAtBottom) {
-                    scrollToBottom();
-                }
+                if (isAtBottom) scrollToBottom();
             }
         }
     } catch (e) {}
@@ -350,9 +463,7 @@ async function sendMessage() {
         if (data.chat_id) {
             currentChatId = data.chat_id;
             const activeItem = document.querySelector('.chat-item.active');
-            if (activeItem) {
-                activeItem.setAttribute('data-chat-id', currentChatId);
-            }
+            if (activeItem) activeItem.setAttribute('data-chat-id', currentChatId);
         }
 
         pollNewMessages();
@@ -372,52 +483,57 @@ if (sendBtn && messageInput) {
 async function updateSidebar() {
     try {
         const res = await fetch('/api/chats');
-        if (res.ok) {
-            const chatsData = await res.json();
-            const chatList = document.querySelector('.chat-list');
+        if (!res.ok) return;
+        const chatsData = await res.json();
+        const chatList = document.querySelector('.chat-list');
 
-            for (const [chatId, chat] of Object.entries(chatsData)) {
-                let chatItem = document.querySelector(`.chat-item[data-chat-id="${chatId}"]`);
+        for (const [chatId, chat] of Object.entries(chatsData)) {
+            let chatItem = document.querySelector(`.chat-item[data-chat-id="${chatId}"]`);
 
-                if (!chatItem) {
-                    const existingTemp = document.querySelector(`.chat-item[data-target-id="${chat.target_user_id}"][data-chat-id="null"]`);
-                    if (existingTemp) {
-                        existingTemp.setAttribute('data-chat-id', chatId);
-                        chatItem = existingTemp;
-                    } else {
-                        chatItem = document.createElement('div');
-                        chatItem.className = 'chat-item';
-                        chatItem.setAttribute('data-chat-id', chatId);
-                        chatItem.setAttribute('data-target-id', chat.target_user_id);
-                        if (currentChatId == chatId) chatItem.classList.add('active');
-                        chatList.prepend(chatItem);
-                        bindChatClickEvents();
-                    }
+            if (!chatItem) {
+                const existingTemp = document.querySelector(`.chat-item[data-target-id="${chat.target_user_id}"][data-chat-id="null"]`);
+                if (existingTemp) {
+                    existingTemp.setAttribute('data-chat-id', chatId);
+                    chatItem = existingTemp;
+                } else {
+                    chatItem = document.createElement('div');
+                    chatItem.className = 'chat-item';
+                    chatItem.setAttribute('data-chat-id', chatId);
+                    chatItem.setAttribute('data-target-id', chat.target_user_id);
+                    if (currentChatId == chatId) chatItem.classList.add('active');
+                    chatList.prepend(chatItem);
+                    bindChatClickEvents();
                 }
+            }
 
-                const readIcon = chat.last_status ? `<span class="icon-read"><svg width="14" height="14" viewBox="0 0 24 24" stroke="#4CAF50" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 6 7 17 2 12"></polyline><polyline points="22 6 11 17 11 17"></polyline></svg></span>` : `<span class="icon-read"><svg width="14" height="14" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span>`;
+            const readIcon = chat.last_status
+                ? `<span class="icon-read"><svg width="14" height="14" viewBox="0 0 24 24" stroke="#4CAF50" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 6 7 17 2 12"></polyline><polyline points="22 6 11 17 11 17"></polyline></svg></span>`
+                : `<span class="icon-read"><svg width="14" height="14" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span>`;
 
-                chatItem.innerHTML = `
-                    <img src="${chat.avatar}" alt="Avatar" class="avatar">
-                    <div class="chat-info">
-                        <div class="chat-header">
-                            <div class="chat-name">
-                                ${chat.name}
-                                ${chat.premium ? `<div class="premium-icon" style="-webkit-mask-image: url('/static/premium/${chat.premium}.svg'); mask-image: url('/static/premium/${chat.premium}.svg');"></div>` : ''}
-                            </div>
-                            <div class="chat-meta">
-                                <span class="chat-time">${chat.last_time ? `${readIcon} ${chat.last_time}` : ''}</span>
-                            </div>
+            const previewText = chat.last_msg.startsWith('__CALL_INVITE__')
+                ? '📞 Входящий видеозвонок'
+                : chat.last_msg;
+
+            chatItem.innerHTML = `
+                <img src="${chat.avatar}" alt="Avatar" class="avatar">
+                <div class="chat-info">
+                    <div class="chat-header">
+                        <div class="chat-name">
+                            ${chat.name}
+                            ${chat.premium ? `<div class="premium-icon" style="-webkit-mask-image: url('/static/premium/${chat.premium}.svg'); mask-image: url('/static/premium/${chat.premium}.svg');"></div>` : ''}
                         </div>
-                        <div class="chat-message-row">
-                            <span class="msg-text">${chat.last_msg}</span>
-                            <div class="chat-meta">
-                                ${chat.unread > 0 ? `<span class="unread-badge">${chat.unread}</span>` : ''}
-                            </div>
+                        <div class="chat-meta">
+                            <span class="chat-time">${chat.last_time ? `${readIcon} ${chat.last_time}` : ''}</span>
                         </div>
                     </div>
-                `;
-            }
+                    <div class="chat-message-row">
+                        <span class="msg-text">${previewText}</span>
+                        <div class="chat-meta">
+                            ${chat.unread > 0 ? `<span class="unread-badge">${chat.unread}</span>` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
         }
     } catch(e) {}
 }
@@ -434,12 +550,10 @@ searchInput.addEventListener('input', async (e) => {
         searchResultsBox.style.display = 'none';
         return;
     }
-
     try {
         const res = await fetch(`/api/users/search?q=${encodeURIComponent(query)}`);
         const users = await res.json();
         searchResultsBox.innerHTML = '';
-
         if (users.length > 0) {
             searchResultsBox.style.display = 'block';
             users.forEach(u => {
@@ -473,7 +587,6 @@ function startChatWithUser(userId, userName) {
     tempItem.className = 'chat-item';
     tempItem.setAttribute('data-chat-id', 'null');
     tempItem.setAttribute('data-target-id', userId);
-
     tempItem.innerHTML = `
         <img src="https://ui-avatars.com/api/?name=${userName}&background=random&color=fff&rounded=true" class="avatar">
         <div class="chat-info">
@@ -485,7 +598,6 @@ function startChatWithUser(userId, userName) {
             </div>
         </div>
     `;
-
     chatList.prepend(tempItem);
     bindChatClickEvents();
     tempItem.click();
@@ -498,3 +610,50 @@ document.addEventListener('click', (e) => {
 });
 
 bindChatClickEvents();
+
+const startCallBtn = document.getElementById('start-call-btn');
+
+if (startCallBtn) {
+    startCallBtn.addEventListener('click', async () => {
+        if (!currentChatId || currentChatId === 'null') return;
+
+        const targetId = document.querySelector('.chat-item.active')?.getAttribute('data-target-id');
+
+        if (!targetId) {
+            const callUrl = `/call?channel=${currentChatId}`;
+            openCallWindow(callUrl, currentChatId);
+            return;
+        }
+
+        try {
+            const resp = await fetch('/api/call/start', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    target_user_id: parseInt(targetId),
+                    chat_id: parseInt(currentChatId)
+                })
+            });
+
+            const data = await resp.json();
+
+            if (data.channel) {
+                const callUrl = `/call?channel=${data.channel}`;
+                openCallWindow(callUrl, data.channel);
+                pollNewMessages();
+                updateSidebar();
+            }
+        } catch (err) {
+            const fallbackUrl = `/call?channel=${currentChatId}`;
+            openCallWindow(fallbackUrl, currentChatId);
+        }
+    });
+}
+
+function openCallWindow(url, channelId) {
+    const width = 1200;
+    const height = 800;
+    const left = Math.round((window.screen.width - width) / 2);
+    const top = Math.round((window.screen.height - height) / 2);
+    window.open(url, `call_${channelId}`, `width=${width},height=${height},top=${top},left=${left},menubar=no,toolbar=no,status=no`);
+}

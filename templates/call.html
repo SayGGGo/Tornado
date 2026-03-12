@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Звонок — TORNADO</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/call.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://download.agora.io/sdk/release/AgoraRTC_N.js"></script>
+    <meta name="current-user" content="{{ current_user.login }}">
+    <meta name="current-user-avatar" content="{{ current_user.avatar }}">
+</head>
+<body>
+    <div class="bg-orbs">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
+    </div>
+
+    <canvas id="topo-canvas"></canvas>
+
+    <div class="call-header liquid-glass">
+        <div class="header-info">
+            <span id="call-name" class="header-name">Групповой звонок</span>
+            <span id="call-status" class="header-status waiting">
+                <span class="status-dot"></span>
+                Установка соединения...
+            </span>
+        </div>
+        <div class="header-sep"></div>
+        <button class="invite-header-btn" id="open-invite-btn">
+            <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+            Пригласить
+        </button>
+    </div>
+
+    <div class="video-grid" id="video-grid">
+        <div id="wrapper-local" class="video-wrapper liquid-glass local">
+            <div id="local-video" style="width:100%; height:100%; position:absolute; inset:0; z-index:1;"></div>
+            <span class="user-label">Вы</span>
+            <div class="video-off-overlay" id="local-video-off" style="display:none;">
+                <img id="local-off-avatar" src="" alt="">
+                <span>Камера выкл.</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="participants-bar" id="participants-bar"></div>
+
+    <div class="call-controls liquid-glass">
+        <button id="btn-mic" class="ctrl-btn on" title="Микрофон">
+            <svg id="mic-icon-on" viewBox="0 0 24 24"><path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/></svg>
+            <svg id="mic-icon-off" viewBox="0 0 24 24" style="display:none;"><path d="M19 11h-1.7c0 .74-.16 1.43-.43 2.05l1.23 1.23c.56-.98.9-2.09.9-3.28zm-4.02.17c0-.06.02-.11.02-.17V5c0-1.66-1.34-3-3-3S9 3.34 9 5v.18l5.98 5.99zM4.27 3L3 4.27l6.01 6.01V11c0 1.66 1.33 3 2.99 3 .22 0 .44-.03.65-.08l1.66 1.66c-.71.33-1.5.52-2.31.52-2.76 0-5.3-2.1-5.3-5.1H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c.91-.13 1.77-.45 2.54-.9L19.73 21 21 19.73 4.27 3z"/></svg>
+            <span class="ctrl-tooltip">Микрофон</span>
+        </button>
+
+        <button id="btn-video" class="ctrl-btn on" title="Камера">
+            <svg id="video-icon-on" viewBox="0 0 24 24"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
+            <svg id="video-icon-off" viewBox="0 0 24 24" style="display:none;"><path d="M21 6.5l-4-4-8.5 8.5-2.5-2.5L4.5 10l2.5 2.5L3 16.5V21h4.5l3.5-3.5 2.5 2.5 1.5-1.5-2.5-2.5L21 6.5zm-14.75 13l-2.75-2.75v-1.06l8.5-8.5 2.75 2.75-8.5 8.56z"/></svg>
+            <span class="ctrl-tooltip">Камера</span>
+        </button>
+
+        <button id="btn-screen" class="ctrl-btn off" title="Экран">
+            <svg viewBox="0 0 24 24"><path d="M20 3H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h3l-1 1v2h12v-2l-1-1h3c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 13H4V5h16v11z"/></svg>
+            <span class="ctrl-tooltip">Экран</span>
+        </button>
+
+        <div class="ctrl-sep"></div>
+
+        <button id="btn-end" class="ctrl-btn end-call" title="Завершить">
+            <svg viewBox="0 0 24 24"><path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08c-.18-.17-.29-.42-.29-.7 0-.28.11-.53.29-.71C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67c.18.18.29.43.29.71 0 .28-.11.53-.29.71l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.11-.7-.28-.79-.74-1.69-1.36-2.67-1.85-.33-.16-.56-.5-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z"/></svg>
+            <span class="ctrl-tooltip">Завершить</span>
+        </button>
+    </div>
+
+    <div class="modal-overlay" id="invite-modal-overlay">
+        <div class="invite-modal liquid-glass">
+            <div class="modal-top">
+                <span class="modal-title">Пригласить в звонок</span>
+                <button class="modal-close" id="close-invite-btn">
+                    <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                </button>
+            </div>
+            <input type="text" class="modal-search" id="contact-search" placeholder="Поиск контактов..." autocomplete="off">
+            <div class="modal-contacts" id="contacts-list">
+                <div class="empty-state">
+                    <svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+                    <span>Загрузка контактов...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast liquid-glass" id="toast"></div>
+
+    <div id="liquid-glass-root"></div>
+    <script src="{{ url_for('static', filename='dist/glass-bundle.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/bg.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/call.js') }}"></script>
+</body>
+</html>
