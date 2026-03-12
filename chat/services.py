@@ -153,7 +153,7 @@ class ChatService:
         recipient = next((p.user for p in parts if p.user_id != user_id), sender)
 
         content_str = str(content).strip()
-        chunks = [content_str[i:i + MAX_MESSAGE_LENGTH] for i in range(0, len(content_str), MAX_MESSAGE_LENGTH)]
+        chunks = [content_str[i:i + 2048] for i in range(0, len(content_str), 2048)]
 
         message_ids = []
         for chunk in chunks:
