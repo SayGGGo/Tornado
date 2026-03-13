@@ -228,6 +228,9 @@ function onChatContextMenu(e) {
 
 if (messageInput && sendBtn) {
     messageInput.addEventListener('input', () => {
+        messageInput.style.height = 'auto';
+        messageInput.style.height = (messageInput.scrollHeight) + 'px';
+
         const micIcon = document.querySelector('.mic-icon');
         const sendIcon = document.querySelector('.send-icon');
         if (messageInput.value.trim().length > 0) {
@@ -240,6 +243,18 @@ if (messageInput && sendBtn) {
             sendIcon.style.display = 'none';
         }
     });
+
+    sendBtn.addEventListener('click', sendMessage);
+
+    messageInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
+    });
+
+    setInterval(pollNewMessages, 2000);
+    setInterval(updateSidebar, 3000);
 }
 
 messagesContainer.addEventListener('scroll', () => {
@@ -321,10 +336,12 @@ function createMessageElement(msg, animate = false) {
         ? `<svg class="read" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4CAF50" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 6 7 17 2 12"></polyline><polyline points="22 6 11 17 11 17"></polyline></svg>`
         : `<svg class="unread" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`) : '';
 
+    const formattedContent = formatMessageContent(msg.content);
+
     msgDiv.innerHTML = `
         ${authorHtml}
         <div class="msg-content">
-            ${msg.content}
+            ${formattedContent}
             <div class="msg-meta">
                 <span class="msg-time">${msg.timestamp}</span>
                 <span class="msg-ticks">${ticksHtml}</span>
@@ -443,6 +460,7 @@ async function sendMessage() {
     if (!content || (!currentChatId && !currentTargetId)) return;
 
     messageInput.value = '';
+    messageInput.style.height = 'auto';
     messageInput.dispatchEvent(new Event('input'));
 
     try {
@@ -657,3 +675,110 @@ function openCallWindow(url, channelId) {
     const top = Math.round((window.screen.height - height) / 2);
     window.open(url, `call_${channelId}`, `width=${width},height=${height},top=${top},left=${left},menubar=no,toolbar=no,status=no`);
 }
+
+Object.defineProperty(window, '_currentChatId', {
+    get: () => currentChatId,
+    configurable: true
+});
+
+window._sendMessageToChat = async function(chatId, text) {
+    if (!chatId || !text) return;
+    try {
+        const resp = await fetch('/api/messages', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chat_id: parseInt(chatId), content: text })
+        });
+        if (resp.ok) {
+            pollNewMessages();
+            updateSidebar();
+        }
+    } catch (e) {}
+};
+
+function decodeHtmlEntities(text) {
+    const textArea = document.createElement('textarea');
+    textArea.innerHTML = text;
+    return textArea.value;
+}
+
+function formatMessageContent(text) {
+    if (!text) return text;
+    const codeBlockRegex = /```([a-zA-Z0-9+#-]*)\n?([\s\S]*?)```/g;
+
+    return text.replace(codeBlockRegex, (match, lang, code) => {
+        code = decodeHtmlEntities(code.trim());
+        let highlighted = '';
+
+        try {
+            if (lang && hljs.getLanguage(lang)) {
+                highlighted = hljs.highlight(code, { language: lang }).value;
+            } else {
+                highlighted = hljs.highlightAuto(code).value;
+            }
+        } catch (e) {
+            highlighted = code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        const encodedCode = encodeURIComponent(code);
+
+        return `
+            <div class="code-wrapper">
+                <button class="copy-code-btn" onclick="copyCodeBlock(this, '${encodedCode}')">
+                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                    </svg>
+                </button>
+                <pre><code class="hljs ${lang}">${highlighted}</code></pre>
+            </div>
+        `;
+    });
+}
+
+window.copyCodeBlock = function(btn, encodedCode) {
+    const code = decodeURIComponent(encodedCode);
+    navigator.clipboard.writeText(code).then(() => {
+        const originalSvg = btn.innerHTML;
+        btn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" stroke="#4CAF50" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+        setTimeout(() => {
+            btn.innerHTML = originalSvg;
+        }, 2000);
+    }).catch(err => {
+        console.error(err);
+    });
+};
+
+document.addEventListener('DOMContentLoaded', function () {
+    window._currentUserId = document.querySelector('meta[name="current-user-id"]')?.content || '';
+
+    var startCallBtn = document.getElementById('start-call-btn');
+    if (startCallBtn) {
+        startCallBtn.addEventListener('click', function () {
+            var name = document.getElementById('current-chat-name')?.textContent?.trim() || 'Звонок';
+            var avatar = document.getElementById('current-chat-avatar')?.src || '';
+            if (window.islandEmit) window.islandEmit('island:call:start', { name: name, avatar: avatar });
+        });
+    }
+
+    var seenCallInvites = new Set();
+    var me = document.querySelector('meta[name="current-user"]')?.content || '';
+
+    window._islandCheckMessages = function (messages) {
+        if (!window.islandEmit || !Array.isArray(messages)) return;
+        messages.forEach(function (msg) {
+            if (!msg || seenCallInvites.has(msg.id)) return;
+            var content = msg.content || '';
+            if (content.startsWith('__CALL_INVITE__') && msg.sender !== me) {
+                seenCallInvites.add(msg.id);
+                var parts = content.replace('__CALL_INVITE__', '').split('|');
+                window.islandEmit('island:call:incoming', {
+                    name: parts[1] || 'Входящий',
+                    avatar: parts[2] || '',
+                    callUrl: '/call?channel=' + parts[0]
+                });
+            }
+        });
+    };
+
+});

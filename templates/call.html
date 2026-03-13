@@ -11,8 +11,20 @@
     <script src="https://download.agora.io/sdk/release/AgoraRTC_N.js"></script>
     <meta name="current-user" content="{{ current_user.login }}">
     <meta name="current-user-avatar" content="{{ current_user.avatar }}">
+    <style>
+        #dynamic-island-root {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 9999;
+            pointer-events: none;
+            height: 0;
+            overflow: visible;
+        }
+    </style>
 </head>
 <body>
+    <div id="dynamic-island-root"></div>
+
     <div class="bg-orbs">
         <div class="orb orb-1"></div>
         <div class="orb orb-2"></div>
@@ -99,5 +111,79 @@
     <script src="{{ url_for('static', filename='dist/glass-bundle.js') }}"></script>
     <script src="{{ url_for('static', filename='js/bg.js') }}"></script>
     <script src="{{ url_for('static', filename='js/call.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/i/island.js') }}"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var callNameEl = document.getElementById('call-name');
+            var localAvatar = document.querySelector('meta[name="current-user-avatar"]')?.content || '';
+
+            function syncIslandCall() {
+                if (!window.islandEmit) return;
+                var name = callNameEl?.textContent?.trim() || 'Звонок';
+                window.islandEmit('island:call:start', { name: name, avatar: localAvatar });
+            }
+
+            var btnMic = document.getElementById('btn-mic');
+            if (btnMic) {
+                btnMic.addEventListener('click', function () {
+                    var isMuted = btnMic.classList.contains('off');
+                    if (window.islandEmit) {
+                        window.islandEmit('island:status', {
+                            text: isMuted ? 'Микрофон включен' : 'Микрофон выключен',
+                            color: isMuted ? '#34c759' : '#ff453a',
+                            autoDismiss: true
+                        });
+                    }
+                });
+            }
+
+            var btnVideo = document.getElementById('btn-video');
+            if (btnVideo) {
+                btnVideo.addEventListener('click', function () {
+                    var isOff = btnVideo.classList.contains('off');
+                    if (window.islandEmit) {
+                        window.islandEmit('island:status', {
+                            text: isOff ? 'Камера выключена' : 'Камера включена',
+                            color: isOff ? '#ff453a' : '#34c759',
+                            autoDismiss: true
+                        });
+                    }
+                });
+            }
+
+            var btnScreen = document.getElementById('btn-screen');
+            if (btnScreen) {
+                btnScreen.addEventListener('click', function () {
+                    var willShare = btnScreen.classList.contains('off');
+                    if (window.islandEmit) {
+                        window.islandEmit('island:status', {
+                            text: willShare ? 'Трансляция экрана' : 'Экран отключён',
+                            color: willShare ? '#34c759' : 'rgba(255,255,255,0.5)',
+                            autoDismiss: true
+                        });
+                    }
+                });
+            }
+
+            var btnEnd = document.getElementById('btn-end');
+            if (btnEnd) {
+                btnEnd.addEventListener('click', function () {
+                    if (window.islandEmit) window.islandEmit('island:call:end');
+                });
+            }
+
+            var origJoin = window.joinCall;
+            if (typeof origJoin === 'function') {
+                window.joinCall = async function () {
+                    var res = await origJoin.apply(this, arguments);
+                    syncIslandCall();
+                    return res;
+                };
+            } else {
+                setTimeout(syncIslandCall, 1200);
+            }
+        });
+    </script>
 </body>
 </html>

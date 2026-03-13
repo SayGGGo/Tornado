@@ -20,3 +20,6 @@ class User(db.Model):
 
     public_key = db.Column(db.Text, nullable=True)
     private_key = db.Column(db.Text, nullable=True)
+
+    ide_connected = db.Column(db.Boolean, default=False)
+    ide_token = db.Column(db.String(200))

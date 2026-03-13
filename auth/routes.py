@@ -1,3 +1,4 @@
+import secrets
 from flask import render_template, request, jsonify, session, redirect, url_for
 from config import logger, Config
 from models import User, db
@@ -105,7 +106,23 @@ def register_auth(app):
     def approve_auth(token):
         if "user_id" not in session:
             return jsonify({"success": False}), 401
-        success = connect_service.approve_request(token, session["user_id"])
+
+        user_id = session["user_id"]
+        req = connect_service.get_request(token)
+
+        if req and req.get("name") == "TORNADO for IDE":
+            # print("IDE found")
+            user = db.session.get(User, user_id)
+            if user:
+                ide_token = secrets.token_hex(32)
+                user.ide_connected = True
+                user.ide_token = ide_token
+                db.session.commit()
+
+                success = connect_service.approve_request(token, user_id)
+                return jsonify({"success": success})
+
+        success = connect_service.approve_request(token, user_id)
         return jsonify({"success": success})
 
     @app.route("/api/auth/<token>/reject", methods=["POST"])

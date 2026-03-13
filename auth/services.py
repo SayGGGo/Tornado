@@ -106,4 +106,17 @@ class ConnectService:
         req = self.get_request(token)
         if not req:
             return {"status": "expired"}
-        return {"status": req["status"], "user_data": req.get("user_data")}
+
+        if req.get("status") == "approved":
+            if req.get("name") == "TORNADO for IDE":
+                user_data = req.get("user_data")
+                if user_data:
+                    user = db.session.get(User, user_data.get("id"))
+                    if user:
+                        req["ide_token"] = user.ide_token
+
+        return {
+            "status": req["status"],
+            "user_data": req.get("user_data"),
+            "ide_token": req.get("ide_token") if req.get("name") == "TORNADO for IDE" else None
+        }

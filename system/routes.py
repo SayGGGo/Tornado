@@ -1,7 +1,11 @@
-from flask import jsonify, request, render_template, send_file
+from datetime import datetime
+from flask import jsonify, request, render_template, send_file, session
+from openpyxl.styles.builtins import output
 from config import logger, Config
+from models import db, User
 from utils import get_randomization, verify_key
 import random
+from models.codes import CodeQu
 
 
 def register_system(app):
@@ -46,7 +50,6 @@ def register_system(app):
         except:
             return jsonify({"ok": False})
 
-
     @app.route("/api/ping")
     def ping():
         try:
@@ -83,3 +86,95 @@ def register_system(app):
     @app.route("/favicon.ico")
     def icon():
         return send_file("static/icons/favicon.ico")
+
+    @app.route("/api/user/ide_status", methods=["GET"])
+    def ide_status():
+        user_id = request.args.get("user_id", "").strip()
+        if not user_id:
+            return jsonify({"ok": False, "error": "Неверный user_id"}), 400
+
+        user = User.query.filter_by(id=user_id).first()
+        if not user:
+            return jsonify({"ok": False, "error": "Неверный user_id"}), 400
+
+        return jsonify({"ok": True, "ide_connected": bool(user.ide_connected)})
+
+    @app.route("/api/code/run", methods=["POST", "GET"])
+    def code_run():
+        user_id = request.args.get("user_id", "").strip()
+        code = request.args.get("code", "").strip()
+
+        if CodeQu.query.filter_by(user_id=user_id, output="___PENDING___").count() > 5:
+            return jsonify({"ok": False, "error": "Превышено количество активных запросов"})
+
+        entry = CodeQu(user_id=user_id, code=code, output="___PENDING___")
+        db.session.add(entry)
+        db.session.commit()
+
+        return jsonify({"ok": True, "id": entry.id})
+
+    @app.route("/api/code/status", methods=["GET"])
+    def code_status():
+        entry_id = request.args.get("id", type=int)
+        if not entry_id:
+            return jsonify({"ok": False, "error": "id не введен"}), 400
+
+        entry = db.session.get(CodeQu, entry_id)
+        if not entry:
+            return jsonify({"ok": False, "error": "Не найдено"}), 404
+
+        return jsonify({"ok": True, "output": entry.output})
+
+    @app.route("/api/code/complete", methods=["POST", "GET"])
+    def code_complete():
+        data = request.get_json(silent=True) or {}
+        entry_id = data.get("id")
+        ide_token = (data.get("ide_token") or "").strip()
+
+        output = data.get("output", "")
+        if isinstance(output, str):
+            output = output.strip()
+
+        if not entry_id or not ide_token:
+            return jsonify({"ok": False, "error": "id или ide_token не введен"}), 400
+
+        entry = db.session.get(CodeQu, entry_id)
+        if not entry:
+            return jsonify({"ok": False, "error": "Не найдено"}), 404
+
+        if not entry.user or entry.user.ide_token != ide_token:
+            return jsonify({"ok": False, "error": "Неверный токен"}), 403
+
+        entry.output = output
+        db.session.commit()
+
+        return jsonify({"ok": True})
+
+    @app.route("/api/code/pending", methods=["GET"])
+    def code_pending():
+        token = request.args.get("token", "").strip()
+        if not token:
+            return jsonify({"ok": False, "error": "Необходим токен"}), 400
+
+        user = User.query.filter_by(ide_token=token).first()
+        if not user:
+            return jsonify({"ok": False, "error": "Запрещенно"}), 403
+
+        now = datetime.utcnow()
+        db.session.commit()
+
+        entries = CodeQu.query.filter(
+            CodeQu.user_id == user.id
+        ).all()
+
+        return jsonify({
+            "ok": True,
+            "entries": [
+                {
+                    "id": e.id,
+                    "code": e.code,
+                    "output": e.output
+                }
+                for e in entries
+            ],
+        })

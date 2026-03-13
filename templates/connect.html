@@ -6,8 +6,20 @@
     <title>Авторизация — TORNADO</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/connect.css') }}">
+    <style>
+        #dynamic-island-root {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 9999;
+            pointer-events: none;
+            height: 0;
+            overflow: visible;
+        }
+    </style>
 </head>
 <body data-token="{{ token }}">
+    <div id="dynamic-island-root"></div>
+
     <canvas id="topo-canvas"></canvas>
     <div class="connect-card">
         <div id="card-content">
@@ -51,5 +63,53 @@
 
     <script src="{{ url_for('static', filename='js/connect.js') }}"></script>
     <script src="{{ url_for('static', filename='js/bg.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/i/island.js') }}"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var appName = document.querySelector('.app-name')?.innerText?.trim() || 'Приложение';
+            var warningsCount = document.getElementById('warnings-container')?.children?.length || 0;
+
+            setTimeout(function () {
+                if (!window.islandEmit) return;
+                if (warningsCount > 0) {
+                    window.islandEmit('island:notification', {
+                        title: 'Запрос доступа',
+                        body: appName + ' запрашивает разрешения. Проверьте список.'
+                    });
+                } else {
+                    window.islandEmit('island:status', {
+                        text: appName + ' · OAuth',
+                        color: '#34c759',
+                        autoDismiss: true
+                    });
+                }
+            }, 600);
+
+            var btnApprove = document.getElementById('btn-approve');
+            if (btnApprove) {
+                btnApprove.addEventListener('click', function () {
+                    if (!window.islandEmit) return;
+                    window.islandEmit('island:status', {
+                        text: 'Доступ подтверждён',
+                        color: '#34c759',
+                        autoDismiss: true
+                    });
+                });
+            }
+
+            var btnReject = document.getElementById('btn-reject');
+            if (btnReject) {
+                btnReject.addEventListener('click', function () {
+                    if (!window.islandEmit) return;
+                    window.islandEmit('island:status', {
+                        text: 'Доступ отклонён',
+                        color: '#ff453a',
+                        autoDismiss: true
+                    });
+                });
+            }
+        });
+    </script>
 </body>
 </html>
