@@ -156,3 +156,63 @@ def register_chat(app):
             return redirect(url_for("login"))
         user = db.session.get(User, session["user_id"])
         return render_template("call.html", current_user=user)
+
+    @app.route("/api/chats/group", methods=["POST"])
+    def create_group_api():
+        if "user_id" not in session:
+            return jsonify({"error": "Unauthorized"}), 401
+
+        data = request.json or {}
+        name = data.get("name")
+        participants = data.get("participants", [])
+
+        if not name or not str(name).strip():
+            return jsonify({"error": "Необходимо имя"}), 400
+
+        result = chat_service.create_group_chat(session["user_id"], str(name).strip(), participants)
+        return jsonify(result), 200 if "success" in result else 400
+
+    @app.route("/api/chats/invite", methods=["POST"])
+    def invite_to_group_api():
+        if "user_id" not in session:
+            return jsonify({"error": "Unauthorized"}), 401
+
+        data = request.json or {}
+        chat_id = data.get("chat_id")
+        participants = data.get("participants", [])
+
+        if not chat_id or not participants:
+            return jsonify({"error": "Missing data"}), 400
+
+        result = chat_service.invite_to_chat(chat_id, session["user_id"], participants)
+        return jsonify(result), 200 if "success" in result else 400
+
+    @app.route("/api/chats/<int:chat_id>/info", methods=["GET"])
+    def get_chat_info_api(chat_id):
+        if "user_id" not in session:
+            return jsonify({"error": "Unauthorized"}), 401
+
+        result = chat_service.get_chat_info(chat_id)
+        return jsonify(result), 200 if "success" in result else 404
+
+    @app.route("/api/chats/join", methods=["POST"])
+    def join_chat_api():
+        if "user_id" not in session:
+            return jsonify({"error": "Unauthorized"}), 401
+
+        data = request.json or {}
+        chat_id = data.get("chat_id")
+
+        if not chat_id:
+            return jsonify({"error": "Укажите chat_id"}), 400
+
+        result = chat_service.join_chat(int(chat_id), session["user_id"])
+        return jsonify(result), 200 if "success" in result else 400
+
+    @app.route("/api/chats/<int:chat_id>", methods=["DELETE"])
+    def delete_chat_api(chat_id):
+        if "user_id" not in session:
+            return jsonify({"error": "Unauthorized"}), 401
+
+        result = chat_service.delete_chat(chat_id, session["user_id"])
+        return jsonify(result), 200 if "success" in result else 403

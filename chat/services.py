@@ -11,6 +11,7 @@ from config import Config
 from agora_token_builder import RtcTokenBuilder
 import time
 
+
 class EncryptionService:
     @staticmethod
     def generate_keys():
@@ -30,7 +31,7 @@ class EncryptionService:
 
         return priv_pem, pub_pem
 
-    def encrypt_for_two(self, text, pub1_pem, pub2_pem):
+    def encrypt_for_multiple(self, text, pub_pems):
         aes_key = os.urandom(32)
         iv = os.urandom(16)
 
@@ -38,37 +39,76 @@ class EncryptionService:
         encryptor = cipher.encryptor()
         encrypted_text = encryptor.update(text.encode()) + encryptor.finalize()
 
-        def wrap_key(p_key_pem):
-            p_key = serialization.load_pem_public_key(p_key_pem.encode())
-            return p_key.encrypt(
+        key_blobs = b""
+        for pub_pem in pub_pems:
+            p_key = serialization.load_pem_public_key(pub_pem.encode())
+            wrapped = p_key.encrypt(
                 aes_key,
                 padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()), algorithm=hashes.SHA256(), label=None)
             )
+            key_blobs += wrapped
 
-        key_blob1 = wrap_key(pub1_pem)
-        key_blob2 = wrap_key(pub2_pem)
+        num_keys = len(pub_pems)
+        num_keys_bytes = num_keys.to_bytes(2, byteorder='big')
 
-        combined = iv + key_blob1 + key_blob2 + encrypted_text
+        combined = b"MULTI|" + iv + num_keys_bytes + key_blobs + encrypted_text
         return base64.b64encode(combined).decode('utf-8')
+
+    def encrypt_for_two(self, text, pub1_pem, pub2_pem):
+        return self.encrypt_for_multiple(text, [pub1_pem, pub2_pem])
 
     def decrypt_for_user(self, encrypted_data_b64, priv_key_pem, is_recipient=False):
         try:
             data = base64.b64decode(encrypted_data_b64)
-            iv = data[:16]
-            wrapped_aes_key = data[272:528] if is_recipient else data[16:272]
-            encrypted_text = data[528:]
-
             private_key = serialization.load_pem_private_key(priv_key_pem.encode(), password=None)
-            aes_key = private_key.decrypt(
-                wrapped_aes_key,
-                padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()), algorithm=hashes.SHA256(), label=None)
-            )
 
-            cipher = Cipher(algorithms.AES(aes_key), modes.CFB(iv))
-            decryptor = cipher.decryptor()
-            return (decryptor.update(encrypted_text) + decryptor.finalize()).decode()
-        except:
+            if data[:6] == b"MULTI|":
+                data = data[6:]
+                iv = data[:16]
+                num_keys = int.from_bytes(data[16:18], byteorder='big')
+                aes_key = None
+
+                text_start_offset = 18 + (256 * num_keys)
+                offset = 18
+
+                for _ in range(num_keys):
+                    blob = data[offset:offset + 256]
+                    offset += 256
+                    try:
+                        aes_key = private_key.decrypt(
+                            blob,
+                            padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()), algorithm=hashes.SHA256(),
+                                         label=None)
+                        )
+                        break
+                    except Exception:
+                        continue
+
+                if not aes_key:
+                    return "[ Ошибка расшифровки ]"
+
+                encrypted_text = data[text_start_offset:]
+                cipher = Cipher(algorithms.AES(aes_key), modes.CFB(iv))
+                decryptor = cipher.decryptor()
+                return (decryptor.update(encrypted_text) + decryptor.finalize()).decode()
+
+            else:
+                iv = data[:16]
+                wrapped_aes_key = data[272:528] if is_recipient else data[16:272]
+                encrypted_text = data[528:]
+
+                aes_key = private_key.decrypt(
+                    wrapped_aes_key,
+                    padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()), algorithm=hashes.SHA256(), label=None)
+                )
+
+                cipher = Cipher(algorithms.AES(aes_key), modes.CFB(iv))
+                decryptor = cipher.decryptor()
+                return (decryptor.update(encrypted_text) + decryptor.finalize()).decode()
+
+        except Exception:
             return "[ Это сообщение слишком старое ]"
+
 
 class ChatService:
     def __init__(self):
@@ -81,25 +121,27 @@ class ChatService:
 
         for p in participants:
             chat = p.chat
+            last_msg = Message.query.filter_by(chat_id=chat.id).order_by(Message.id.desc()).first()
+            msg_preview = "Нет сообщений"
+
+            if last_msg:
+                is_recip = (last_msg.user_id != user_id)
+                msg_preview = self.crypto.decrypt_for_user(last_msg.content, curr_user.private_key, is_recip)
+
+            is_read_attr = hasattr(Message, 'is_read')
+            unread_count = db.session.query(Message).filter_by(chat_id=chat.id, is_read=False).filter(
+                Message.user_id != user_id).count() if is_read_attr else 0
+            last_status = getattr(last_msg, 'is_read', False) if last_msg and last_msg.user_id == user_id else False
+
             if chat.personal:
-                other_p = ChatParticipant.query.filter(ChatParticipant.chat_id == chat.id,
-                                                       ChatParticipant.user_id != user_id).first()
-                if other_p:
-                    other_user = other_p.user
-                    last_msg = Message.query.filter_by(chat_id=chat.id).order_by(Message.id.desc()).first()
-
-                    msg_preview = "Нет сообщений"
-                    if last_msg:
-                        is_recip = (last_msg.user_id != user_id)
-                        msg_preview = self.crypto.decrypt_for_user(last_msg.content, curr_user.private_key, is_recip)
-
-                    is_read_attr = hasattr(Message, 'is_read')
-                    unread_count = db.session.query(Message).filter_by(chat_id=chat.id, is_read=False).filter(Message.user_id != user_id).count() if is_read_attr else 0
-                    last_status = getattr(last_msg, 'is_read', False) if last_msg and last_msg.user_id == user_id else False
-
+                other_check = ChatParticipant.query.filter(ChatParticipant.chat_id == chat.id,
+                                                           ChatParticipant.user_id != user_id).first()
+                if other_check:
+                    user = other_check.user
                     chats_data[str(chat.id)] = {
-                        "name": other_user.login,
-                        "avatar": other_user.avatar if getattr(other_user, 'avatar', None) else f"https://ui-avatars.com/api/?name={other_user.fio}&background=random&color=fff&rounded=true&bold=true&uppercase=true",
+                        "name": user.login,
+                        "avatar": user.avatar if getattr(user, 'avatar',
+                                                         None) else f"https://ui-avatars.com/api/?name={user.fio}&background=random&color=fff&rounded=true&bold=true&uppercase=true",
                         "active": False,
                         "last_msg": msg_preview,
                         "last_time": last_msg.timestamp.strftime("%H:%M") if last_msg else "",
@@ -107,9 +149,24 @@ class ChatService:
                         "unread": unread_count,
                         "pinned": False,
                         "muted": False,
-                        "premium": "1" if getattr(other_user, 'premium', False) else "",
-                        "target_user_id": other_user.id
+                        "premium": "1" if getattr(user, 'premium', False) else "",
+                        "target_user_id": user.id
                     }
+            else:
+                chats_data[str(chat.id)] = {
+                    "name": chat.name,
+                    "avatar": f"https://ui-avatars.com/api/?name={chat.name}&background=random&color=fff&rounded=true&bold=true&uppercase=true",
+                    "active": False,
+                    "last_msg": msg_preview,
+                    "last_time": last_msg.timestamp.strftime("%H:%M") if last_msg else "",
+                    "last_status": last_status,
+                    "unread": unread_count,
+                    "pinned": False,
+                    "muted": False,
+                    "premium": "",
+                    "target_user_id": ""
+                }
+
         return chats_data
 
     def get_recent_messages(self, user_id, chat_id, last_id=0, first_id=0):
@@ -150,9 +207,8 @@ class ChatService:
         if not ChatParticipant.query.filter_by(user_id=user_id, chat_id=chat_id).first():
             return {"error": "Denied"}
 
-        sender = db.session.get(User, user_id)
         parts = ChatParticipant.query.filter_by(chat_id=chat_id).all()
-        recipient = next((p.user for p in parts if p.user_id != user_id), sender)
+        pub_pems = [p.user.public_key for p in parts if p.user.public_key]
 
         content_str = str(content).strip()
         chunks = [content_str[i:i + 2048] for i in range(0, len(content_str), 2048)]
@@ -160,7 +216,7 @@ class ChatService:
         message_ids = []
         for chunk in chunks:
             safe_chunk = escape(chunk)
-            encrypted = self.crypto.encrypt_for_two(safe_chunk, sender.public_key, recipient.public_key)
+            encrypted = self.crypto.encrypt_for_multiple(safe_chunk, pub_pems)
             new_msg = Message(user_id=user_id, chat_id=chat_id, content=encrypted)
             db.session.add(new_msg)
             db.session.flush()
@@ -172,7 +228,7 @@ class ChatService:
     def search_users(self, query, current_user_id):
         if not query: return []
         users = User.query.filter(or_(User.login.ilike(f"%{query}%"), User.fio.ilike(f"%{query}%"))).limit(10).all()
-        return [{"id": u.id, "login": u.login, "fio": u.fio} for u in users]
+        return [{"id": u.id, "login": u.login, "fio": u.fio} for u in users if u.id != current_user_id]
 
     def get_or_create_personal_chat(self, user1_id, user2_id):
         c1 = [p.chat_id for p in ChatParticipant.query.filter_by(user_id=user1_id).all()]
@@ -196,6 +252,92 @@ class ChatService:
                             ChatParticipant(user_id=user2_id, chat_id=new_chat.id)])
         db.session.commit()
         return {"chat_id": new_chat.id, "is_new": True}
+
+    def create_group_chat(self, owner_id, name, participant_ids):
+        if not name:
+            return {"error": "Invalid data"}
+
+        new_chat = Chat(personal=False, name=name, owner_id=owner_id)
+        db.session.add(new_chat)
+        db.session.flush()
+
+        db.session.add(ChatParticipant(user_id=owner_id, chat_id=new_chat.id, role="owner"))
+
+        if participant_ids:
+            for uid in participant_ids:
+                if uid != owner_id:
+                    db.session.add(ChatParticipant(user_id=uid, chat_id=new_chat.id, role="member"))
+
+        db.session.commit()
+        return {"chat_id": new_chat.id, "success": True}
+
+    def invite_to_chat(self, chat_id, inviter_id, participant_ids):
+        chat = db.session.get(Chat, chat_id)
+        if not chat or chat.personal:
+            return {"error": "Invalid chat"}
+
+        inviter_p = ChatParticipant.query.filter_by(user_id=inviter_id, chat_id=chat_id).first()
+        if not inviter_p:
+            return {"error": "Denied"}
+
+        added_count = 0
+        for uid in participant_ids:
+            existing = ChatParticipant.query.filter_by(user_id=uid, chat_id=chat_id).first()
+            if not existing:
+                db.session.add(ChatParticipant(user_id=uid, chat_id=chat_id, role="member"))
+                added_count += 1
+
+        db.session.commit()
+        return {"success": True, "added": added_count}
+
+    def get_chat_info(self, chat_id):
+        chat = db.session.get(Chat, chat_id)
+        if not chat:
+            return {"error": "Not found"}
+
+        participants = []
+        for p in chat.participants:
+            user = p.user
+            avatar = user.avatar if getattr(user, 'avatar',
+                                            None) else f"https://ui-avatars.com/api/?name={user.login}&background=random&color=fff&rounded=true&bold=true"
+            participants.append({
+                "id": user.id,
+                "login": user.login,
+                "avatar": avatar,
+                "role": p.role
+            })
+
+        return {
+            "participants": participants,
+            "is_personal": chat.personal,
+            "owner_id": chat.owner_id,
+            "success": True
+        }
+
+    def delete_chat(self, chat_id, user_id):
+        chat = db.session.get(Chat, chat_id)
+        if not chat:
+            return {"error": "Not found"}
+
+        if chat.personal or chat.owner_id != user_id:
+            return {"error": "Denied"}
+
+        db.session.delete(chat)
+        db.session.commit()
+        return {"success": True}
+
+    def join_chat(self, chat_id, user_id):
+        chat = db.session.get(Chat, chat_id)
+        if not chat or chat.personal:
+            return {"error": "Invalid chat"}
+
+        existing = ChatParticipant.query.filter_by(user_id=user_id, chat_id=chat_id).first()
+        if not existing:
+            db.session.add(ChatParticipant(user_id=user_id, chat_id=chat_id, role="member"))
+            db.session.commit()
+
+        return {"success": True}
+
 
 class AgoraService:
     def __init__(self):
