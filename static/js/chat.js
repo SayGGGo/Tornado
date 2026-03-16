@@ -815,17 +815,6 @@ searchInput.addEventListener('input', async (e) => {
         searchResultsBox.innerHTML = '';
         searchResultsBox.style.display = 'block';
 
-        const createGroupBtn = document.createElement('div');
-        createGroupBtn.className = 'create-group-entry';
-        createGroupBtn.innerHTML = `
-            <div class="create-group-icon">
-                <svg viewBox="0 0 24 24"><path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
-            </div>
-            <span>Создать группу</span>
-        `;
-        createGroupBtn.addEventListener('click', openGroupModal);
-        searchResultsBox.appendChild(createGroupBtn);
-
         const limitedUsers = users.slice(0, 5);
 
         if (limitedUsers.length > 0) {
@@ -1060,3 +1049,82 @@ window.copyCodeBlock = function(btn, encodedCode) {
 };
 
 bindChatClickEvents();
+
+function setCookie(name, value, days) {
+    let expires = "";
+    if (days) {
+        let date = new Date();
+        date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+        expires = "; expires=" + date.toUTCString();
+    }
+    document.cookie = name + "=" + (value || "") + expires + "; path=/";
+}
+
+function getCookie(name) {
+    let nameEQ = name + "=";
+    let ca = document.cookie.split(';');
+    for (let i = 0; i < ca.length; i++) {
+        let c = ca[i];
+        while (c.charAt(0) == ' ') c = c.substring(1, c.length);
+        if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);
+    }
+    return null;
+}
+
+function initTheme() {
+    const theme = getCookie('theme');
+    const themeCheckbox = document.getElementById('theme-checkbox');
+    if (theme === 'light') {
+        document.documentElement.classList.add('light-theme');
+        if (themeCheckbox) themeCheckbox.checked = false;
+    } else {
+        if (themeCheckbox) themeCheckbox.checked = true;
+    }
+}
+initTheme();
+
+const menuBtn = document.querySelector('.menu-btn');
+const sideDrawer = document.getElementById('side-drawer');
+const drawerOverlay = document.getElementById('drawer-overlay');
+const drawerCreateGroup = document.getElementById('drawer-create-group');
+const drawerThemeToggle = document.getElementById('drawer-theme-toggle');
+const themeCheckbox = document.getElementById('theme-checkbox');
+
+if (menuBtn && sideDrawer && drawerOverlay) {
+    menuBtn.addEventListener('click', () => {
+        sideDrawer.classList.add('open');
+        drawerOverlay.classList.add('visible');
+
+        const currentUserMeta = document.querySelector('meta[name="current-user"]');
+        if (currentUserMeta && document.getElementById('drawer-user-name')) {
+            document.getElementById('drawer-user-name').textContent = currentUserMeta.content;
+        }
+    });
+
+    drawerOverlay.addEventListener('click', () => {
+        sideDrawer.classList.remove('open');
+        drawerOverlay.classList.remove('visible');
+    });
+
+    if (drawerCreateGroup) {
+        drawerCreateGroup.addEventListener('click', () => {
+            sideDrawer.classList.remove('open');
+            drawerOverlay.classList.remove('visible');
+            openGroupModal();
+        });
+    }
+
+    if (drawerThemeToggle) {
+        drawerThemeToggle.addEventListener('click', (e) => {
+            if (e.target !== themeCheckbox) {
+                themeCheckbox.checked = !themeCheckbox.checked;
+            }
+            document.documentElement.classList.toggle('light-theme');
+            if (document.documentElement.classList.contains('light-theme')) {
+                setCookie('theme', 'light', 365);
+            } else {
+                setCookie('theme', 'dark', 365);
+            }
+        });
+    }
+}
