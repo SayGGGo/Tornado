@@ -1,6 +1,11 @@
 import logging
 import base64
 import os
+import uuid
+import hmac
+import hashlib
+import time as _time
+from collections import defaultdict
 from markupsafe import escape
 from models import Message, Chat, ChatParticipant, db, User
 from sqlalchemy import or_
@@ -9,7 +14,39 @@ from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from config import Config
 from agora_token_builder import RtcTokenBuilder
+from werkzeug.utils import secure_filename
 import time
+
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'mp4', 'webm', 'mp3', 'ogg', 'wav', 'pdf', 'doc', 'docx', 'zip', 'rar', 'txt', 'csv', 'xls', 'xlsx'}
+MAX_FILE_SIZE = 50 * 1024 * 1024
+IMAGE_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+VIDEO_EXTENSIONS = {'mp4', 'webm'}
+AUDIO_EXTENSIONS = {'mp3', 'ogg', 'wav'}
+SYSTEM_PREFIXES = ('__CALL_INVITE__', '__CHATLINK__')
+
+
+class FloodControl:
+    def __init__(self, min_interval=1.0, burst_limit=5, burst_window=10.0):
+        self._last = defaultdict(float)
+        self._burst = defaultdict(list)
+        self._min_interval = min_interval
+        self._burst_limit = burst_limit
+        self._burst_window = burst_window
+
+    def check(self, user_id):
+        now = _time.time()
+        if now - self._last[user_id] < self._min_interval:
+            return False
+        window = self._burst[user_id]
+        window[:] = [t for t in window if now - t < self._burst_window]
+        if len(window) >= self._burst_limit:
+            return False
+        self._last[user_id] = now
+        window.append(now)
+        return True
+
+
+flood_control = FloodControl()
 
 
 class EncryptionService:
@@ -110,6 +147,76 @@ class EncryptionService:
             return "[ Это сообщение слишком старое ]"
 
 
+class FileService:
+    UPLOAD_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'static', 'uploads')
+
+    @staticmethod
+    def allowed_file(filename):
+        return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+    @staticmethod
+    def is_image(filename):
+        return '.' in filename and filename.rsplit('.', 1)[1].lower() in IMAGE_EXTENSIONS
+
+    @staticmethod
+    def is_video(filename):
+        return '.' in filename and filename.rsplit('.', 1)[1].lower() in VIDEO_EXTENSIONS
+
+    @staticmethod
+    def is_audio(filename):
+        return '.' in filename and filename.rsplit('.', 1)[1].lower() in AUDIO_EXTENSIONS
+
+    @staticmethod
+    def generate_safe_name(filename):
+        ext = filename.rsplit('.', 1)[1].lower() if '.' in filename else 'bin'
+        return f"{uuid.uuid4().hex}.{ext}"
+
+    @staticmethod
+    def sign_filename(filename):
+        secret = Config.SECRET_KEY.encode() if isinstance(Config.SECRET_KEY, str) else Config.SECRET_KEY
+        return hmac.new(secret, filename.encode(), hashlib.sha256).hexdigest()[:16]
+
+    @classmethod
+    def verify_signature(cls, filename, sig):
+        return hmac.compare_digest(cls.sign_filename(filename), sig)
+
+    @classmethod
+    def save_file(cls, file_storage):
+        if not file_storage or not file_storage.filename:
+            return None
+
+        raw_name = file_storage.filename
+        ext = raw_name.rsplit('.', 1)[1].lower() if '.' in raw_name else ''
+        if not ext or ext not in ALLOWED_EXTENSIONS:
+            return None
+
+        file_storage.seek(0, 2)
+        size = file_storage.tell()
+        file_storage.seek(0)
+
+        if size > MAX_FILE_SIZE:
+            return None
+
+        safe_name = f"{uuid.uuid4().hex}.{ext}"
+        os.makedirs(cls.UPLOAD_DIR, exist_ok=True)
+        file_path = os.path.join(cls.UPLOAD_DIR, safe_name)
+        file_storage.save(file_path)
+
+        display_name = secure_filename(raw_name) or f"file.{ext}"
+        mime = file_storage.content_type or 'application/octet-stream'
+        sig = cls.sign_filename(safe_name)
+
+        return {
+            "url": f"/api/files/{safe_name}?sig={sig}",
+            "name": display_name,
+            "type": mime,
+            "size": size,
+            "is_image": ext in IMAGE_EXTENSIONS,
+            "is_video": ext in VIDEO_EXTENSIONS,
+            "is_audio": ext in AUDIO_EXTENSIONS
+        }
+
+
 class ChatService:
     def __init__(self):
         self.crypto = EncryptionService()
@@ -125,8 +232,13 @@ class ChatService:
             msg_preview = "Нет сообщений"
 
             if last_msg:
-                is_recip = (last_msg.user_id != user_id)
-                msg_preview = self.crypto.decrypt_for_user(last_msg.content, curr_user.private_key, is_recip)
+                if last_msg.is_deleted:
+                    msg_preview = "Сообщение удалено"
+                else:
+                    is_recip = (last_msg.user_id != user_id)
+                    msg_preview = self.crypto.decrypt_for_user(last_msg.content, curr_user.private_key, is_recip)
+                    if last_msg.file_name:
+                        msg_preview = f"📎 {last_msg.file_name}"
 
             is_read_attr = hasattr(Message, 'is_read')
             unread_count = db.session.query(Message).filter_by(chat_id=chat.id, is_read=False).filter(
@@ -192,17 +304,46 @@ class ChatService:
                     msg.is_read = True
             db.session.commit()
 
-        return [{
-            "id": msg.id,
-            "user_id": msg.user_id,
-            "login": msg.author.login,
-            "content": self.crypto.decrypt_for_user(msg.content, curr_user.private_key, (msg.user_id != user_id)),
-            "timestamp": msg.timestamp.strftime("%H:%M"),
-            "is_read": getattr(msg, 'is_read', False)
-        } for msg in messages]
+        result = []
+        for msg in messages:
+            if msg.is_deleted:
+                result.append({
+                    "id": msg.id,
+                    "user_id": msg.user_id,
+                    "login": msg.author.login,
+                    "content": "",
+                    "timestamp": msg.timestamp.strftime("%H:%M"),
+                    "is_read": getattr(msg, 'is_read', False),
+                    "is_edited": False,
+                    "is_deleted": True,
+                    "file_url": None,
+                    "file_name": None,
+                    "file_type": None,
+                    "file_size": None
+                })
+            else:
+                result.append({
+                    "id": msg.id,
+                    "user_id": msg.user_id,
+                    "login": msg.author.login,
+                    "content": self.crypto.decrypt_for_user(msg.content, curr_user.private_key, (msg.user_id != user_id)),
+                    "timestamp": msg.timestamp.strftime("%H:%M"),
+                    "is_read": getattr(msg, 'is_read', False),
+                    "is_edited": msg.is_edited or False,
+                    "is_deleted": False,
+                    "file_url": msg.file_url,
+                    "file_name": msg.file_name,
+                    "file_type": msg.file_type,
+                    "file_size": msg.file_size
+                })
+        return result
 
-    def post_message(self, user_id, chat_id, content):
-        if not content or not chat_id: return {"error": "Empty"}
+    def post_message(self, user_id, chat_id, content, file_data=None):
+        if not chat_id: return {"error": "Empty"}
+        if not content and not file_data: return {"error": "Empty"}
+
+        if not flood_control.check(user_id):
+            return {"error": "Слишком быстро. Подождите немного."}
 
         if not ChatParticipant.query.filter_by(user_id=user_id, chat_id=chat_id).first():
             return {"error": "Denied"}
@@ -210,20 +351,89 @@ class ChatService:
         parts = ChatParticipant.query.filter_by(chat_id=chat_id).all()
         pub_pems = [p.user.public_key for p in parts if p.user.public_key]
 
-        content_str = str(content).strip()
+        content_str = str(content).strip() if content else ""
+        if file_data:
+            content_str = content_str or file_data.get("name", "файл")
+
         chunks = [content_str[i:i + 2048] for i in range(0, len(content_str), 2048)]
 
         message_ids = []
-        for chunk in chunks:
+        for idx, chunk in enumerate(chunks):
             safe_chunk = escape(chunk)
             encrypted = self.crypto.encrypt_for_multiple(safe_chunk, pub_pems)
             new_msg = Message(user_id=user_id, chat_id=chat_id, content=encrypted)
+            if idx == 0 and file_data:
+                new_msg.file_url = file_data.get("url")
+                new_msg.file_name = file_data.get("name")
+                new_msg.file_type = file_data.get("type")
+                new_msg.file_size = file_data.get("size")
             db.session.add(new_msg)
             db.session.flush()
             message_ids.append(new_msg.id)
 
         db.session.commit()
         return {"success": True, "ids": message_ids}
+
+    def edit_message(self, user_id, message_id, new_content):
+        msg = db.session.get(Message, message_id)
+        if not msg:
+            return {"error": "Not found"}
+        if msg.user_id != user_id:
+            return {"error": "Denied"}
+        if msg.is_deleted:
+            return {"error": "Deleted"}
+        if not new_content or not new_content.strip():
+            return {"error": "Empty"}
+
+        decrypted = self.crypto.decrypt_for_user(msg.content, db.session.get(User, user_id).private_key, False)
+        for prefix in SYSTEM_PREFIXES:
+            if decrypted.startswith(prefix):
+                return {"error": "Denied"}
+
+        parts = ChatParticipant.query.filter_by(chat_id=msg.chat_id).all()
+        pub_pems = [p.user.public_key for p in parts if p.user.public_key]
+
+        safe_content = escape(new_content.strip())
+        encrypted = self.crypto.encrypt_for_multiple(safe_content, pub_pems)
+        msg.content = encrypted
+        msg.is_edited = True
+        db.session.commit()
+        return {"success": True}
+
+    def delete_message(self, user_id, message_id):
+        msg = db.session.get(Message, message_id)
+        if not msg:
+            return {"error": "Not found"}
+
+        chat = db.session.get(Chat, msg.chat_id)
+        participant = ChatParticipant.query.filter_by(user_id=user_id, chat_id=msg.chat_id).first()
+        if not participant:
+            return {"error": "Denied"}
+
+        is_own = msg.user_id == user_id
+        is_personal = chat.personal if chat else False
+        is_owner = (not chat.personal and chat.owner_id == user_id) if chat else False
+
+        if not is_own and not is_personal and not is_owner:
+            return {"error": "Denied"}
+
+        if msg.file_url:
+            try:
+                fname = msg.file_url.split('/api/files/')[-1].split('?')[0] if '/api/files/' in msg.file_url else ''
+                if fname:
+                    file_path = os.path.join(FileService.UPLOAD_DIR, fname)
+                    if os.path.exists(file_path):
+                        os.remove(file_path)
+            except Exception:
+                pass
+
+        msg.is_deleted = True
+        msg.file_url = None
+        msg.file_name = None
+        msg.file_type = None
+        msg.file_size = None
+        db.session.commit()
+        return {"success": True}
 
     def search_users(self, query, current_user_id):
         if not query: return []

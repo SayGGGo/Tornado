@@ -12,6 +12,7 @@ frontend/
 migrations/
 connect_to_server_auth.py
 dist/
+static/uploads/
 
 .claudeignore
 .claude/

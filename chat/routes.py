@@ -1,6 +1,7 @@
-from flask import render_template, jsonify, session, request, redirect, url_for
+import os
+from flask import render_template, jsonify, session, request, redirect, url_for, send_from_directory, abort
 from models import db, User
-from .services import ChatService, AgoraService
+from .services import ChatService, AgoraService, FileService, EncryptionService, flood_control
 from config import Config
 import uuid
 
@@ -69,7 +70,111 @@ def register_chat(app):
         if "success" in result:
             result["chat_id"] = chat_id
 
+        return jsonify(result), 200 if "success" in result else 429 if "Слишком" in result.get("error", "") else 400
+
+    @app.route("/api/messages/<int:message_id>", methods=["PUT"])
+    def edit_message(message_id):
+        if "user_id" not in session:
+            return jsonify({"error": "Unauthorized"}), 401
+
+        data = request.json or {}
+        new_content = data.get("content")
+        result = chat_service.edit_message(session["user_id"], message_id, new_content)
         return jsonify(result), 200 if "success" in result else 400
+
+    @app.route("/api/messages/<int:message_id>", methods=["DELETE"])
+    def delete_message(message_id):
+        if "user_id" not in session:
+            return jsonify({"error": "Unauthorized"}), 401
+
+        result = chat_service.delete_message(session["user_id"], message_id)
+        return jsonify(result), 200 if "success" in result else 400
+
+    @app.route("/api/files/<filename>")
+    def serve_file(filename):
+        if "user_id" not in session:
+            abort(401)
+
+        sig = request.args.get("sig", "")
+        if not sig or not FileService.verify_signature(filename, sig):
+            abort(403)
+
+        safe = os.path.basename(filename)
+        fpath = os.path.join(FileService.UPLOAD_DIR, safe)
+        if not os.path.isfile(fpath):
+            abort(404)
+
+        resp = send_from_directory(FileService.UPLOAD_DIR, safe)
+        resp.headers['Cache-Control'] = 'private, max-age=86400'
+        resp.headers['X-Content-Type-Options'] = 'nosniff'
+        return resp
+
+    @app.route("/api/messages/status", methods=["GET"])
+    def messages_status():
+        if "user_id" not in session:
+            return jsonify([]), 401
+
+        chat_id_raw = request.args.get("chat_id")
+        ids_str = request.args.get("ids", "")
+        if not chat_id_raw or not ids_str:
+            return jsonify([])
+
+        from models import ChatParticipant, Message
+        chat_id_val = int(chat_id_raw)
+        if not ChatParticipant.query.filter_by(user_id=session["user_id"], chat_id=chat_id_val).first():
+            return jsonify([])
+
+        ids = [int(x) for x in ids_str.split(",") if x.strip().isdigit()][:200]
+        if not ids:
+            return jsonify([])
+
+        messages = Message.query.filter(Message.id.in_(ids), Message.chat_id == chat_id_val).all()
+        curr_user = db.session.get(User, session["user_id"])
+        crypto = EncryptionService()
+        result = []
+        for msg in messages:
+            entry = {"id": msg.id, "is_deleted": msg.is_deleted, "is_edited": msg.is_edited or False}
+            if msg.is_edited and not msg.is_deleted:
+                entry["content"] = crypto.decrypt_for_user(msg.content, curr_user.private_key, msg.user_id != session["user_id"])
+            result.append(entry)
+        return jsonify(result)
+
+    @app.route("/api/upload", methods=["POST"])
+    def upload_file():
+        if "user_id" not in session:
+            return jsonify({"error": "Unauthorized"}), 401
+
+        chat_id = request.form.get("chat_id")
+        target_user_id = request.form.get("target_user_id")
+        caption = request.form.get("caption", "")
+
+        if not chat_id and target_user_id:
+            chat_data = chat_service.get_or_create_personal_chat(session["user_id"], int(target_user_id))
+            chat_id = chat_data["chat_id"]
+
+        if not chat_id:
+            return jsonify({"error": "No chat"}), 400
+
+        files = request.files.getlist("file")
+        if not files:
+            return jsonify({"error": "No file"}), 400
+
+        last_result = None
+        for i, f in enumerate(files):
+            file_data = FileService.save_file(f)
+            if not file_data:
+                continue
+            cap = caption if i == 0 else ""
+            result = chat_service.post_message(session["user_id"], int(chat_id), cap, file_data=file_data)
+            if "success" in result:
+                result["chat_id"] = int(chat_id)
+                result["file"] = file_data
+                last_result = result
+
+        if last_result:
+            return jsonify(last_result), 200
+
+        return jsonify({"error": "Неверный формат файла или превышен лимит 50 МБ"}), 400
 
     @app.route("/api/users/search", methods=["GET"])
     def search_users_api():

@@ -7,6 +7,13 @@ class Message(db.Model):
     chat_id = db.Column(db.Integer, db.ForeignKey("chat.id"), nullable=False)
     content = db.Column(db.Text, nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    is_read = db.Column(db.Boolean, default=False)
+    is_edited = db.Column(db.Boolean, default=False)
+    is_deleted = db.Column(db.Boolean, default=False)
+    file_url = db.Column(db.String(512), nullable=True)
+    file_name = db.Column(db.String(255), nullable=True)
+    file_type = db.Column(db.String(100), nullable=True)
+    file_size = db.Column(db.Integer, nullable=True)
 
     author = db.relationship("User", back_populates="messages")
     chat = db.relationship("Chat", back_populates="messages")
