@@ -3,11 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#070708">
     <title>TORNADO — Регистрация</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile.css') }}">
 
     {% if captcha_provider == 'turnstile' %}
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
@@ -29,6 +34,16 @@
 
     <div class="card-window">
 
+        <div class="mobile-steps-header" id="mobileStepsHeader">
+            <button class="mobile-back-btn hidden" id="mobileBackBtn" type="button" aria-label="Назад">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+                </svg>
+            </button>
+            <div class="step-progress-dots" id="stepDots"></div>
+            <div style="width:40px;"></div>
+        </div>
+
         <header class="header">
             <div class="logo-wrap">
                 <div class="logo-text-group">
@@ -41,159 +56,232 @@
         </header>
 
         <form class="setup-form" id="setupForm" novalidate>
+            <div id="error-msg" class="error-message" style="display:none;"></div>
+            <div class="steps-slider" id="stepsSlider">
 
-            <div class="form-row">
-                <label for="fio">ФИО <span class="required">*</span></label>
-                <input type="text" id="fio" class="glass-input" name="fio"
-                       placeholder="Пашков Павел Артемович" required autocomplete="name">
-            </div>
-
-            <div class="form-row">
-                <label for="login">Никнейм <span class="required">*</span></label>
-                <input type="text" id="login" class="glass-input" name="login"
-                       placeholder="SayGG" required autocomplete="username">
-            </div>
-
-            <div class="form-row">
-                <label for="password">Пароль <span class="required">*</span></label>
-                <input type="password" id="password" class="glass-input" name="password"
-                       placeholder="••••••••••••" required autocomplete="new-password">
-            </div>
-
-            <div class="form-row">
-                <label for="password_retry">Повтор пароля <span class="required">*</span></label>
-                <input type="password" id="password_retry" class="glass-input" name="password_retry"
-                       placeholder="••••••••••••" required autocomplete="new-password">
-            </div>
-
-            <div class="form-row select-row">
-                <label>Группа <span class="required">*</span></label>
-                <div class="custom-select" id="cs-position">
-                    <div class="cs-display glass-input">
-                        <span class="cs-placeholder">Выберите группу</span>
-                        <svg class="cs-arrow" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <div class="reg-step" data-step="1">
+                    <div class="step-emoji-wrap">
+                        <img class="step-emoji-img"
+                             src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/People/Waving%20Hand.webp"
+                             alt="👋" loading="eager" onerror="this.parentElement.style.display='none'">
                     </div>
-                    <div class="glass-panel">
-                        {% for group in groups %}
-                            <div class="cs-option" data-value="{{ group.value }}">{{ group.name }}</div>
-                        {% endfor %}
+                    <span class="step-title-mobile">Как вас зовут?</span>
+                    <span class="step-subtitle-mobile">Введите ваше полное имя — оно будет отображаться в профиле</span>
+
+                    <div class="form-row">
+                        <label for="fio">ФИО <span class="required">*</span></label>
+                        <input type="text" id="fio" class="glass-input" name="fio"
+                               placeholder="Пашков Павел Артемович" required autocomplete="name">
                     </div>
-                    <input type="hidden" name="position" id="position_input" required>
-                </div>
-            </div>
-
-            <div id="dynamic-fields" style="display: none; opacity: 0; transition: opacity 0.5s ease;">
-
-                <div class="form-row select-row">
-                    <label>Формат обучения <span class="required">*</span></label>
-                    <div class="custom-select">
-                        <div class="cs-display glass-input">
-                            <span class="cs-placeholder">Выберите вариант</span>
-                            <svg class="cs-arrow" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                        </div>
-                        <div class="glass-panel">
-                            <div class="cs-option" data-value="onl">Онлайн</div>
-                            <div class="cs-option" data-value="off">Оффлайн</div>
-                            <div class="cs-option" data-value="any">И то, и то</div>
-                        </div>
-                        <input type="hidden" name="hiring_volume" required>
+                    <div class="auth-links">
+                        Уже есть аккаунт? <a href="/login">Войти</a>
                     </div>
                 </div>
 
-                <div class="form-row select-row">
-                    <label>Рабочие ПК <span class="required">*</span></label>
-                    <div class="custom-multiselect">
-                        <div class="ms-display glass-input">
-                            <span class="ms-placeholder">Выберите платформы</span>
-                            <div class="ms-tags"></div>
-                            <svg class="cs-arrow" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                        </div>
-                        <div class="glass-panel">
-                            <div class="ms-option" data-value="pc-ts">ПК в Центре</div>
-                            <div class="ms-option" data-value="pc-l">Свой ПК</div>
-                            <div class="ms-option" data-value="labtop-ts">Ноутбук в Центре</div>
-                            <div class="ms-option" data-value="labtop-l">Свой ноутбук</div>
-                        </div>
-                        <input type="hidden" name="channels" required>
+                <div class="reg-step" data-step="2">
+                    <div class="step-emoji-wrap">
+                        <img class="step-emoji-img"
+                             src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Smileys/Smiling%20Face%20With%20Sunglasses.webp"
+                             alt="😎" loading="lazy" onerror="this.parentElement.style.display='none'">
+                    </div>
+                    <span class="step-title-mobile">Придумайте никнейм</span>
+                    <span class="step-subtitle-mobile">Будет виден другим пользователям и использоваться для входа</span>
+
+                    <div class="form-row">
+                        <label for="login">Никнейм <span class="required">*</span></label>
+                        <input type="text" id="login" class="glass-input" name="login"
+                               placeholder="SayGG" required autocomplete="username">
                     </div>
                 </div>
 
-                <div class="form-row select-row">
-                    <label>Известные проекты</label>
-                    <div class="custom-multiselect">
-                        <div class="ms-display glass-input">
-                            <span class="ms-placeholder">Выберите проекты</span>
-                            <div class="ms-tags"></div>
-                            <svg class="cs-arrow" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                        </div>
-                        <div class="glass-panel">
-                            <div class="ms-option" data-value="1">KYmis Chat</div>
-                            <div class="ms-option" data-value="2">FMessage</div>
-                        </div>
-                        <input type="hidden" name="painpoints">
+                <div class="reg-step" data-step="3">
+                    <div class="step-emoji-wrap">
+                        <img class="step-emoji-img"
+                             src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Objects/Locked%20With%20Key.webp"
+                             alt="🔐" loading="lazy" onerror="this.parentElement.style.display='none'">
+                    </div>
+                    <span class="step-title-mobile">Создайте пароль</span>
+                    <span class="step-subtitle-mobile">Минимум 8 символов. Не используйте простые комбинации</span>
+
+                    <div class="form-row">
+                        <label for="password">Пароль <span class="required">*</span></label>
+                        <input type="password" id="password" class="glass-input" name="password"
+                               placeholder="••••••••••••" required autocomplete="new-password">
                     </div>
                 </div>
 
-                <div class="form-row select-row">
-                    <label>Источник</label>
-                    <div class="custom-select">
-                        <div class="cs-display glass-input">
-                            <span class="cs-placeholder">Как узнали о проекте?</span>
-                            <svg class="cs-arrow" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                        </div>
-                        <div class="glass-panel">
-                            <div class="cs-option" data-value="para">На паре</div>
-                            <div class="cs-option" data-value="search">Поисковая система</div>
-                            <div class="cs-option" data-value="friend">От знакомого</div>
-                            <div class="cs-option" data-value="other">Другое</div>
-                        </div>
-                        <input type="hidden" name="current_ats">
+                <div class="reg-step" data-step="4">
+                    <div class="step-emoji-wrap">
+                        <img class="step-emoji-img"
+                             src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/People/Man%20Police%20Officer.webp"
+                             alt="🛡️" loading="lazy" onerror="this.parentElement.style.display='none'">
+                    </div>
+                    <span class="step-title-mobile">Подтвердите пароль</span>
+                    <span class="step-subtitle-mobile">Введите пароль ещё раз для подтверждения</span>
+
+                    <div class="form-row">
+                        <label for="password_retry">Повтор пароля <span class="required">*</span></label>
+                        <input type="password" id="password_retry" class="glass-input" name="password_retry"
+                               placeholder="••••••••••••" required autocomplete="new-password">
                     </div>
                 </div>
 
-            </div>
+                <div class="reg-step" data-step="5">
+                    <div class="step-emoji-wrap">
+                        <img class="step-emoji-img"
+                             src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Objects/Identification%20Card.webp"
+                             alt="🪪" loading="lazy" onerror="this.parentElement.style.display='none'">
+                    </div>
+                    <span class="step-title-mobile">Расскажите о себе</span>
+                    <span class="step-subtitle-mobile">Выберите вашу группу и заполните дополнительные поля</span>
 
-            <div class="form-divider"></div>
+                    <div class="form-row select-row">
+                        <label>Группа <span class="required">*</span></label>
+                        <div class="custom-select" id="cs-position">
+                            <div class="cs-display glass-input">
+                                <span class="cs-placeholder">Выберите группу</span>
+                                <svg class="cs-arrow" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            </div>
+                            <div class="glass-panel">
+                                {% for group in groups %}
+                                    <div class="cs-option" data-value="{{ group.value }}">{{ group.name }}</div>
+                                {% endfor %}
+                            </div>
+                            <input type="hidden" name="position" id="position_input" required>
+                        </div>
+                    </div>
 
-            <div class="switch-row">
-                <div class="switch-label-wrapper">
-                    <label>Соглашение с условиями <span class="required">*</span></label>
-                    <span class="sub-label">
-                        <a href="/terms">Условия использования</a> и <a href="/policy">политика конфиденциальности</a>
-                    </span>
+                    <div id="dynamic-fields" style="display: none; opacity: 0; transition: opacity 0.5s ease;">
+
+                        <div class="form-row select-row">
+                            <label>Формат обучения <span class="required">*</span></label>
+                            <div class="custom-select">
+                                <div class="cs-display glass-input">
+                                    <span class="cs-placeholder">Выберите вариант</span>
+                                    <svg class="cs-arrow" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                </div>
+                                <div class="glass-panel">
+                                    <div class="cs-option" data-value="onl">Онлайн</div>
+                                    <div class="cs-option" data-value="off">Оффлайн</div>
+                                    <div class="cs-option" data-value="any">И то, и то</div>
+                                </div>
+                                <input type="hidden" name="hiring_volume" required>
+                            </div>
+                        </div>
+
+                        <div class="form-row select-row">
+                            <label>Рабочие ПК <span class="required">*</span></label>
+                            <div class="custom-multiselect">
+                                <div class="ms-display glass-input">
+                                    <span class="ms-placeholder">Выберите платформы</span>
+                                    <div class="ms-tags"></div>
+                                    <svg class="cs-arrow" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                </div>
+                                <div class="glass-panel">
+                                    <div class="ms-option" data-value="pc-ts">ПК в Центре</div>
+                                    <div class="ms-option" data-value="pc-l">Свой ПК</div>
+                                    <div class="ms-option" data-value="labtop-ts">Ноутбук в Центре</div>
+                                    <div class="ms-option" data-value="labtop-l">Свой ноутбук</div>
+                                </div>
+                                <input type="hidden" name="channels" required>
+                            </div>
+                        </div>
+
+                        <div class="form-row select-row">
+                            <label>Известные проекты</label>
+                            <div class="custom-multiselect">
+                                <div class="ms-display glass-input">
+                                    <span class="ms-placeholder">Выберите проекты</span>
+                                    <div class="ms-tags"></div>
+                                    <svg class="cs-arrow" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                </div>
+                                <div class="glass-panel">
+                                    <div class="ms-option" data-value="1">KYmis Chat</div>
+                                    <div class="ms-option" data-value="2">FMessage</div>
+                                </div>
+                                <input type="hidden" name="painpoints">
+                            </div>
+                        </div>
+
+                        <div class="form-row select-row">
+                            <label>Источник</label>
+                            <div class="custom-select">
+                                <div class="cs-display glass-input">
+                                    <span class="cs-placeholder">Как узнали о проекте?</span>
+                                    <svg class="cs-arrow" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                </div>
+                                <div class="glass-panel">
+                                    <div class="cs-option" data-value="para">На паре</div>
+                                    <div class="cs-option" data-value="search">Поисковая система</div>
+                                    <div class="cs-option" data-value="friend">От знакомого</div>
+                                    <div class="cs-option" data-value="other">Другое</div>
+                                </div>
+                                <input type="hidden" name="current_ats">
+                            </div>
+                        </div>
+
+                    </div>
                 </div>
-                <div class="switch-scaler">
-                    <div class="switch-container">
-                        <input type="checkbox" name="terms" class="switch-input" required>
-                        <div class="track"></div>
-                        <div class="knob-wrapper">
-                            <div class="knob">
-                                <div class="knob-specular"></div>
+
+                <div class="reg-step" data-step="6">
+                    <div class="step-emoji-wrap">
+                        <img class="step-emoji-img"
+                             src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Smileys/Partying%20Face.webp"
+                             alt="🥳" loading="lazy" onerror="this.parentElement.style.display='none'">
+                    </div>
+                    <span class="step-title-mobile">Почти готово!</span>
+                    <span class="step-subtitle-mobile">Примите условия использования и пройдите проверку</span>
+
+                    <div class="form-divider"></div>
+
+                    <div class="switch-row">
+                        <div class="switch-label-wrapper">
+                            <label>Соглашение с условиями <span class="required">*</span></label>
+                            <span class="sub-label">
+                                <a href="/terms">Условия использования</a> и <a href="/policy">политика конфиденциальности</a>
+                            </span>
+                        </div>
+                        <div class="switch-scaler">
+                            <div class="switch-container">
+                                <input type="checkbox" name="terms" class="switch-input" required>
+                                <div class="track"></div>
+                                <div class="knob-wrapper">
+                                    <div class="knob">
+                                        <div class="knob-specular"></div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
+
+                    <div class="auth-links">
+                        Уже есть аккаунт? <a href="/login">Войти</a>
+                    </div>
+
+                    <div class="action-row">
+                        {% if captcha_provider == 'turnstile' %}
+                        <div class="cf-turnstile" data-sitekey="{{ site_key }}" data-theme="dark"></div>
+                        {% elif captcha_provider == 'yandex' %}
+                        <div id="captcha-container" class="smart-captcha" data-sitekey="{{ site_key }}" style="height: 100px"></div>
+                        {% endif %}
+
+                        <button type="button" class="glass-btn locked" id="nextBtn" disabled>
+                            <span class="btn-text">Далее</span>
+                            <svg class="btn-icon" viewBox="0 0 16 16" fill="none"><path d="M3 8H13M13 8L9 4M13 8L9 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </button>
+                    </div>
                 </div>
+
             </div>
-
-            <div class="auth-links">
-                Уже есть аккаунт? <a href="/login">Войти</a>
-            </div>
-
-            <div class="action-row">
-                {% if captcha_provider == 'turnstile' %}
-                <div class="cf-turnstile" data-sitekey="{{ site_key }}" data-theme="dark"></div>
-                {% elif captcha_provider == 'yandex' %}
-                <div id="captcha-container" class="smart-captcha" data-sitekey="{{ site_key }}" style="height: 100px"></div>
-                {% endif %}
-
-                <button type="button" class="glass-btn locked" id="nextBtn" disabled>
-                    <span class="btn-text">Далее</span>
-                    <svg class="btn-icon" viewBox="0 0 16 16" fill="none"><path d="M3 8H13M13 8L9 4M13 8L9 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                </button>
-            </div>
-
         </form>
     </div>
+
+    <button class="step-continue-btn locked" id="stepContinueBtn" type="button" disabled>
+        <span id="stepContinueTxt">Продолжить</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/>
+        </svg>
+    </button>
 
     <svg id="svg-filters" xmlns="http://www.w3.org/2000/svg" version="1.1" style="display:none;">
         <defs>
@@ -208,5 +296,95 @@
 
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
     <script src="{{ url_for('static', filename='js/bg.js') }}"></script>
+
+    <script>
+    (function () {
+        if (window.innerWidth > 768) return;
+
+        var slider   = document.getElementById('stepsSlider');
+        var steps    = slider.querySelectorAll('.reg-step');
+        var dotsWrap = document.getElementById('stepDots');
+        var backBtn  = document.getElementById('mobileBackBtn');
+        var contBtn  = document.getElementById('stepContinueBtn');
+        var contTxt  = document.getElementById('stepContinueTxt');
+        var total    = steps.length;
+        var current  = 0;
+
+        for (var i = 0; i < total; i++) {
+            var d = document.createElement('div');
+            d.className = 'step-dot' + (i === 0 ? ' active' : '');
+            dotsWrap.appendChild(d);
+        }
+
+        function updateDots(n) {
+            dotsWrap.querySelectorAll('.step-dot').forEach(function (dot, idx) {
+                dot.className = 'step-dot' + (idx === n ? ' active' : idx < n ? ' done' : '');
+            });
+        }
+
+        function checkStep() {
+            var step = steps[current];
+            var ok = true;
+
+            step.querySelectorAll('input[required]:not([type="hidden"])').forEach(function (inp) {
+                if (inp.type === 'checkbox') {
+                    if (!inp.checked) ok = false;
+                } else if (!inp.value.trim()) {
+                    ok = false;
+                }
+            });
+
+            step.querySelectorAll('input[type="hidden"][required]').forEach(function (inp) {
+                if (!inp.value) ok = false;
+            });
+
+            contBtn.disabled = !ok;
+            contBtn.classList.toggle('locked', !ok);
+        }
+
+        function goTo(n) {
+            current = n;
+            slider.style.transform = 'translateX(-' + (n * 100) + 'vw)';
+            updateDots(n);
+            backBtn.classList.toggle('hidden', n === 0);
+            contTxt.textContent = n === total - 1 ? 'Зарегистрироваться' : 'Продолжить';
+            checkStep();
+            var inp = steps[n].querySelector('input:not([type="hidden"]):not([type="checkbox"])');
+            if (inp) setTimeout(function () { inp.focus(); }, 420);
+        }
+
+        document.getElementById('setupForm').addEventListener('input', checkStep);
+        document.getElementById('setupForm').addEventListener('change', checkStep);
+        document.addEventListener('click', function () { setTimeout(checkStep, 60); });
+
+        backBtn.addEventListener('click', function () {
+            if (current > 0) goTo(current - 1);
+        });
+
+        contBtn.addEventListener('click', function () {
+            if (contBtn.disabled) return;
+            if (current < total - 1) {
+                goTo(current + 1);
+            } else {
+                document.getElementById('nextBtn').click();
+            }
+        });
+
+        var touchStartX = 0;
+        slider.addEventListener('touchstart', function (e) {
+            touchStartX = e.touches[0].clientX;
+        }, { passive: true });
+
+        slider.addEventListener('touchend', function (e) {
+            var dx = e.changedTouches[0].clientX - touchStartX;
+            if (Math.abs(dx) > 60) {
+                if (dx < 0 && current < total - 1 && !contBtn.disabled) goTo(current + 1);
+                else if (dx > 0 && current > 0) goTo(current - 1);
+            }
+        }, { passive: true });
+
+        goTo(0);
+    })();
+    </script>
 </body>
 </html>

@@ -6,6 +6,11 @@
     <title>Авторизация — TORNADO</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/connect.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile.css') }}">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#070708">
     <style>
         #dynamic-island-root {
             position: fixed;
@@ -23,6 +28,11 @@
     <canvas id="topo-canvas"></canvas>
     <div class="connect-card">
         <div id="card-content">
+            <div class="connect-emoji-header" style="display:none;">
+                <div class="tg-emoji tg-emoji--lg">
+                    <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Objects/Locked%20with%20Key.webp" alt="🔐" loading="eager" onerror="this.parentElement.style.display='none'">
+                </div>
+            </div>
             <div class="user-profile">
                 <img src="{{ user_avatar if user_avatar else 'https://ui-avatars.com/api/?name=' ~ user_fio|urlencode ~ '&background=random&color=fff&rounded=true&bold=true&uppercase=true' }}" alt="Аватарка" class="user-avatar">
                 <div class="user-info">
