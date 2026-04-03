@@ -1,4 +1,5 @@
 import os
+import re
 from flask import render_template, jsonify, session, request, redirect, url_for, send_from_directory, abort
 from models import db, User
 from .services import ChatService, AgoraService, FileService, EncryptionService, flood_control
@@ -100,6 +101,8 @@ def register_chat(app):
             abort(403)
 
         safe = os.path.basename(filename)
+        if not re.match(r'^[0-9a-f]{32}\.[a-z0-9]{1,10}$', safe):
+            abort(400)
         fpath = os.path.join(FileService.UPLOAD_DIR, safe)
         if not os.path.isfile(fpath):
             abort(404)

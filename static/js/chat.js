@@ -434,7 +434,7 @@ function createCallCard(callData, isOwn) {
     const card = document.createElement('a');
     card.className = 'call-card';
     card.href = '#';
-    card.innerHTML = `<div class="call-card-icon"><span class="material-symbols-outlined">videocam</span></div><div class="call-card-info"><div class="call-card-title">${isOwn ? 'Вы начали звонок' : callData.callerName + ' начинает звонок'}</div><div class="call-card-subtitle">Внимание! Данная система в разработке, заходите в звонки только к тем, кому доверяете и не вводите никакие коды.</div></div><span class="material-symbols-outlined call-card-arrow">chevron_right</span>`;
+    card.innerHTML = `<div class="call-card-icon"><span class="material-symbols-outlined">videocam</span></div><div class="call-card-info"><div class="call-card-title">${isOwn ? 'Вы начали звонок' : escHtml(callData.callerName) + ' начинает звонок'}</div><div class="call-card-subtitle">Внимание! Данная система в разработке, заходите в звонки только к тем, кому доверяете и не вводите никакие коды.</div></div><span class="material-symbols-outlined call-card-arrow">chevron_right</span>`;
     card.addEventListener('click', (e) => { e.preventDefault(); openCallWindow(`/call?channel=${callData.channel}`, callData.channel); });
     return card;
 }
@@ -536,14 +536,14 @@ function createMessageElement(msg, animate = false) {
         msgDiv.style.border = 'none';
         msgDiv.style.boxShadow = 'none';
         msgDiv.style.padding = '4px';
-        msgDiv.innerHTML = `<img src="${url}" class="animated-emoji-msg" alt="emoji"><div class="msg-meta" style="justify-content:flex-end;">${editedHtml}<span class="msg-time">${msg.timestamp}</span><span class="msg-ticks">${ticksHtml}</span></div>`;
+        msgDiv.innerHTML = `<img src="${url}" class="animated-emoji-msg" alt="emoji"><div class="msg-meta" style="justify-content:flex-end;">${editedHtml}<span class="msg-time">${escHtml(msg.timestamp)}</span><span class="msg-ticks">${ticksHtml}</span></div>`;
         msgDiv.addEventListener('contextmenu', onMsgContextMenu);
         return msgDiv;
     }
 
     const callData = parseCallInvite(msg.content);
     if (callData) {
-        msgDiv.innerHTML = isOwn ? '' : `<div class="msg-author">${msg.login}</div>`;
+        msgDiv.innerHTML = isOwn ? '' : `<div class="msg-author">${escHtml(msg.login)}</div>`;
         const metaDiv = document.createElement('div');
         metaDiv.className = 'msg-content';
         metaDiv.style.cssText = 'padding:4px 0;background:transparent;border:none;box-shadow:none;';
@@ -551,7 +551,7 @@ function createMessageElement(msg, animate = false) {
         const timeDiv = document.createElement('div');
         timeDiv.className = 'msg-meta';
         timeDiv.style.marginTop = '6px';
-        timeDiv.innerHTML = `<span class="msg-time">${msg.timestamp}</span>`;
+        timeDiv.innerHTML = `<span class="msg-time">${escHtml(msg.timestamp)}</span>`;
         metaDiv.appendChild(timeDiv);
         msgDiv.appendChild(metaDiv);
         msgDiv.setAttribute('data-system', '1');
@@ -561,7 +561,7 @@ function createMessageElement(msg, animate = false) {
 
     if (msg.content && msg.content.startsWith('__CHATLINK__')) {
         const linkChatId = msg.content.replace('__CHATLINK__', '');
-        msgDiv.innerHTML = isOwn ? '' : `<div class="msg-author">${msg.login}</div>`;
+        msgDiv.innerHTML = isOwn ? '' : `<div class="msg-author">${escHtml(msg.login)}</div>`;
         const metaDiv = document.createElement('div');
         metaDiv.className = 'msg-content';
         metaDiv.style.cssText = 'padding:4px 0;background:transparent;border:none;box-shadow:none;';
@@ -572,7 +572,7 @@ function createMessageElement(msg, animate = false) {
         const timeDiv = document.createElement('div');
         timeDiv.className = 'msg-meta';
         timeDiv.style.marginTop = '6px';
-        timeDiv.innerHTML = `<span class="msg-time">${msg.timestamp}</span>`;
+        timeDiv.innerHTML = `<span class="msg-time">${escHtml(msg.timestamp)}</span>`;
         metaDiv.appendChild(card);
         metaDiv.appendChild(timeDiv);
         msgDiv.appendChild(metaDiv);
@@ -581,7 +581,7 @@ function createMessageElement(msg, animate = false) {
         return msgDiv;
     }
 
-    const authorHtml = isOwn ? '' : `<div class="msg-author">${msg.login}</div>`;
+    const authorHtml = isOwn ? '' : `<div class="msg-author">${escHtml(msg.login)}</div>`;
     const editedHtml = msg.is_edited ? '<span class="msg-edited-label">изменено</span>' : '';
     const ticksHtml = isOwn ? (isPending
         ? `<span class="material-symbols-outlined" style="font-size:14px;">schedule</span>`
@@ -596,12 +596,12 @@ function createMessageElement(msg, animate = false) {
         contentDiv.appendChild(createFileContent(msg));
         const metaDiv = document.createElement('div');
         metaDiv.className = 'msg-meta';
-        metaDiv.innerHTML = `${editedHtml}<span class="msg-time">${msg.timestamp}</span><span class="msg-ticks">${ticksHtml}</span>`;
+        metaDiv.innerHTML = `${editedHtml}<span class="msg-time">${escHtml(msg.timestamp)}</span><span class="msg-ticks">${ticksHtml}</span>`;
         contentDiv.appendChild(metaDiv);
         msgDiv.appendChild(contentDiv);
     } else {
         const formattedContent = formatMessageContent(msg.content);
-        msgDiv.innerHTML = `${authorHtml}<div class="msg-content">${formattedContent}<div class="msg-meta">${editedHtml}<span class="msg-time">${msg.timestamp}</span><span class="msg-ticks">${ticksHtml}</span></div></div>`;
+        msgDiv.innerHTML = `${authorHtml}<div class="msg-content">${formattedContent}<div class="msg-meta">${editedHtml}<span class="msg-time">${escHtml(msg.timestamp)}</span><span class="msg-ticks">${ticksHtml}</span></div></div>`;
     }
 
     msgDiv.addEventListener('contextmenu', onMsgContextMenu);
@@ -1172,7 +1172,7 @@ function renderContactsList(container, selectedSet, filterQuery = '') {
     allAvailableContacts.filter(c => c.name.toLowerCase().includes(filterQuery.toLowerCase())).forEach(c => {
         const row = document.createElement('div');
         row.className = `contact-row ${selectedSet.has(c.target_user_id) ? 'selected' : ''}`;
-        row.innerHTML = `<img src="${c.avatar}" alt=""><div class="contact-info"><div class="contact-name">${c.name}</div><div class="contact-login">Пользователь</div></div>`;
+        row.innerHTML = `<img src="${escHtml(c.avatar)}" alt=""><div class="contact-info"><div class="contact-name">${escHtml(c.name)}</div><div class="contact-login">Пользователь</div></div>`;
         row.addEventListener('click', () => { if (selectedSet.has(c.target_user_id)) { selectedSet.delete(c.target_user_id); row.classList.remove('selected'); } else { selectedSet.add(c.target_user_id); row.classList.add('selected'); } });
         container.appendChild(row);
     });
@@ -1181,6 +1181,7 @@ function renderContactsList(container, selectedSet, filterQuery = '') {
 async function openGroupModal() { searchResultsBox.style.display = 'none'; searchInput.value = ''; selectedForGroup.clear(); groupNameInput.value = ''; await loadContactsForModals(); renderContactsList(groupContactsList, selectedForGroup); groupModalOverlay.classList.add('visible'); }
 
 function decodeHtmlEntities(text) { const t = document.createElement('textarea'); t.innerHTML = text; return t.value; }
+function escHtml(v) { if (v == null) return ''; return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 
 function formatMessageContent(text) {
     if (!text) return text;

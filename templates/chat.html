@@ -270,11 +270,11 @@
 
     <div id="liquid-glass-root"></div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" integrity="sha512-BNaRQnYJYiPSqHHDb58B0yaPfCu+Wgds8Gp/gU33kqBtgNS4tSPHuGibyoeqMV/TJlSKda6FXzoEyYGjTe+vXA==" crossorigin="anonymous"></script>
     <script src="{{ url_for('static', filename='js/chat.js') }}"></script>
     <script src="{{ url_for('static', filename='dist/glass-bundle.js') }}"></script>
     <script src="{{ url_for('static', filename='js/bg.js') }}"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" integrity="sha512-D9gUyxqja7hBtkWpPWGt9wfbfaMGVt9gnyCvYa+jojwwPHLCzUm5i8rpk7vD7wNee9bA35eYIjobYPaQuKS1MQ==" crossorigin="anonymous"></script>
     <script type="module" src="{{ url_for('static', filename='js/i/island.js') }}"></script>
 
     <script>
@@ -364,11 +364,24 @@
                 if (!nameEl) return;
                 var el = document.createElement('div');
                 el.className = 'quick-call-item';
-                el.innerHTML =
-                    '<img class="qc-avatar" src="' + (avatarEl ? avatarEl.src : '') + '" onerror="this.style.display=\'none\'">' +
-                    '<span class="qc-name">' + nameEl.childNodes[0].textContent.trim() + '</span>' +
-                    '<button class="qc-btn" data-chat-id="' + item.dataset.chatId + '" aria-label="Позвонить">' +
-                    '<span class="material-symbols-outlined">videocam</span></button>';
+                var avatarImg = document.createElement('img');
+                avatarImg.className = 'qc-avatar';
+                avatarImg.src = avatarEl ? avatarEl.src : '';
+                avatarImg.onerror = function() { this.style.display = 'none'; };
+                var nameSpan = document.createElement('span');
+                nameSpan.className = 'qc-name';
+                nameSpan.textContent = nameEl.childNodes[0].textContent.trim();
+                var callBtn = document.createElement('button');
+                callBtn.className = 'qc-btn';
+                callBtn.setAttribute('data-chat-id', item.dataset.chatId);
+                callBtn.setAttribute('aria-label', 'Позвонить');
+                var icon = document.createElement('span');
+                icon.className = 'material-symbols-outlined';
+                icon.textContent = 'videocam';
+                callBtn.appendChild(icon);
+                el.appendChild(avatarImg);
+                el.appendChild(nameSpan);
+                el.appendChild(callBtn);
                 list.appendChild(el);
             });
         }
