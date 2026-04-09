@@ -66,7 +66,7 @@ def register_system(app):
             })
         except Exception as error:
             logger.error(f"Ошибка в /api/ping: {error}")
-            return jsonify({"ok": False, "error": str(error)})
+            return jsonify({"ok": False, "error": "Error"})
 
     @app.errorhandler(404)
     def page_not_found(e):
