@@ -22,7 +22,7 @@
     --radius-panel: 14px;
     --radius-tag:   8px;
 
-    --font-display: 'Bebas Neue', sans-serif;
+    --font-display: 'Doloto', sans-serif;
     --font-body:    'Outfit', sans-serif;
 
     --transition-fast:   0.18s ease;
@@ -33,6 +33,14 @@
 @font-face {
     font-family: 'ak';
     src: url('../fonts/akony.woff2') format('woff2');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Doloto';
+    src: url('../fonts/Doloto.ttf') format('truetype');
     font-weight: normal;
     font-style: normal;
     font-display: swap;

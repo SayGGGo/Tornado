@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#070708">
+    <title>TORNADO — Условия использования</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    {% include 'more.html' %}
+    <style>
+        @font-face {
+            font-family: 'Doloto';
+            src: url('/static/fonts/Doloto.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        :root {
+            --green: #34c759;
+            --green-dim: rgba(52,199,89,0.08);
+            --green-border: rgba(52,199,89,0.22);
+            --bg: #070708;
+            --card-bg: rgba(12,12,14,0.85);
+            --card-border: rgba(255,255,255,0.05);
+            --text: #ffffff;
+            --text-dim: rgba(255,255,255,0.52);
+            --text-muted: rgba(255,255,255,0.26);
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Outfit', sans-serif;
+            font-size: 15px;
+            line-height: 1.75;
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        a { color: var(--green); text-decoration: none; }
+        a:hover { opacity: 0.75; }
+
+        .bg-canvas {
+            position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 0;
+        }
+        .orb {
+            position: absolute; border-radius: 50%; filter: blur(130px); opacity: 0.28;
+        }
+        .orb-1 {
+            width: 800px; height: 800px;
+            background: radial-gradient(circle, rgba(52,199,89,.11) 0%, transparent 65%);
+            top: -250px; left: -180px;
+        }
+        .orb-2 {
+            width: 500px; height: 500px;
+            background: radial-gradient(circle, rgba(10,132,255,.07) 0%, transparent 65%);
+            bottom: -100px; right: -100px;
+        }
+
+        .page-wrap {
+            position: relative; z-index: 1;
+            max-width: 800px; margin: 0 auto;
+            padding: 48px 24px 100px;
+        }
+
+        .back-link {
+            display: inline-flex; align-items: center; gap: 8px;
+            color: var(--text-muted); font-size: 13px; font-weight: 500;
+            text-decoration: none; margin-bottom: 44px;
+            transition: color 0.18s;
+        }
+        .back-link:hover { color: var(--green); opacity: 1; }
+
+        .doc-header { margin-bottom: 52px; }
+
+        .doc-badge {
+            display: inline-block;
+            background: var(--green-dim);
+            border: 1px solid var(--green-border);
+            color: var(--green);
+            font-size: 11px; font-weight: 600;
+            letter-spacing: 1.8px; text-transform: uppercase;
+            padding: 5px 14px; border-radius: 100px;
+            margin-bottom: 20px;
+        }
+
+        .doc-title {
+            font-family: 'Doloto', sans-serif;
+            font-size: clamp(38px, 7vw, 62px);
+            letter-spacing: 1px; line-height: 1.05;
+            color: var(--text);
+        }
+
+        .doc-meta {
+            margin-top: 14px;
+            color: var(--text-muted); font-size: 13px;
+            display: flex; flex-wrap: wrap; gap: 16px; align-items: center;
+        }
+        .doc-meta-item {
+            display: flex; align-items: center; gap: 6px;
+        }
+        .doc-meta-item svg { opacity: 0.4; }
+
+        .doc-intro {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-left: 3px solid var(--green);
+            border-radius: 0 16px 16px 0;
+            padding: 20px 24px;
+            margin-bottom: 32px;
+            color: var(--text-dim);
+            font-size: 14px; line-height: 1.8;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+        }
+
+        .toc {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            padding: 24px 28px;
+            margin-bottom: 32px;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+        }
+        .toc-title {
+            font-size: 12px; font-weight: 700; letter-spacing: 1.5px;
+            text-transform: uppercase; color: var(--text-muted);
+            margin-bottom: 14px;
+        }
+        .toc-list {
+            list-style: none; display: grid;
+            grid-template-columns: 1fr 1fr; gap: 6px 24px;
+        }
+        .toc-list li a {
+            font-size: 13px; color: var(--text-dim);
+            display: flex; align-items: center; gap: 8px;
+            text-decoration: none; transition: color 0.18s;
+        }
+        .toc-list li a:hover { color: var(--green); opacity: 1; }
+        .toc-num {
+            font-size: 11px; color: var(--green); font-weight: 700;
+            min-width: 22px;
+        }
+
+        .doc-section {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            padding: 30px 34px;
+            margin-bottom: 14px;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            scroll-margin-top: 24px;
+        }
+
+        .section-head {
+            display: flex; align-items: flex-start; gap: 16px;
+            margin-bottom: 18px;
+        }
+        .section-num {
+            font-size: 11px; font-weight: 700; letter-spacing: 1.5px;
+            text-transform: uppercase; color: var(--green);
+            background: var(--green-dim); border: 1px solid var(--green-border);
+            border-radius: 8px; padding: 4px 10px;
+            flex-shrink: 0; margin-top: 3px;
+        }
+        .section-title {
+            font-family: 'Doloto', sans-serif;
+            font-size: 22px; letter-spacing: 0.5px;
+            color: var(--text); line-height: 1.2;
+        }
+
+        .section-body {
+            color: var(--text-dim);
+            font-size: 14px; line-height: 1.85;
+        }
+        .section-body p { margin-bottom: 12px; }
+        .section-body p:last-child { margin-bottom: 0; }
+
+        .section-body h4 {
+            font-size: 13px; font-weight: 700; letter-spacing: 0.5px;
+            text-transform: uppercase; color: rgba(255,255,255,0.45);
+            margin: 20px 0 8px;
+        }
+
+        .section-body ul, .section-body ol {
+            margin: 10px 0 12px; padding-left: 0; list-style: none;
+        }
+        .section-body ul li, .section-body ol li {
+            padding-left: 20px; position: relative; margin-bottom: 7px;
+            font-size: 14px;
+        }
+        .section-body ul li::before {
+            content: '—'; position: absolute; left: 0;
+            color: var(--green); font-weight: 700;
+        }
+        .section-body ol { counter-reset: li; }
+        .section-body ol li { counter-increment: li; }
+        .section-body ol li::before {
+            content: counter(li) '.'; position: absolute; left: 0;
+            color: var(--green); font-weight: 700; font-size: 13px;
+        }
+
+        .section-body strong { color: rgba(255,255,255,0.75); font-weight: 600; }
+
+        .highlight-box {
+            background: rgba(52,199,89,0.06);
+            border: 1px solid rgba(52,199,89,0.18);
+            border-radius: 12px;
+            padding: 14px 18px;
+            margin: 14px 0;
+            font-size: 13px; color: var(--text-dim); line-height: 1.7;
+        }
+        .highlight-box.warn {
+            background: rgba(255,159,10,0.06);
+            border-color: rgba(255,159,10,0.18);
+        }
+        .highlight-box.danger {
+            background: rgba(255,69,58,0.06);
+            border-color: rgba(255,69,58,0.18);
+        }
+
+        .doc-footer {
+            margin-top: 44px;
+            padding: 24px 28px;
+            background: var(--green-dim);
+            border: 1px solid var(--green-border);
+            border-radius: 18px;
+            display: flex; align-items: center; gap: 18px;
+        }
+        .doc-footer-icon {
+            flex-shrink: 0; width: 44px; height: 44px;
+            background: rgba(52,199,89,0.12); border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .doc-footer-text { font-size: 13px; color: var(--text-dim); line-height: 1.6; }
+        .doc-footer-text strong { color: var(--text); }
+
+        @media (max-width: 640px) {
+            .doc-section { padding: 22px 18px; }
+            .page-wrap { padding: 32px 16px 72px; }
+            .toc-list { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-canvas" aria-hidden="true">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+    </div>
+
+    <div class="page-wrap">
+
+        <a href="/" class="back-link">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+            </svg>
+            На главную
+        </a>
+
+        <div class="doc-header">
+            <div class="doc-badge">Юридический документ</div>
+            <div class="doc-title">Условия использования</div>
+            <div class="doc-meta">
+                <div class="doc-meta-item">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                    Редакция от 1 января 2025 г.
+                </div>
+                <div class="doc-meta-item">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                    Tornado Chat
+                </div>
+                <div class="doc-meta-item">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                    Вступает в силу немедленно
+                </div>
+            </div>
+        </div>
+
+        <div class="doc-intro">
+            Настоящие Условия использования (далее — <strong>«Условия»</strong>) являются юридически обязывающим соглашением между вами (далее — <strong>«Пользователь»</strong>) и командой проекта Tornado Chat (далее — <strong>«Сервис»</strong>, «мы», «нас»). Внимательно прочитайте этот документ перед использованием Сервиса. Регистрируясь или продолжая использовать Tornado Chat, вы подтверждаете, что прочитали, поняли и безоговорочно приняли все положения настоящих Условий.
+        </div>
+
+        <div class="toc">
+            <div class="toc-title">Содержание</div>
+            <ul class="toc-list">
+                <li><a href="#s1"><span class="toc-num">01</span> Термины и определения</a></li>
+                <li><a href="#s2"><span class="toc-num">02</span> Правоспособность и возраст</a></li>
+                <li><a href="#s3"><span class="toc-num">03</span> Регистрация и аккаунт</a></li>
+                <li><a href="#s4"><span class="toc-num">04</span> Права и лицензия</a></li>
+                <li><a href="#s5"><span class="toc-num">05</span> Допустимое использование</a></li>
+                <li><a href="#s6"><span class="toc-num">06</span> Запрещённые действия</a></li>
+                <li><a href="#s7"><span class="toc-num">07</span> Контент пользователей</a></li>
+                <li><a href="#s8"><span class="toc-num">08</span> Интеллектуальная собственность</a></li>
+                <li><a href="#s9"><span class="toc-num">09</span> Конфиденциальность</a></li>
+                <li><a href="#s10"><span class="toc-num">10</span> Премиум и платные услуги</a></li>
+                <li><a href="#s11"><span class="toc-num">11</span> Приостановка и блокировка</a></li>
+                <li><a href="#s12"><span class="toc-num">12</span> Отказ от гарантий</a></li>
+                <li><a href="#s13"><span class="toc-num">13</span> Ограничение ответственности</a></li>
+                <li><a href="#s14"><span class="toc-num">14</span> Изменение Условий</a></li>
+                <li><a href="#s15"><span class="toc-num">15</span> Применимое право и споры</a></li>
+                <li><a href="#s16"><span class="toc-num">16</span> Заключительные положения</a></li>
+            </ul>
+        </div>
+
+        <div class="doc-section" id="s1">
+            <div class="section-head">
+                <div class="section-num">01</div>
+                <div class="section-title">Термины и определения</div>
+            </div>
+            <div class="section-body">
+                <p>В настоящих Условиях применяются следующие термины:</p>
+                <ul>
+                    <li><strong>Сервис</strong> — мессенджер Tornado Chat, включая веб-интерфейс, мобильные приложения, API и все сопутствующие сервисы.</li>
+                    <li><strong>Пользователь</strong> — любое физическое лицо, зарегистрировавшееся и/или использующее Сервис.</li>
+                    <li><strong>Аккаунт</strong> — учётная запись Пользователя, создаваемая при регистрации.</li>
+                    <li><strong>Контент</strong> — любые данные, передаваемые через Сервис: текстовые сообщения, файлы, изображения, аудио, видео, ссылки и иные материалы.</li>
+                    <li><strong>Команда</strong> — физические лица, разрабатывающие и поддерживающие Tornado Chat.</li>
+                    <li><strong>Политика конфиденциальности</strong> — отдельный документ, регулирующий обработку персональных данных Пользователей, доступный по адресу <a href="/policy">/policy</a>.</li>
+                    <li><strong>Нарушение</strong> — любое действие или бездействие Пользователя, противоречащее настоящим Условиям или применимому законодательству.</li>
+                    <li><strong>Премиум</strong> — расширенный набор функций, доступный по подписке или единовременному платежу.</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="doc-section" id="s2">
+            <div class="section-head">
+                <div class="section-num">02</div>
+                <div class="section-title">Правоспособность и возраст</div>
+            </div>
+            <div class="section-body">
+                <p>Для использования Сервиса необходимо:</p>
+                <ul>
+                    <li>Достигнуть возраста <strong>16 лет</strong>. Лица в возрасте от 14 до 16 лет вправе использовать Сервис исключительно с письменного согласия родителей или законных представителей.</li>
+                    <li>Обладать полной дееспособностью для заключения юридически обязывающих соглашений в соответствии с законодательством страны вашего проживания.</li>
+                    <li>Не быть лицом, которому ранее было запрещено использование Сервиса командой Tornado Chat.</li>
+                </ul>
+                <div class="highlight-box warn">
+                    Если вы используете Сервис от имени организации, вы подтверждаете, что уполномочены принимать настоящие Условия от её имени, и организация несёт ответственность за любые Нарушения с вашей стороны.
+                </div>
+            </div>
+        </div>
+
+        <div class="doc-section" id="s3">
+            <div class="section-head">
+                <div class="section-num">03</div>
+                <div class="section-title">Регистрация и аккаунт</div>
+            </div>
+            <div class="section-body">
+                <h4>Создание аккаунта</h4>
+                <p>Для получения доступа к функциям Сервиса требуется регистрация. При регистрации Пользователь обязан предоставить достоверные, точные и полные сведения. Использование ложных данных является нарушением настоящих Условий и может повлечь немедленное удаление аккаунта.</p>
+
+                <h4>Безопасность учётных данных</h4>
+                <p>Пользователь несёт полную ответственность за:</p>
+                <ul>
+                    <li>Сохранность пароля и иных средств аутентификации;</li>
+                    <li>Все действия, совершённые с использованием его аккаунта, вне зависимости от того, были ли они санкционированы Пользователем;</li>
+                    <li>Немедленное уведомление команды через <a href="/support">support@цтк.space</a> при подозрении на несанкционированный доступ к аккаунту.</li>
+                </ul>
+
+                <h4>Один аккаунт</h4>
+                <p>Пользователю разрешено иметь только один активный аккаунт. Создание нескольких аккаунтов с целью обхода ограничений или блокировок является Нарушением.</p>
+
+                <h4>Передача аккаунта</h4>
+                <p>Аккаунт неотчуждаем. Передача, продажа или иное отчуждение аккаунта третьим лицам запрещена. Команда вправе заблокировать аккаунт при обнаружении факта его передачи.</p>
+
+                <div class="highlight-box">
+                    Команда не несёт ответственности за ущерб, причинённый несанкционированным использованием аккаунта вследствие нарушения Пользователем обязательств по хранению учётных данных.
+                </div>
+            </div>
+        </div>
+
+        <div class="doc-section" id="s4">
+            <div class="section-head">
+                <div class="section-num">04</div>
+                <div class="section-title">Права и лицензия на использование</div>
+            </div>
+            <div class="section-body">
+                <p>Команда Tornado Chat предоставляет Пользователю <strong>ограниченную, неисключительную, непередаваемую, отзывную лицензию</strong> на доступ и использование Сервиса исключительно в личных, некоммерческих целях в соответствии с настоящими Условиями.</p>
+
+                <h4>Данная лицензия не предоставляет право:</h4>
+                <ul>
+                    <li>Копировать, модифицировать или создавать производные работы на основе Сервиса;</li>
+                    <li>Осуществлять реверс-инжиниринг, декомпиляцию или дизассемблирование программного обеспечения Сервиса;</li>
+                    <li>Сублицензировать, продавать или иным образом передавать права на Сервис третьим лицам;</li>
+                    <li>Использовать Сервис для оказания коммерческих услуг третьим лицам без письменного разрешения команды;</li>
+                    <li>Удалять или изменять уведомления об авторских правах или иных правах интеллектуальной собственности в Сервисе.</li>
+                </ul>
+
+                <p>Лицензия прекращается автоматически при нарушении любого из положений настоящих Условий.</p>
+            </div>
+        </div>
+
+        <div class="doc-section" id="s5">
+            <div class="section-head">
+                <div class="section-num">05</div>
+                <div class="section-title">Допустимое использование</div>
+            </div>
+            <div class="section-body">
+                <p>Tornado Chat предназначен для организации коммуникаций между пользователями: обмена сообщениями, файлами и иным контентом в личных и групповых переписках.</p>
+
+                <p>Пользователь вправе:</p>
+                <ul>
+                    <li>Создавать личные и групповые чаты для общения;</li>
+                    <li>Обмениваться текстовыми сообщениями, файлами, изображениями и иными материалами, не нарушающими настоящие Условия;</li>
+                    <li>Настраивать параметры своего профиля и приватности;</li>
+                    <li>Использовать доступные функции Сервиса в личных целях;</li>
+                    <li>Сообщать команде об ошибках, уязвимостях и нарушениях со стороны других Пользователей.</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="doc-section" id="s6">
+            <div class="section-head">
+                <div class="section-num">06</div>
+                <div class="section-title">Запрещённые действия</div>
+            </div>
+            <div class="section-body">
+                <div class="highlight-box danger">
+                    Нарушение любого из нижеперечисленных запретов влечёт немедленную блокировку аккаунта и может стать основанием для обращения в правоохранительные органы.
+                </div>
+
+                <h4>Незаконный и вредоносный контент</h4>
+                <ul>
+                    <li>Распространение материалов, эксплуатирующих детей (CSAM) — является уголовным преступлением и незамедлительно передаётся в соответствующие органы;</li>
+                    <li>Распространение контента, пропагандирующего насилие, терроризм, экстремизм или призывающего к дискриминации по признаку расы, пола, религии, национальности, сексуальной ориентации или инвалидности;</li>
+                    <li>Распространение заведомо ложной информации (фейков), способной причинить вред физическим лицам, организациям или обществу;</li>
+                    <li>Публикация материалов порнографического характера без явного согласия всех изображённых лиц;</li>
+                    <li>Распространение персональных данных третьих лиц без их согласия («доксинг»).</li>
+                </ul>
+
+                <h4>Технические нарушения</h4>
+                <ul>
+                    <li>Попытки несанкционированного доступа к серверам, базам данных, аккаунтам других Пользователей или административным интерфейсам Сервиса;</li>
+                    <li>Проведение атак типа «отказ в обслуживании» (DDoS, DoS) или иных атак на инфраструктуру Сервиса;</li>
+                    <li>Внедрение вредоносного программного обеспечения, вирусов, троянов или иного деструктивного кода;</li>
+                    <li>Использование автоматизированных средств (ботов, скраперов, краулеров) без письменного разрешения команды;</li>
+                    <li>Попытки обойти механизмы аутентификации, защиты или ограничения скорости запросов;</li>
+                    <li>Реверс-инжиниринг, декомпиляция или попытки извлечения исходного кода Сервиса.</li>
+                </ul>
+
+                <h4>Мошенничество и спам</h4>
+                <ul>
+                    <li>Рассылка спама, нежелательных рекламных или информационных сообщений;</li>
+                    <li>Фишинг — обманные действия, направленные на получение учётных данных, платёжной информации или иных конфиденциальных сведений других Пользователей;</li>
+                    <li>Выдача себя за другого Пользователя, представителя команды Tornado Chat или иного лица;</li>
+                    <li>Организация схем «пирамиды», сетевого маркетинга или иных мошеннических схем;</li>
+                    <li>Использование Сервиса для легализации (отмывания) доходов, полученных незаконным путём.</li>
+                </ul>
+
+                <h4>Нарушения прав третьих лиц</h4>
+                <ul>
+                    <li>Нарушение авторских прав, товарных знаков, патентов или иных прав интеллектуальной собственности;</li>
+                    <li>Преследование, запугивание, угрозы или систематическое нарушение личного пространства других Пользователей (харассмент, сталкинг);</li>
+                    <li>Распространение конфиденциальной информации третьих лиц.</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="doc-section" id="s7">
+            <div class="section-head">
+                <div class="section-num">07</div>
+                <div class="section-title">Контент пользователей</div>
+            </div>
+            <div class="section-body">
+                <h4>Ответственность за контент</h4>
+                <p>Пользователь несёт <strong>единоличную и полную ответственность</strong> за весь контент, передаваемый через Сервис. Команда Tornado Chat не является создателем пользовательского контента и не осуществляет его предварительной модерации.</p>
+
+                <h4>Лицензия на контент</h4>
+                <p>Отправляя контент через Сервис, Пользователь предоставляет команде Tornado Chat <strong>ограниченную, безвозмездную, неисключительную лицензию</strong> на обработку, хранение, передачу и отображение данного контента исключительно в целях функционирования Сервиса (доставки сообщений, хранения истории переписки). Данная лицензия не распространяется на использование контента в маркетинговых, коммерческих или иных посторонних целях.</p>
+
+                <h4>Гарантии Пользователя</h4>
+                <p>Отправляя контент, Пользователь гарантирует, что:</p>
+                <ul>
+                    <li>Обладает всеми необходимыми правами на данный контент или имеет разрешение правообладателя;</li>
+                    <li>Контент не нарушает права интеллектуальной собственности, приватности или иные права третьих лиц;</li>
+                    <li>Контент не противоречит применимому законодательству и настоящим Условиям;</li>
+                    <li>Получил необходимые согласия всех лиц, идентифицируемых в контенте (при наличии).</li>
+                </ul>
+
+                <h4>Удаление контента</h4>
+                <p>Команда оставляет за собой право удалять любой контент, нарушающий настоящие Условия или применимое законодательство, без предварительного уведомления. Пользователь вправе удалить свой контент самостоятельно в любое время.</p>
+            </div>
+        </div>
+
+        <div class="doc-section" id="s8">
+            <div class="section-head">
+                <div class="section-num">08</div>
+                <div class="section-title">Интеллектуальная собственность</div>
+            </div>
+            <div class="section-body">
+                <p>Tornado Chat, включая его наименование, логотип, дизайн, программный код, интерфейс, алгоритмы и документацию, является объектом интеллектуальной собственности команды разработчиков. Все права защищены.</p>
+
+                <p>Предоставление Пользователю доступа к Сервису не означает передачи каких-либо прав интеллектуальной собственности, за исключением ограниченной лицензии, прямо предусмотренной настоящими Условиями.</p>
+
+                <h4>Жалобы на нарушение авторских прав</h4>
+                <p>Если вы считаете, что ваши авторские права нарушены в рамках Сервиса, направьте уведомление на <a href="mailto:support@цтк.space">support@цтк.space</a> с указанием:</p>
+                <ul>
+                    <li>Описания нарушенного произведения;</li>
+                    <li>Ссылки на нарушающий контент в Сервисе;</li>
+                    <li>Ваших контактных данных и подтверждения, что вы являетесь правообладателем или его уполномоченным представителем.</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="doc-section" id="s9">
+            <div class="section-head">
+                <div class="section-num">09</div>
+                <div class="section-title">Конфиденциальность</div>
+            </div>
+            <div class="section-body">
+                <p>Обработка персональных данных Пользователей осуществляется в соответствии с <a href="/policy">Политикой конфиденциальности</a>, являющейся неотъемлемой частью настоящих Условий. Используя Сервис, Пользователь выражает своё согласие с условиями Политики конфиденциальности.</p>
+
+                <p>Если Пользователь не согласен с порядком обработки персональных данных, он обязан прекратить использование Сервиса и удалить свой аккаунт.</p>
+            </div>
+        </div>
+
+        <div class="doc-section" id="s10">
+            <div class="section-head">
+                <div class="section-num">10</div>
+                <div class="section-title">Премиум и платные услуги</div>
+            </div>
+            <div class="section-body">
+                <h4>Условия оплаты</h4>
+                <p>Отдельные функции Сервиса могут быть доступны исключительно на платной основе (подписка «Премиум»). Стоимость и условия предоставления платных функций указываются на соответствующих страницах Сервиса.</p>
+
+                <h4>Возврат средств</h4>
+                <p>Платежи за Премиум-доступ, как правило, не подлежат возврату. Исключения возможны в случаях, прямо предусмотренных применимым законодательством о защите прав потребителей. При обнаружении технических проблем, делающих Премиум-функции полностью недоступными, Пользователь вправе обратиться в поддержку для рассмотрения вопроса о компенсации.</p>
+
+                <h4>Изменение тарифов</h4>
+                <p>Команда вправе изменять стоимость и состав Премиум-функций. Действующие подписчики уведомляются об изменениях не менее чем за 30 дней до их вступления в силу.</p>
+
+                <h4>Прекращение Премиум-доступа</h4>
+                <p>При блокировке аккаунта за Нарушение настоящих Условий возврат средств за неиспользованный период Премиум-подписки не производится.</p>
+            </div>
+        </div>
+
+        <div class="doc-section" id="s11">
+            <div class="section-head">
+                <div class="section-num">11</div>
+                <div class="section-title">Приостановка и блокировка аккаунта</div>
+            </div>
+            <div class="section-body">
+                <h4>Основания для блокировки</h4>
+                <p>Команда Tornado Chat вправе временно приостановить или безвозвратно заблокировать аккаунт Пользователя в случае:</p>
+                <ul>
+                    <li>Нарушения любого из положений настоящих Условий;</li>
+                    <li>Нарушения применимого законодательства;</li>
+                    <li>Получения обоснованной жалобы от третьих лиц о нарушении их прав;</li>
+                    <li>Обнаружения деятельности, угрожающей безопасности Сервиса или других Пользователей;</li>
+                    <li>Отсутствия активности в аккаунте более 24 месяцев (с предварительным уведомлением);</li>
+                    <li>Требования компетентных государственных органов.</li>
+                </ul>
+
+                <h4>Порядок блокировки</h4>
+                <p>В случае нарушений, не представляющих немедленной угрозы, команда вправе направить предупреждение перед блокировкой. При грубых или систематических нарушениях блокировка производится без предварительного уведомления.</p>
+
+                <h4>Обжалование</h4>
+                <p>Пользователь вправе оспорить блокировку, направив запрос на <a href="mailto:support@цтк.space">support@цтк.space</a> в течение 30 дней с момента блокировки. Команда рассматривает обращения в срок до 14 рабочих дней.</p>
+
+                <h4>Самостоятельное удаление</h4>
+                <p>Пользователь вправе в любое время удалить свой аккаунт, обратившись в поддержку. После удаления данные удаляются в соответствии с Политикой конфиденциальности.</p>
+            </div>
+        </div>
+
+        <div class="doc-section" id="s12">
+            <div class="section-head">
+                <div class="section-num">12</div>
+                <div class="section-title">Отказ от гарантий</div>
+            </div>
+            <div class="section-body">
+                <p>Сервис предоставляется <strong>«как есть»</strong> и <strong>«по мере доступности»</strong> без каких-либо явных или подразумеваемых гарантий, включая, но не ограничиваясь:</p>
+                <ul>
+                    <li>Гарантиями пригодности для конкретной цели;</li>
+                    <li>Гарантиями непрерывной и безошибочной работы;</li>
+                    <li>Гарантиями достоверности, полноты или своевременности информации;</li>
+                    <li>Гарантиями совместимости с устройствами или программным обеспечением Пользователя.</li>
+                </ul>
+
+                <div class="highlight-box warn">
+                    Команда не гарантирует, что Сервис будет доступен в любое время без перерывов, ошибок или потери данных. Технические работы, сбои и форс-мажорные обстоятельства могут приводить к временной недоступности Сервиса.
+                </div>
+            </div>
+        </div>
+
+        <div class="doc-section" id="s13">
+            <div class="section-head">
+                <div class="section-num">13</div>
+                <div class="section-title">Ограничение ответственности</div>
+            </div>
+            <div class="section-body">
+                <p>В максимальной степени, допустимой применимым законодательством, команда Tornado Chat не несёт ответственности за:</p>
+                <ul>
+                    <li>Косвенный, случайный, специальный, штрафной или последовательный ущерб;</li>
+                    <li>Потерю прибыли, деловой репутации, данных или иных нематериальных активов;</li>
+                    <li>Несанкционированный доступ к аккаунту вследствие нарушения Пользователем обязательств по хранению учётных данных;</li>
+                    <li>Действия третьих лиц, в том числе других Пользователей Сервиса;</li>
+                    <li>Временную недоступность Сервиса вследствие технических работ, атак или иных обстоятельств, не зависящих от команды;</li>
+                    <li>Ущерб, вызванный вирусами или иным вредоносным ПО, полученным через Сервис от третьих лиц;</li>
+                    <li>Решения, принятые Пользователем на основании информации, полученной через Сервис.</li>
+                </ul>
+
+                <p>Совокупная ответственность команды Tornado Chat перед Пользователем по всем основаниям ограничена суммой, уплаченной Пользователем за Сервис за последние 12 месяцев, либо суммой в 500 рублей — в зависимости от того, что больше.</p>
+            </div>
+        </div>
+
+        <div class="doc-section" id="s14">
+            <div class="section-head">
+                <div class="section-num">14</div>
+                <div class="section-title">Изменение Условий</div>
+            </div>
+            <div class="section-body">
+                <p>Команда Tornado Chat оставляет за собой право вносить изменения в настоящие Условия в любое время. О существенных изменениях Пользователи уведомляются одним или несколькими из следующих способов:</p>
+                <ul>
+                    <li>Уведомлением через интерфейс Сервиса;</li>
+                    <li>Публикацией обновлённой редакции по адресу <a href="/terms">/terms</a> с указанием даты вступления изменений в силу.</li>
+                </ul>
+
+                <p>Изменения вступают в силу немедленно после публикации, если иное не указано явно. <strong>Продолжение использования Сервиса после вступления изменений в силу означает безоговорочное принятие Пользователем новой редакции Условий.</strong> Если Пользователь не согласен с изменениями, он обязан прекратить использование Сервиса.</p>
+
+                <p>Незначительные изменения (исправление опечаток, уточнения) могут вноситься без уведомления Пользователей.</p>
+            </div>
+        </div>
+
+        <div class="doc-section" id="s15">
+            <div class="section-head">
+                <div class="section-num">15</div>
+                <div class="section-title">Применимое право и разрешение споров</div>
+            </div>
+            <div class="section-body">
+                <h4>Применимое право</h4>
+                <p>Настоящие Условия регулируются и толкуются в соответствии с законодательством Российской Федерации, без учёта норм о коллизии законов.</p>
+
+                <h4>Досудебное урегулирование</h4>
+                <p>В случае возникновения спора Пользователь обязан направить команде письменную претензию на <a href="mailto:support@цтк.space">support@цтк.space</a>. Команда обязуется рассмотреть претензию в течение 30 календарных дней с момента её получения. Стороны обязуются предпринять добросовестные усилия для урегулирования спора в досудебном порядке.</p>
+
+                <h4>Судебное разбирательство</h4>
+                <p>В случае невозможности урегулировать спор в досудебном порядке он передаётся на рассмотрение суда по месту нахождения команды в соответствии с применимым процессуальным законодательством. Потребители вправе также обратиться в суд по месту своего жительства в соответствии с Законом РФ «О защите прав потребителей».</p>
+            </div>
+        </div>
+
+        <div class="doc-section" id="s16">
+            <div class="section-head">
+                <div class="section-num">16</div>
+                <div class="section-title">Заключительные положения</div>
+            </div>
+            <div class="section-body">
+                <h4>Делимость</h4>
+                <p>Если какое-либо положение настоящих Условий будет признано недействительным или неисполнимым, оставшиеся положения сохраняют полную юридическую силу.</p>
+
+                <h4>Отказ от прав</h4>
+                <p>Непринятие командой мер в связи с каким-либо Нарушением не означает отказа от права принять такие меры в будущем.</p>
+
+                <h4>Полнота соглашения</h4>
+                <p>Настоящие Условия совместно с Политикой конфиденциальностью составляют полное соглашение между Пользователем и командой Tornado Chat и заменяют все предшествующие договорённости по предмету данного соглашения.</p>
+
+                <h4>Связь с командой</h4>
+                <p>По всем вопросам, связанным с настоящими Условиями, обращайтесь:</p>
+                <ul>
+                    <li>Email: <a href="mailto:support@цтк.space">support@цтк.space</a></li>
+                    <li>Telegram: <a href="https://t.me/ZipProxy1" target="_blank" rel="noopener noreferrer">@ZipProxy1</a></li>
+                    <li>GitHub: <a href="https://github.com/SayGGGo/Tornado" target="_blank" rel="noopener noreferrer">github.com/SayGGGo/Tornado</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="doc-footer">
+            <div class="doc-footer-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#34c759" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <line x1="16" y1="13" x2="8" y2="13"/>
+                    <line x1="16" y1="17" x2="8" y2="17"/>
+                    <polyline points="10 9 9 9 8 9"/>
+                </svg>
+            </div>
+            <div class="doc-footer-text">
+                <strong>Также ознакомьтесь:</strong> <a href="/policy">Политика конфиденциальности</a> &nbsp;·&nbsp;
+                <a href="/support">Поддержка</a> &nbsp;·&nbsp; Редакция от 1 января 2025 г.
+            </div>
+        </div>
+
+    </div>
+</body>
+</html>

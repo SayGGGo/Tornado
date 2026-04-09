@@ -6,9 +6,14 @@
   <title>TORNADO — Вход</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" integrity="sha512-dLxUelApnYxpLt6K2iomGngnHO83iUvZytA3YjDUCjT0HDOHKXnVYdf3hU4JjM8uEhxf9nD1/ey98U3t2vZ0qQ==" crossorigin="anonymous"></script>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile.css') }}">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#070708">
 
   {% if captcha_provider == 'turnstile' %}
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
@@ -27,6 +32,15 @@
 
   <div class="card-window" id="cardWindow">
     <div class="login-panel">
+      <div class="login-emoji-header" style="display:none;">
+        <div class="tg-emoji tg-emoji--xl">
+          <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Objects/Key.webp" alt="🔑" loading="eager">
+        </div>
+        <div style="text-align:center;">
+          <div style="font-family:'Doloto',sans-serif;font-size:32px;letter-spacing:3px;color:#fff;">TORNADO</div>
+          <div style="font-size:13px;color:rgba(255,255,255,0.4);margin-top:2px;">Войдите в аккаунт</div>
+        </div>
+      </div>
       <header class="header">
         <span class="logo">TORNADO</span>
         <span class="logo-sub">Chat</span>

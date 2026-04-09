@@ -6,6 +6,14 @@
     font-display: swap;
 }
 
+@font-face {
+    font-family: 'Doloto';
+    src: url('../fonts/Doloto.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
 :root {
     --green: #34c759;
     --green-dim: rgba(52, 199, 89, 0.12);

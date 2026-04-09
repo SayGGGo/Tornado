@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#070708">
+    <title>TORNADO — Политика конфиденциальности</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    {% include 'more.html' %}
+    <style>
+        @font-face {
+            font-family: 'Doloto';
+            src: url('/static/fonts/Doloto.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        :root {
+            --accent: #0a84ff;
+            --accent-dim: rgba(10,132,255,0.08);
+            --accent-border: rgba(10,132,255,0.22);
+            --green: #34c759;
+            --bg: #070708;
+            --card-bg: rgba(12,12,14,0.85);
+            --card-border: rgba(255,255,255,0.05);
+            --text: #ffffff;
+            --text-dim: rgba(255,255,255,0.52);
+            --text-muted: rgba(255,255,255,0.26);
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Outfit', sans-serif;
+            font-size: 15px;
+            line-height: 1.75;
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        a { color: var(--green); text-decoration: none; }
+        a:hover { opacity: 0.75; }
+
+        .bg-canvas {
+            position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 0;
+        }
+        .orb {
+            position: absolute; border-radius: 50%; filter: blur(130px); opacity: 0.28;
+        }
+        .orb-1 {
+            width: 700px; height: 700px;
+            background: radial-gradient(circle, rgba(10,132,255,.12) 0%, transparent 65%);
+            top: -200px; right: -150px;
+        }
+        .orb-2 {
+            width: 500px; height: 500px;
+            background: radial-gradient(circle, rgba(52,199,89,.07) 0%, transparent 65%);
+            bottom: -100px; left: -100px;
+        }
+
+        .page-wrap {
+            position: relative; z-index: 1;
+            max-width: 800px; margin: 0 auto;
+            padding: 48px 24px 100px;
+        }
+
+        .back-link {
+            display: inline-flex; align-items: center; gap: 8px;
+            color: var(--text-muted); font-size: 13px; font-weight: 500;
+            text-decoration: none; margin-bottom: 44px;
+            transition: color 0.18s;
+        }
+        .back-link:hover { color: var(--accent); opacity: 1; }
+
+        .doc-header { margin-bottom: 52px; }
+
+        .doc-badge {
+            display: inline-block;
+            background: var(--accent-dim);
+            border: 1px solid var(--accent-border);
+            color: var(--accent);
+            font-size: 11px; font-weight: 600;
+            letter-spacing: 1.8px; text-transform: uppercase;
+            padding: 5px 14px; border-radius: 100px;
+            margin-bottom: 20px;
+        }
+
+        .doc-title {
+            font-family: 'Doloto', sans-serif;
+            font-size: clamp(32px, 6vw, 58px);
+            letter-spacing: 1px; line-height: 1.05;
+            color: var(--text);
+        }
+
+        .doc-meta {
+            margin-top: 14px;
+            color: var(--text-muted); font-size: 13px;
+            display: flex; flex-wrap: wrap; gap: 16px; align-items: center;
+        }
+        .doc-meta-item {
+            display: flex; align-items: center; gap: 6px;
+        }
+        .doc-meta-item svg { opacity: 0.4; }
+
+        .doc-intro {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-left: 3px solid var(--accent);
+            border-radius: 0 16px 16px 0;
+            padding: 20px 24px;
+            margin-bottom: 32px;
+            color: var(--text-dim);
+            font-size: 14px; line-height: 1.8;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+        }
+
+        .toc {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            padding: 24px 28px;
+            margin-bottom: 32px;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+        }
+        .toc-title {
+            font-size: 12px; font-weight: 700; letter-spacing: 1.5px;
+            text-transform: uppercase; color: var(--text-muted);
+            margin-bottom: 14px;
+        }
+        .toc-list {
+            list-style: none; display: grid;
+            grid-template-columns: 1fr 1fr; gap: 6px 24px;
+        }
+        .toc-list li a {
+            font-size: 13px; color: var(--text-dim);
+            display: flex; align-items: center; gap: 8px;
+            text-decoration: none; transition: color 0.18s;
+        }
+        .toc-list li a:hover { color: var(--accent); opacity: 1; }
+        .toc-num {
+            font-size: 11px; color: var(--accent); font-weight: 700;
+            min-width: 22px;
+        }
+
+        .doc-section {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            padding: 30px 34px;
+            margin-bottom: 14px;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            scroll-margin-top: 24px;
+        }
+
+        .section-head {
+            display: flex; align-items: flex-start; gap: 16px;
+            margin-bottom: 18px;
+        }
+        .section-num {
+            font-size: 11px; font-weight: 700; letter-spacing: 1.5px;
+            text-transform: uppercase; color: var(--accent);
+            background: var(--accent-dim); border: 1px solid var(--accent-border);
+            border-radius: 8px; padding: 4px 10px;
+            flex-shrink: 0; margin-top: 3px;
+        }
+        .section-title {
+            font-family: 'Doloto', sans-serif;
+            font-size: 22px; letter-spacing: 0.5px;
+            color: var(--text); line-height: 1.2;
+        }
+
+        .section-body {
+            color: var(--text-dim);
+            font-size: 14px; line-height: 1.85;
+        }
+        .section-body p { margin-bottom: 12px; }
+        .section-body p:last-child { margin-bottom: 0; }
+
+        .section-body h4 {
+            font-size: 13px; font-weight: 700; letter-spacing: 0.5px;
+            text-transform: uppercase; color: rgba(255,255,255,0.40);
+            margin: 20px 0 8px;
+        }
+        .section-body h4:first-child { margin-top: 0; }
+
+        .section-body ul, .section-body ol {
+            margin: 10px 0 12px; padding-left: 0; list-style: none;
+        }
+        .section-body ul li, .section-body ol li {
+            padding-left: 20px; position: relative; margin-bottom: 7px;
+            font-size: 14px;
+        }
+        .section-body ul li::before {
+            content: '—'; position: absolute; left: 0;
+            color: var(--accent); font-weight: 700;
+        }
+        .section-body ol { counter-reset: li; }
+        .section-body ol li { counter-increment: li; }
+        .section-body ol li::before {
+            content: counter(li) '.'; position: absolute; left: 0;
+            color: var(--accent); font-weight: 700; font-size: 13px;
+        }
+
+        .section-body strong { color: rgba(255,255,255,0.75); font-weight: 600; }
+
+        .data-table-wrap { overflow-x: auto; margin: 14px 0; }
+        .data-table {
+            width: 100%; border-collapse: collapse;
+            font-size: 13px; min-width: 480px;
+        }
+        .data-table th {
+            text-align: left; padding: 10px 14px;
+            background: rgba(10,132,255,0.07);
+            border-bottom: 1px solid rgba(255,255,255,0.07);
+            color: rgba(255,255,255,0.55); font-weight: 600;
+            font-size: 12px; letter-spacing: 0.5px;
+        }
+        .data-table th:first-child { border-radius: 10px 0 0 0; }
+        .data-table th:last-child { border-radius: 0 10px 0 0; }
+        .data-table td {
+            padding: 10px 14px;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            color: rgba(255,255,255,0.48);
+            vertical-align: top; line-height: 1.6;
+        }
+        .data-table tr:last-child td { border-bottom: none; }
+        .data-table td:first-child { color: rgba(255,255,255,0.65); font-weight: 500; }
+
+        .highlight-box {
+            background: rgba(10,132,255,0.06);
+            border: 1px solid rgba(10,132,255,0.18);
+            border-radius: 12px;
+            padding: 14px 18px;
+            margin: 14px 0;
+            font-size: 13px; color: var(--text-dim); line-height: 1.7;
+        }
+        .highlight-box.green {
+            background: rgba(52,199,89,0.06);
+            border-color: rgba(52,199,89,0.18);
+        }
+        .highlight-box.warn {
+            background: rgba(255,159,10,0.06);
+            border-color: rgba(255,159,10,0.18);
+        }
+
+        .rights-grid {
+            display: grid; grid-template-columns: 1fr 1fr;
+            gap: 10px; margin: 14px 0;
+        }
+        .rights-card {
+            background: rgba(10,132,255,0.05);
+            border: 1px solid rgba(10,132,255,0.14);
+            border-radius: 12px; padding: 14px 16px;
+        }
+        .rights-card-title {
+            font-size: 12px; font-weight: 700;
+            color: var(--accent); margin-bottom: 5px;
+            text-transform: uppercase; letter-spacing: 0.8px;
+        }
+        .rights-card-desc {
+            font-size: 12px; color: var(--text-dim); line-height: 1.6;
+        }
+
+        .doc-footer {
+            margin-top: 44px;
+            padding: 24px 28px;
+            background: var(--accent-dim);
+            border: 1px solid var(--accent-border);
+            border-radius: 18px;
+            display: flex; align-items: center; gap: 18px;
+        }
+        .doc-footer-icon {
+            flex-shrink: 0; width: 44px; height: 44px;
+            background: rgba(10,132,255,0.12); border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .doc-footer-text { font-size: 13px; color: var(--text-dim); line-height: 1.6; }
+        .doc-footer-text strong { color: var(--text); }
+
+        @media (max-width: 640px) {
+            .doc-section { padding: 22px 18px; }
+            .page-wrap { padding: 32px 16px 72px; }
+            .toc-list { grid-template-columns: 1fr; }
+            .rights-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-canvas" aria-hidden="true">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+    </div>
+
+    <div class="page-wrap">
+
+        <a href="/" class="back-link">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+            </svg>
+            На главную
+        </a>
+
+        <div class="doc-header">
+            <div class="doc-badge">Юридический документ</div>
+            <div class="doc-title">Политика конфиденциальности</div>
+            <div class="doc-meta">
+                <div class="doc-meta-item">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                    Редакция от 1 января 2025 г.
+                </div>
+                <div class="doc-meta-item">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    Tornado Chat
+                </div>
+                <div class="doc-meta-item">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                    Вступает в силу немедленно
+                </div>
+            </div>
+        </div>
+
+        <div class="doc-intro">
+            Настоящая Политика конфиденциальности (далее — <strong>«Политика»</strong>) описывает, какие персональные данные собирает Tornado Chat (далее — <strong>«Сервис»</strong>, «мы»), каким образом они используются, кому могут передаваться и какими правами в отношении своих данных обладает Пользователь. Политика разработана в соответствии с требованиями Федерального закона № 152-ФЗ «О персональных данных», GDPR (в применимой части) и иных применимых правовых актов.
+        </div>
+
+        <div class="toc">
+            <div class="toc-title">Содержание</div>
+            <ul class="toc-list">
+                <li><a href="#p1"><span class="toc-num">01</span> Оператор данных</a></li>
+                <li><a href="#p2"><span class="toc-num">02</span> Какие данные мы собираем</a></li>
+                <li><a href="#p3"><span class="toc-num">03</span> Правовые основания обработки</a></li>
+                <li><a href="#p4"><span class="toc-num">04</span> Цели обработки данных</a></li>
+                <li><a href="#p5"><span class="toc-num">05</span> Передача данных третьим лицам</a></li>
+                <li><a href="#p6"><span class="toc-num">06</span> Cookies и трекинг</a></li>
+                <li><a href="#p7"><span class="toc-num">07</span> Сроки хранения данных</a></li>
+                <li><a href="#p8"><span class="toc-num">08</span> Безопасность данных</a></li>
+                <li><a href="#p9"><span class="toc-num">09</span> Права субъектов данных</a></li>
+                <li><a href="#p10"><span class="toc-num">10</span> Данные несовершеннолетних</a></li>
+                <li><a href="#p11"><span class="toc-num">11</span> Международная передача данных</a></li>
+                <li><a href="#p12"><span class="toc-num">12</span> Изменения Политики</a></li>
+                <li><a href="#p13"><span class="toc-num">13</span> Контакты и обращения</a></li>
+            </ul>
+        </div>
+
+        <div class="doc-section" id="p1">
+            <div class="section-head">
+                <div class="section-num">01</div>
+                <div class="section-title">Оператор персональных данных</div>
+            </div>
+            <div class="section-body">
+                <p>Оператором персональных данных в понимании ФЗ-152 является команда проекта Tornado Chat.</p>
+                <p>Контактные данные оператора:</p>
+                <ul>
+                    <li>Email: <a href="mailto:support@цтк.space">support@цтк.space</a></li>
+                    <li>Telegram: <a href="https://t.me/ZipProxy1" target="_blank" rel="noopener noreferrer">@ZipProxy1</a></li>
+                    <li>GitHub: <a href="https://github.com/SayGGGo/Tornado" target="_blank" rel="noopener noreferrer">github.com/SayGGGo/Tornado</a></li>
+                </ul>
+                <p>По всем вопросам, связанным с обработкой персональных данных, вы можете обратиться по указанным контактам. Мы стремимся отвечать на запросы в течение 14 рабочих дней.</p>
+            </div>
+        </div>
+
+        <div class="doc-section" id="p2">
+            <div class="section-head">
+                <div class="section-num">02</div>
+                <div class="section-title">Какие данные мы собираем</div>
+            </div>
+            <div class="section-body">
+                <h4>Данные, предоставляемые Пользователем</h4>
+                <div class="data-table-wrap">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Категория</th>
+                                <th>Конкретные данные</th>
+                                <th>Когда собирается</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Данные аккаунта</td>
+                                <td>ФИО, никнейм, пароль (хэш bcrypt), группа, формат участия</td>
+                                <td>При регистрации</td>
+                            </tr>
+                            <tr>
+                                <td>Контент переписки</td>
+                                <td>Текстовые сообщения, файлы, изображения, аудио- и видеозаписи</td>
+                                <td>В процессе использования</td>
+                            </tr>
+                            <tr>
+                                <td>Профиль</td>
+                                <td>Аватар, описание профиля, дополнительные поля профиля</td>
+                                <td>По желанию Пользователя</td>
+                            </tr>
+                            <tr>
+                                <td>Обращения в поддержку</td>
+                                <td>Переписка с командой поддержки, описания проблем</td>
+                                <td>При обращении в поддержку</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h4>Данные, собираемые автоматически</h4>
+                <div class="data-table-wrap">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Категория</th>
+                                <th>Конкретные данные</th>
+                                <th>Цель сбора</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Данные сессии</td>
+                                <td>IP-адрес при входе, время начала и завершения сессии, токен сессии</td>
+                                <td>Безопасность аккаунта</td>
+                            </tr>
+                            <tr>
+                                <td>Технические данные</td>
+                                <td>Тип и версия браузера, операционная система, разрешение экрана, язык браузера</td>
+                                <td>Диагностика и совместимость</td>
+                            </tr>
+                            <tr>
+                                <td>Данные об использовании</td>
+                                <td>Посещённые разделы, время нахождения на страницах, действия в интерфейсе (через Яндекс.Метрику)</td>
+                                <td>Улучшение Сервиса</td>
+                            </tr>
+                            <tr>
+                                <td>Журналы ошибок</td>
+                                <td>Технические ошибки, трассировки стека, параметры запросов</td>
+                                <td>Выявление и устранение багов</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h4>Данные, которые мы не собираем</h4>
+                <p>Мы целенаправленно <strong>не собираем</strong> следующие категории данных:</p>
+                <ul>
+                    <li>Биометрические данные (отпечатки пальцев, распознавание лица и пр.);</li>
+                    <li>Данные о состоянии здоровья или медицинские сведения;</li>
+                    <li>Расовая или этническая принадлежность, политические взгляды, религиозные убеждения;</li>
+                    <li>Данные платёжных карт (обрабатываются исключительно платёжными провайдерами).</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="doc-section" id="p3">
+            <div class="section-head">
+                <div class="section-num">03</div>
+                <div class="section-title">Правовые основания обработки персональных данных</div>
+            </div>
+            <div class="section-body">
+                <p>Обработка персональных данных Пользователей осуществляется на следующих правовых основаниях:</p>
+                <ul>
+                    <li><strong>Согласие субъекта данных</strong> — при регистрации Пользователь выражает согласие на обработку персональных данных путём принятия настоящей Политики. Согласие может быть отозвано в любое время путём удаления аккаунта.</li>
+                    <li><strong>Исполнение договора</strong> — обработка данных, необходимая для предоставления функций Сервиса (доставка сообщений, хранение истории переписки, аутентификация).</li>
+                    <li><strong>Законный интерес</strong> — обработка данных в целях обеспечения безопасности Сервиса, предотвращения мошенничества и злоупотреблений, при условии, что такая обработка не нарушает прав и свобод субъектов данных.</li>
+                    <li><strong>Исполнение юридических обязательств</strong> — обработка данных по требованию компетентных государственных органов в случаях, предусмотренных законодательством.</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="doc-section" id="p4">
+            <div class="section-head">
+                <div class="section-num">04</div>
+                <div class="section-title">Цели обработки персональных данных</div>
+            </div>
+            <div class="section-body">
+                <p>Мы обрабатываем персональные данные исключительно для следующих целей:</p>
+
+                <h4>Основные функции Сервиса</h4>
+                <ul>
+                    <li>Регистрация, аутентификация и идентификация Пользователя;</li>
+                    <li>Доставка сообщений и файлов между Пользователями;</li>
+                    <li>Хранение истории переписки;</li>
+                    <li>Отображение профиля Пользователя другим участникам.</li>
+                </ul>
+
+                <h4>Безопасность</h4>
+                <ul>
+                    <li>Обнаружение и предотвращение несанкционированного доступа к аккаунту;</li>
+                    <li>Выявление и блокирование мошеннических действий;</li>
+                    <li>Защита Сервиса от вредоносной активности и атак;</li>
+                    <li>Расследование и реагирование на сообщения о Нарушениях.</li>
+                </ul>
+
+                <h4>Улучшение Сервиса</h4>
+                <ul>
+                    <li>Анализ агрегированной статистики использования для улучшения интерфейса;</li>
+                    <li>Диагностика технических проблем и устранение ошибок;</li>
+                    <li>Разработка новых функций на основе паттернов использования.</li>
+                </ul>
+
+                <h4>Поддержка пользователей</h4>
+                <ul>
+                    <li>Ответы на обращения и жалобы;</li>
+                    <li>Восстановление доступа к аккаунту;</li>
+                    <li>Рассмотрение жалоб на контент.</li>
+                </ul>
+
+                <h4>Юридические обязательства</h4>
+                <ul>
+                    <li>Исполнение требований законодательства;</li>
+                    <li>Ответы на законные запросы государственных органов;</li>
+                    <li>Защита законных интересов команды в судебных разбирательствах.</li>
+                </ul>
+
+                <div class="highlight-box green">
+                    Мы <strong>не используем</strong> персональные данные Пользователей для таргетированной рекламы, передачи данных рекламным сетям, создания поведенческих профилей в коммерческих целях или продажи данных третьим лицам.
+                </div>
+            </div>
+        </div>
+
+        <div class="doc-section" id="p5">
+            <div class="section-head">
+                <div class="section-num">05</div>
+                <div class="section-title">Передача данных третьим лицам</div>
+            </div>
+            <div class="section-body">
+                <p>Мы не продаём и не сдаём в аренду персональные данные Пользователей. Данные могут передаваться третьим лицам только в следующих случаях:</p>
+
+                <h4>Поставщики технических услуг</h4>
+                <p>Для обеспечения работы Сервиса мы взаимодействуем с рядом поставщиков услуг. Все они обязаны соблюдать надлежащий уровень защиты данных:</p>
+                <ul>
+                    <li><strong>Яндекс.Метрика</strong> — анонимная веб-аналитика (собирает агрегированные данные о посещениях). Политика конфиденциальности Яндекса применяется в части данных, обрабатываемых Яндексом;</li>
+                    <li><strong>Хостинг-провайдеры</strong> — размещение серверов и баз данных Сервиса;</li>
+                    <li><strong>Платёжные провайдеры</strong> — обработка платежей за Премиум-доступ (данные платёжных карт хранятся исключительно у платёжного провайдера и не передаются нам).</li>
+                </ul>
+
+                <h4>Государственные органы</h4>
+                <p>Данные могут передаваться органам государственной власти при наличии законного требования (судебного решения, предписания, запроса), а также в случаях, когда это необходимо для предотвращения угрозы жизни или безопасности людей. Мы стремимся уведомлять Пользователей о таких запросах, если это не запрещено законом.</p>
+
+                <h4>Правопреемники</h4>
+                <p>В случае реорганизации, слияния или иной корпоративной трансформации проекта персональные данные могут быть переданы правопреемнику. Мы уведомим Пользователей о таком событии и обеспечим аналогичный уровень защиты данных.</p>
+
+                <h4>С вашего согласия</h4>
+                <p>В иных случаях данные передаются третьим лицам только с явного согласия Пользователя.</p>
+            </div>
+        </div>
+
+        <div class="doc-section" id="p6">
+            <div class="section-head">
+                <div class="section-num">06</div>
+                <div class="section-title">Cookies и технологии отслеживания</div>
+            </div>
+            <div class="section-body">
+                <h4>Что такое cookies</h4>
+                <p>Cookies — небольшие текстовые файлы, сохраняемые браузером на устройстве Пользователя. Мы используем cookies для обеспечения работы Сервиса.</p>
+
+                <h4>Типы используемых cookies</h4>
+                <div class="data-table-wrap">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Тип</th>
+                                <th>Назначение</th>
+                                <th>Срок действия</th>
+                                <th>Обязательны</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Сессионные</td>
+                                <td>Поддержание авторизованной сессии Пользователя</td>
+                                <td>До закрытия браузера</td>
+                                <td>Да</td>
+                            </tr>
+                            <tr>
+                                <td>Постоянные</td>
+                                <td>Запоминание настроек и предпочтений Пользователя</td>
+                                <td>До 1 года</td>
+                                <td>Нет</td>
+                            </tr>
+                            <tr>
+                                <td>Аналитические</td>
+                                <td>Сбор агрегированной статистики посещений (Яндекс.Метрика)</td>
+                                <td>До 1 года</td>
+                                <td>Нет</td>
+                            </tr>
+                            <tr>
+                                <td>Безопасности</td>
+                                <td>Защита от CSRF-атак, проверка целостности запросов</td>
+                                <td>Сессионные</td>
+                                <td>Да</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h4>Управление cookies</h4>
+                <p>Пользователь вправе отключить cookies в настройках браузера. Однако отключение обязательных cookies (сессионных и безопасности) делает использование Сервиса невозможным — авторизация и базовые функции не будут работать. Отключение аналитических cookies не влияет на функциональность Сервиса.</p>
+
+                <h4>Яндекс.Метрика</h4>
+                <p>Для анализа поведения пользователей на сайте используется Яндекс.Метрика. Этот инструмент собирает анонимные сведения о посещениях (страницы, время на сайте, источники трафика). Данные передаются Яндексу и обрабатываются в соответствии с политикой конфиденциальности Яндекса. Для отказа от отслеживания Яндекс.Метрикой установите расширение-блокировщик или воспользуйтесь официальным инструментом opt-out от Яндекса.</p>
+            </div>
+        </div>
+
+        <div class="doc-section" id="p7">
+            <div class="section-head">
+                <div class="section-num">07</div>
+                <div class="section-title">Сроки хранения данных</div>
+            </div>
+            <div class="section-body">
+                <div class="data-table-wrap">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Категория данных</th>
+                                <th>Срок хранения</th>
+                                <th>Основание</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Данные аккаунта (ФИО, никнейм)</td>
+                                <td>До удаления аккаунта + 30 дней</td>
+                                <td>Исполнение договора</td>
+                            </tr>
+                            <tr>
+                                <td>История переписки</td>
+                                <td>До удаления аккаунта или сообщений самим Пользователем</td>
+                                <td>Исполнение договора</td>
+                            </tr>
+                            <tr>
+                                <td>Журналы сессий (IP, время входа)</td>
+                                <td>90 дней</td>
+                                <td>Безопасность</td>
+                            </tr>
+                            <tr>
+                                <td>Журналы ошибок и технические логи</td>
+                                <td>30 дней</td>
+                                <td>Диагностика</td>
+                            </tr>
+                            <tr>
+                                <td>Данные обращений в поддержку</td>
+                                <td>2 года с момента закрытия обращения</td>
+                                <td>Законный интерес</td>
+                            </tr>
+                            <tr>
+                                <td>Платёжные данные (транзакции)</td>
+                                <td>5 лет</td>
+                                <td>Требования бухгалтерского учёта</td>
+                            </tr>
+                            <tr>
+                                <td>Данные заблокированных аккаунтов</td>
+                                <td>До 3 лет после блокировки</td>
+                                <td>Защита от повторных нарушений</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p>По истечении срока хранения данные удаляются или обезличиваются безвозвратно. При наличии законных требований со стороны государственных органов сроки хранения могут быть продлены в соответствии с законодательством.</p>
+            </div>
+        </div>
+
+        <div class="doc-section" id="p8">
+            <div class="section-head">
+                <div class="section-num">08</div>
+                <div class="section-title">Безопасность персональных данных</div>
+            </div>
+            <div class="section-body">
+                <p>Мы применяем комплекс технических и организационных мер для защиты персональных данных:</p>
+
+                <h4>Технические меры</h4>
+                <ul>
+                    <li><strong>Шифрование при передаче:</strong> все данные между клиентом и сервером передаются по защищённому каналу TLS 1.2/1.3 (HTTPS);</li>
+                    <li><strong>Хэширование паролей:</strong> пароли хранятся исключительно в виде хэша bcrypt с индивидуальной солью — восстановить оригинальный пароль невозможно;</li>
+                    <li><strong>Токены сессий:</strong> используются криптографически безопасные случайные токены с ограниченным сроком действия;</li>
+                    <li><strong>Защита от CSRF:</strong> все формы защищены токенами для предотвращения межсайтовой подделки запросов;</li>
+                    <li><strong>Ограничение доступа к БД:</strong> база данных недоступна из внешней сети; доступ возможен только с сервера приложений;</li>
+                    <li><strong>Резервное копирование:</strong> регулярные зашифрованные резервные копии данных с проверкой целостности.</li>
+                </ul>
+
+                <h4>Организационные меры</h4>
+                <ul>
+                    <li>Принцип минимальных привилегий: доступ к данным Пользователей предоставляется только тем членам команды, которым это необходимо;</li>
+                    <li>Журналирование административного доступа к базе данных;</li>
+                    <li>Регулярный аудит безопасности и проверка зависимостей на наличие уязвимостей.</li>
+                </ul>
+
+                <h4>В случае утечки данных</h4>
+                <p>В случае обнаружения утечки персональных данных, которая может повлечь существенный риск для прав и свобод Пользователей, мы обязуемся:</p>
+                <ul>
+                    <li>Уведомить пострадавших Пользователей в течение 72 часов с момента обнаружения;</li>
+                    <li>Направить уведомление в компетентный надзорный орган в соответствии с применимым законодательством;</li>
+                    <li>Принять немедленные меры по локализации и устранению последствий.</li>
+                </ul>
+
+                <div class="highlight-box warn">
+                    Несмотря на принимаемые меры, ни одна система не может гарантировать абсолютную защиту от всех угроз. Пользователь обязан принимать собственные меры безопасности: использовать надёжные пароли и не сообщать учётные данные третьим лицам.
+                </div>
+            </div>
+        </div>
+
+        <div class="doc-section" id="p9">
+            <div class="section-head">
+                <div class="section-num">09</div>
+                <div class="section-title">Права субъектов персональных данных</div>
+            </div>
+            <div class="section-body">
+                <p>В соответствии с применимым законодательством вы обладаете следующими правами в отношении ваших персональных данных:</p>
+
+                <div class="rights-grid">
+                    <div class="rights-card">
+                        <div class="rights-card-title">Право на доступ</div>
+                        <div class="rights-card-desc">Получить информацию о том, какие ваши данные обрабатываются, и их копию.</div>
+                    </div>
+                    <div class="rights-card">
+                        <div class="rights-card-title">Право на исправление</div>
+                        <div class="rights-card-desc">Потребовать исправления неточных или неполных персональных данных.</div>
+                    </div>
+                    <div class="rights-card">
+                        <div class="rights-card-title">Право на удаление</div>
+                        <div class="rights-card-desc">Запросить удаление персональных данных («право быть забытым»).</div>
+                    </div>
+                    <div class="rights-card">
+                        <div class="rights-card-title">Право на ограничение</div>
+                        <div class="rights-card-desc">Потребовать приостановления обработки данных при оспаривании их точности.</div>
+                    </div>
+                    <div class="rights-card">
+                        <div class="rights-card-title">Право на переносимость</div>
+                        <div class="rights-card-desc">Получить данные в машиночитаемом формате или запросить их передачу другому оператору.</div>
+                    </div>
+                    <div class="rights-card">
+                        <div class="rights-card-title">Право на возражение</div>
+                        <div class="rights-card-desc">Возразить против обработки данных на основании законного интереса.</div>
+                    </div>
+                    <div class="rights-card">
+                        <div class="rights-card-title">Отзыв согласия</div>
+                        <div class="rights-card-desc">Отозвать ранее данное согласие на обработку данных в любое время.</div>
+                    </div>
+                    <div class="rights-card">
+                        <div class="rights-card-title">Жалоба в надзорный орган</div>
+                        <div class="rights-card-desc">Обратиться в Роскомнадзор или иной компетентный орган с жалобой на обработку данных.</div>
+                    </div>
+                </div>
+
+                <h4>Как реализовать права</h4>
+                <p>Для реализации любого из указанных прав направьте запрос на <a href="mailto:support@цтк.space">support@цтк.space</a>. В запросе укажите:</p>
+                <ul>
+                    <li>Своё имя пользователя (никнейм) в Сервисе;</li>
+                    <li>Характер запроса (доступ, исправление, удаление и т.д.);</li>
+                    <li>Контактные данные для ответа.</li>
+                </ul>
+                <p>Мы рассмотрим ваш запрос в течение <strong>30 календарных дней</strong>. В исключительных случаях этот срок может быть продлён ещё на 60 дней с уведомлением о причинах продления.</p>
+
+                <p>Реализация отдельных прав (например, удаление данных) может ограничиваться в той мере, в какой обработка необходима для исполнения юридических обязательств или защиты законных интересов.</p>
+            </div>
+        </div>
+
+        <div class="doc-section" id="p10">
+            <div class="section-head">
+                <div class="section-num">10</div>
+                <div class="section-title">Данные несовершеннолетних</div>
+            </div>
+            <div class="section-body">
+                <p>Сервис не предназначен для детей в возрасте до 14 лет. Мы не собираем намеренно персональные данные лиц, не достигших 14 лет.</p>
+                <p>Пользователи в возрасте от 14 до 16 лет вправе использовать Сервис при наличии согласия родителей или законных представителей. Регистрируясь, они подтверждают наличие такого согласия.</p>
+                <p>Если вам стало известно, что ребёнок до 14 лет предоставил нам персональные данные без соответствующего согласия, пожалуйста, немедленно сообщите об этом на <a href="mailto:support@цтк.space">support@цтк.space</a>. Мы незамедлительно удалим такие данные.</p>
+            </div>
+        </div>
+
+        <div class="doc-section" id="p11">
+            <div class="section-head">
+                <div class="section-num">11</div>
+                <div class="section-title">Международная передача данных</div>
+            </div>
+            <div class="section-body">
+                <p>Сервис ориентирован на пользователей из Российской Федерации. Данные Пользователей хранятся на серверах, расположенных на территории РФ, в соответствии с требованиями ФЗ-242 о локализации персональных данных граждан РФ.</p>
+                <p>В отдельных случаях (например, при использовании сторонних сервисов аналитики) данные могут обрабатываться серверами в других странах. В таких случаях мы обеспечиваем надлежащий уровень защиты данных в соответствии с требованиями применимого законодательства, в том числе путём заключения соответствующих соглашений с поставщиками.</p>
+            </div>
+        </div>
+
+        <div class="doc-section" id="p12">
+            <div class="section-head">
+                <div class="section-num">12</div>
+                <div class="section-title">Изменения Политики конфиденциальности</div>
+            </div>
+            <div class="section-body">
+                <p>Мы вправе обновлять настоящую Политику в связи с изменениями в Сервисе, законодательстве или практике обработки данных. Дата последнего изменения указана в заголовке документа.</p>
+                <p>О существенных изменениях, затрагивающих права Пользователей, мы уведомим через интерфейс Сервиса. Несущественные изменения (уточнения, исправления) могут вноситься без специального уведомления.</p>
+                <p><strong>Продолжение использования Сервиса после вступления изменений в силу означает принятие новой редакции Политики.</strong> Если вы не согласны с изменениями, вы вправе удалить аккаунт и прекратить использование Сервиса.</p>
+                <p>Актуальная версия Политики всегда доступна по адресу <a href="/policy">/policy</a>.</p>
+            </div>
+        </div>
+
+        <div class="doc-section" id="p13">
+            <div class="section-head">
+                <div class="section-num">13</div>
+                <div class="section-title">Контакты и обращения</div>
+            </div>
+            <div class="section-body">
+                <p>По всем вопросам, связанным с настоящей Политикой конфиденциальности или обработкой ваших персональных данных, обращайтесь:</p>
+                <ul>
+                    <li><strong>Email:</strong> <a href="mailto:support@цтк.space">support@цтк.space</a> — предпочтительный способ для формальных запросов по персональным данным;</li>
+                    <li><strong>Telegram:</strong> <a href="https://t.me/ZipProxy1" target="_blank" rel="noopener noreferrer">@ZipProxy1</a> — для оперативной связи;</li>
+                    <li><strong>GitHub:</strong> <a href="https://github.com/SayGGGo/Tornado" target="_blank" rel="noopener noreferrer">github.com/SayGGGo/Tornado</a> — для технических вопросов и отчётов об уязвимостях.</li>
+                </ul>
+                <p>Время рассмотрения обращений по вопросам персональных данных — до 30 календарных дней. Мы стараемся отвечать быстрее.</p>
+                <p>Если вы считаете, что ваши права в области защиты персональных данных нарушены, вы вправе обратиться с жалобой в <strong>Роскомнадзор</strong> (rkn.gov.ru) — уполномоченный орган по защите прав субъектов персональных данных в Российской Федерации.</p>
+            </div>
+        </div>
+
+        <div class="doc-footer">
+            <div class="doc-footer-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0a84ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+            </div>
+            <div class="doc-footer-text">
+                <strong>Ваша приватность важна для нас.</strong>
+                <a href="/terms">Условия использования</a> &nbsp;·&nbsp;
+                <a href="/support">Поддержка</a> &nbsp;·&nbsp;
+                Редакция от 1 января 2025 г.
+            </div>
+        </div>
+
+    </div>
+</body>
+</html>
