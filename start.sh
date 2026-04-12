@@ -40,6 +40,6 @@ if ps -p $PID > /dev/null; then
     echo -e "${G}[+] PID: $PID${NC}"
     echo -e "${G}[+] LOG: $LOG_FILE${NC}"
 else
-    echo -e "${R[-] КРИТИЧЕСКАЯ ОШИБКА ПРИ ЗАПУСКЕ${NC}"
+    echo -e "${R}[-] КРИТИЧЕСКАЯ ОШИБКА ПРИ ЗАПУСКЕ${NC}"
 fi
 echo -e "${C}──────────────────────────────────────────${NC}"
