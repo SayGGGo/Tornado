@@ -1,4 +1,5 @@
 from werkzeug.security import generate_password_hash, check_password_hash
+import re
 from flask import url_for, session
 from models import User, db
 from utils import verify_turnstile
@@ -18,10 +19,20 @@ class AuthService:
         if not all(data.get(k) for k in required_fields):
             return {"success": False, "message": "Заполните все обязательные поля"}
 
+        login = str(data["login"]).strip()
+        if len(login) < 3 or not re.match(r"^[a-zA-Z0-9_]+$", login):
+            return {"success": False, "message": "Логин должен быть от 3 символов и содержать только латиницу"}
+
+        password = data.get("password")
+        if not password or len(password) < 6:
+            return {"success": False, "message": "Пароль должен быть не менее 6 символов"}
+        if not re.search(r"[0-9]", password) or not re.search(r"[a-zA-Z]", password):
+            return {"success": False, "message": "Пароль должен содержать хотя бы одну цифру и одну букву"}
+
         if data["password"] != data["password_retry"]:
             return {"success": False, "message": "Пароли не совпадают"}
 
-        if User.query.filter_by(login=data["login"]).first():
+        if User.query.filter_by(login=login).first():
             return {"success": False, "message": "Пользователь с таким логином уже существует"}
 
         new_user = User(

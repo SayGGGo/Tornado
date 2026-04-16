@@ -306,11 +306,13 @@ class ChatService:
 
         result = []
         for msg in messages:
+            avatar = msg.author.avatar if getattr(msg.author, 'avatar', None) else f"https://ui-avatars.com/api/?name={msg.author.login}&background=random&color=fff&rounded=true&bold=true"
             if msg.is_deleted:
                 result.append({
                     "id": msg.id,
                     "user_id": msg.user_id,
                     "login": msg.author.login,
+                    "avatar": avatar,
                     "content": "",
                     "timestamp": msg.timestamp.strftime("%H:%M"),
                     "is_read": getattr(msg, 'is_read', False),
@@ -326,6 +328,7 @@ class ChatService:
                     "id": msg.id,
                     "user_id": msg.user_id,
                     "login": msg.author.login,
+                    "avatar": avatar,
                     "content": self.crypto.decrypt_for_user(msg.content, curr_user.private_key, (msg.user_id != user_id)),
                     "timestamp": msg.timestamp.strftime("%H:%M"),
                     "is_read": getattr(msg, 'is_read', False),

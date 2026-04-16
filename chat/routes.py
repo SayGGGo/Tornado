@@ -37,7 +37,8 @@ def register_chat(app):
         return jsonify({
             "id": user.id,
             "login": user.login,
-            "avatar": avatar
+            "avatar": avatar,
+            "bio": user.bio or ""
         })
 
     @app.route("/api/messages", methods=["GET"])

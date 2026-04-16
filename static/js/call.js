@@ -1,4 +1,4 @@
-// AI generated
+
 
 const urlParams = new URLSearchParams(window.location.search);
 const channelName = urlParams.get('channel');
@@ -10,6 +10,7 @@ const currentUserAvatar = document.querySelector('meta[name="current-user-avatar
 document.getElementById('call-name').textContent = targetName;
 document.getElementById('local-off-avatar').src = currentUserAvatar;
 
+AgoraRTC.setLogLevel(3);
 const client = AgoraRTC.createClient({ mode: 'rtc', codec: 'vp8' });
 
 let localTracks = { videoTrack: null, audioTrack: null };

@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="current-user" content="{{ current_user.login }}">
     <meta name="current-user-id" content="{{ current_user.id }}">
+    <meta name="is-premium" content="{{ current_user.premium }}">
     <meta name="current-user-premium" content="{{ current_user.premium or '' }}">
     <title>TORNADO</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/chat.css') }}">
@@ -61,7 +62,9 @@
                                     <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
                                 </svg>
                             </button>
-                            <img id="current-chat-avatar" src="" class="avatar" style="width: 40px; height: 40px; min-width: 40px; margin-right: 0;">
+                            <div id="current-chat-avatar-wrapper" style="width:40px;height:40px;display:flex;align-items:center;justify-content:center;">
+                                <img id="current-chat-avatar" src="" class="avatar" style="width: 40px; height: 40px; min-width: 40px; margin-right: 0;">
+                            </div>
                             <span id="current-chat-name">Чат</span>
                             <div id="current-chat-premium" class="premium-icon" style="display: none;"></div>
                         </div>
@@ -145,35 +148,41 @@
         </div>
 
         <div id="view-settings" class="mobile-view" style="display:none;">
-            <div class="settings-profile-block" id="settingsProfileBlock">
-                <img class="settings-big-avatar" id="settingsAvatar" src="https://ui-avatars.com/api/?name=U&background=random">
+            <div class="settings-profile-block" id="mobile-profile-direct">
+                <img class="settings-big-avatar" id="settingsAvatar" src="{{ current_user.avatar or 'https://ui-avatars.com/api/?name=' ~ current_user.login ~ '&background=random' }}">
                 <div class="settings-profile-info">
-                    <div class="settings-user-name" id="settingsName">Пользователь</div>
+                    <div class="settings-user-name" id="settingsName">{{ current_user.login }}</div>
                     <div class="settings-user-sub">@{{ current_user.login }}</div>
                 </div>
             </div>
             <div class="settings-list">
-                <div class="settings-item" id="s-profile">
+                <div class="settings-item" onclick="showTab('profile')">
                     <span class="material-symbols-outlined">person</span>
                     <span>Мой профиль</span>
                     <span class="material-symbols-outlined settings-chevron">chevron_right</span>
                 </div>
-                <div class="settings-item" id="s-wallet">
-                    <span class="material-symbols-outlined">account_balance_wallet</span>
-                    <span>Кошелёк</span>
+                <div class="settings-item" onclick="alert('Premium пока недоступен')">
+                    <span class="material-symbols-outlined">stars</span>
+                    <span>Tornado Premium</span>
                     <span class="material-symbols-outlined settings-chevron">chevron_right</span>
                 </div>
                 <div class="settings-divider"></div>
-                <div class="settings-item" id="s-contacts">
-                    <span class="material-symbols-outlined">contacts</span>
-                    <span>Контакты</span>
+                <div class="settings-item" onclick="showTab('calls')">
+                    <span class="material-symbols-outlined">call</span>
+                    <span>История звонков</span>
                     <span class="material-symbols-outlined settings-chevron">chevron_right</span>
                 </div>
-                <div class="settings-item" id="s-bookmarks">
-                    <span class="material-symbols-outlined">bookmark</span>
-                    <span>Избранное</span>
+                <div class="settings-item" onclick="showTab('design')">
+                    <span class="material-symbols-outlined">palette</span>
+                    <span>Дизайн</span>
                     <span class="material-symbols-outlined settings-chevron">chevron_right</span>
                 </div>
+                <div class="settings-item" onclick="openGroupModal()">
+                    <span class="material-symbols-outlined">group</span>
+                    <span>Создать группу</span>
+                    <span class="material-symbols-outlined settings-chevron">chevron_right</span>
+                </div>
+                <div class="settings-divider"></div>
                 <div class="settings-item" id="s-theme">
                     <span class="material-symbols-outlined">dark_mode</span>
                     <span style="flex:1;">Ночной режим</span>
@@ -182,11 +191,117 @@
                         <span class="slider"></span>
                     </div>
                 </div>
+                <a href="https://github.com/SayGGGo/Tornado" target="_blank" class="settings-item">
+                    <span class="material-symbols-outlined">code</span>
+                    <span>GitHub</span>
+                    <span class="material-symbols-outlined settings-chevron">chevron_right</span>
+                </a>
                 <div class="settings-divider"></div>
                 <a href="/logout/" class="settings-item settings-item--danger">
                     <span class="material-symbols-outlined">logout</span>
                     <span>Выйти из аккаунта</span>
                 </a>
+            </div>
+        </div>
+
+        <div id="view-profile" class="mobile-view" style="display:none;">
+            <div class="mobile-view-header">
+                <button class="icon-btn" onclick="showTab('settings')">
+                    <span class="material-symbols-outlined">arrow_back</span>
+                </button>
+                <span>Мой профиль</span>
+            </div>
+            <div class="profile-content" style="flex:1; overflow-y:auto;">
+                 
+                 <div class="profile-header">
+                    <div class="profile-avatar-container" style="position:relative; width:120px; height:120px;" onclick="document.getElementById('avatar-upload-input').click()">
+                        <img src="{{ current_user.avatar or 'https://ui-avatars.com/api/?name=' ~ current_user.login ~ '&background=random' }}" class="profile-big-avatar" style="width:120px; height:120px;">
+                        <div class="avatar-edit-overlay"><span class="material-symbols-outlined">photo_camera</span></div>
+                    </div>
+                    <div class="profile-info" style="margin-top:16px;">
+                        <div class="profile-name" style="font-size:24px;">{{ current_user.login }}</div>
+                        <div class="profile-status">В сети</div>
+                    </div>
+                </div>
+                <div class="profile-details" style="padding: 20px;">
+                    <div class="detail-item">
+                        <span class="material-symbols-outlined">alternate_email</span>
+                        <div class="detail-text"><span class="detail-value">@{{ current_user.login }}</span><span class="detail-label">Имя пользователя</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-other-profile" class="mobile-view" style="display:none;">
+            <div class="mobile-view-header">
+                <button class="icon-btn" onclick="showTab('chats')">
+                    <span class="material-symbols-outlined">arrow_back</span>
+                </button>
+                <span id="other-profile-header-name">Профиль</span>
+            </div>
+            <div class="profile-content" style="flex:1; overflow-y:auto;">
+                <div class="profile-header">
+                    <img id="other-profile-avatar-mob" src="" class="profile-big-avatar" style="width:120px; height:120px;">
+                    <div class="profile-info" style="margin-top:16px;">
+                        <div id="other-profile-name-mob" class="profile-name" style="font-size:24px;"></div>
+                        <div class="profile-status">В сети</div>
+                    </div>
+                </div>
+                <div class="profile-details" style="padding: 20px;">
+                    <div class="detail-item">
+                        <span class="material-symbols-outlined">alternate_email</span>
+                        <div class="detail-text"><span id="other-profile-login-mob" class="detail-value"></span><span class="detail-label">Имя пользователя</span></div>
+                    </div>
+                    <div class="detail-item">
+                        <span class="material-symbols-outlined">info</span>
+                        <div class="detail-text" style="width:100%;">
+                            <div id="other-profile-bio-mob" class="bio-display-box"></div>
+                            <span class="detail-label">О себе</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="profile-actions" style="padding: 20px; display: flex; flex-direction: column; gap: 12px;">
+                    <button class="contact-action-btn" id="other-profile-msg-btn-mob">Написать сообщение</button>
+                    <button class="contact-action-btn" id="other-profile-call-btn-mob" style="background: rgba(52,199,89,0.1); border-color: var(--green); color: var(--green);">
+                        Позвонить
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-design" class="mobile-view" style="display:none;">
+            <div class="mobile-view-header">
+                <button class="icon-btn" onclick="showTab('settings')">
+                    <span class="material-symbols-outlined">arrow_back</span>
+                </button>
+                <span>Дизайн</span>
+            </div>
+            <div class="design-content" style="padding:20px;">
+                 
+                 <div class="design-section">
+                    <div class="section-title">Акцентный цвет</div>
+                    <div class="accent-colors">
+                        <div class="accent-color" style="background: #34c759;" data-color="#34c759"></div>
+                        <div class="accent-color" style="background: #007aff;" data-color="#007aff"></div>
+                        <div class="accent-color" style="background: #af52de;" data-color="#af52de"></div>
+                        <div class="accent-color" style="background: #ff9500;" data-color="#ff9500"></div>
+                        <div class="accent-color" style="background: #ff3b30;" data-color="#ff3b30"></div>
+                    </div>
+                </div>
+                <div class="design-section" style="margin-top:24px;">
+                    <div class="section-title">Тема</div>
+                    <div class="theme-options">
+                        <button class="theme-btn active" id="theme-dark-btn-mob" onclick="setTheme('dark')">Темная</button>
+                        <button class="theme-btn" id="theme-light-btn-mob" onclick="setTheme('light')">Светлая</button>
+                    </div>
+                </div>
+                <div class="design-section" style="margin-top:24px;">
+                    <div class="section-title">Обои</div>
+                    <div class="wallpaper-options">
+                        <button class="wallpaper-btn" data-wallpaper="lines">Линии</button>
+                        <button class="wallpaper-btn" data-wallpaper="none">Пустые</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -250,6 +365,147 @@
         </div>
     </div>
 
+    <div id="profile-modal-overlay" class="modal-overlay">
+        <div class="profile-modal liquid-glass-fallback">
+            <div class="modal-top" style="padding: 24px 24px 0;">
+                <div class="modal-title">Мой профиль</div>
+                <button class="modal-close" onclick="document.getElementById('profile-modal-overlay').classList.remove('visible')">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div class="profile-content">
+                <div class="profile-header">
+                    <div id="profile-avatar-container" class="profile-avatar-container" style="position:relative; cursor:pointer;" onclick="document.getElementById('avatar-upload-input').click()">
+                        <img id="my-profile-avatar" src="{{ current_user.avatar or 'https://ui-avatars.com/api/?name=' ~ current_user.login ~ '&background=random' }}" class="profile-big-avatar">
+                        <div class="avatar-edit-overlay">
+                            <span class="material-symbols-outlined">photo_camera</span>
+                        </div>
+                    </div>
+                    <input type="file" id="avatar-upload-input" style="display:none;" accept="image/*,video/*">
+                    <div class="profile-info">
+                        <div class="profile-name">{{ current_user.login }}</div>
+                        <div class="profile-status">В сети</div>
+                    </div>
+                </div>
+                <div class="profile-details">
+                    <div class="detail-item">
+                        <span class="material-symbols-outlined">alternate_email</span>
+                        <div class="detail-text">
+                            <span class="detail-value">@{{ current_user.login }}</span>
+                            <span class="detail-label">Имя пользователя</span>
+                        </div>
+                    </div>
+                    <div class="detail-item">
+                         <span class="material-symbols-outlined">info</span>
+                         <div class="detail-text">
+                             <textarea id="my-bio-input" class="bio-textarea" placeholder="Расскажите о себе (до 200 символов)" maxlength="200">{{ current_user.bio or '' }}</textarea>
+                             <span class="detail-label">О себе</span>
+                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="other-profile-modal-overlay" class="modal-overlay">
+        <div class="profile-modal liquid-glass-fallback">
+            <div class="modal-top" style="padding: 24px 24px 0;">
+                <div class="modal-title">Профиль</div>
+                <button class="modal-close" onclick="document.getElementById('other-profile-modal-overlay').classList.remove('visible')">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div class="profile-content">
+                <div class="profile-header">
+                    <img id="other-profile-avatar" src="" class="profile-big-avatar">
+                    <div class="profile-info">
+                        <div id="other-profile-name" class="profile-name"></div>
+                        <div class="profile-status">В сети</div>
+                    </div>
+                </div>
+                <div class="profile-details">
+                    <div class="detail-item">
+                        <span class="material-symbols-outlined">alternate_email</span>
+                        <div class="detail-text">
+                            <span id="other-profile-login" class="detail-value"></span>
+                            <span class="detail-label">Имя пользователя</span>
+                        </div>
+                    </div>
+                    <div class="detail-item">
+                        <span class="material-symbols-outlined">info</span>
+                        <div class="detail-text" style="width:100%;">
+                            <div id="other-profile-bio" class="bio-display-box"></div>
+                            <span class="detail-label">О себе</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="profile-actions" style="padding: 24px; display: flex; gap: 12px;">
+                    <button class="contact-action-btn" id="other-profile-msg-btn" style="flex: 1;">Сообщение</button>
+                    <button class="contact-action-btn" id="other-profile-call-btn" style="background: rgba(52,199,89,0.1); border-color: var(--green); color: var(--green); flex: 1;">
+                        <span class="material-symbols-outlined" style="font-size: 18px; margin-right: 8px;">call</span> Звонок
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="design-modal-overlay" class="modal-overlay">
+        <div class="design-modal liquid-glass-fallback">
+            <div class="modal-top" style="padding: 24px 24px 0;">
+                <div class="modal-title">Дизайн</div>
+                <button class="modal-close" onclick="document.getElementById('design-modal-overlay').classList.remove('visible')">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div class="design-content">
+                <div class="design-section">
+                    <div class="section-title">Акцентный цвет</div>
+                    <div class="accent-colors">
+                        <div class="accent-color" style="background: #34c759;" data-color="#34c759"></div>
+                        <div class="accent-color" style="background: #007aff;" data-color="#007aff"></div>
+                        <div class="accent-color" style="background: #af52de;" data-color="#af52de"></div>
+                        <div class="accent-color" style="background: #ff9500;" data-color="#ff9500"></div>
+                        <div class="accent-color" style="background: #ff3b30;" data-color="#ff3b30"></div>
+                    </div>
+                </div>
+                <div class="design-section">
+                    <div class="section-title">Тема</div>
+                    <div class="theme-options">
+                        <button class="theme-btn active" id="theme-dark-btn">Темная</button>
+                        <button class="theme-btn" id="theme-light-btn">Светлая</button>
+                    </div>
+                </div>
+                </div>
+                <div class="design-section">
+                    <div class="section-title">Обои для чатов</div>
+                    <div class="wallpaper-options">
+                        <button class="wallpaper-btn" data-wallpaper="lines">Линии</button>
+                        <button class="wallpaper-btn" data-wallpaper="none">Пустые</button>
+                        <button class="wallpaper-btn" id="wallpaper-file-btn">Из файла</button>
+                        <input type="file" id="wallpaper-file-input" style="display:none;" accept="image/*">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="calls-modal-overlay" class="modal-overlay">
+        <div class="calls-modal liquid-glass-fallback">
+            <div class="modal-top" style="padding: 24px 24px 0;">
+                <div class="modal-title">Звонки</div>
+                <button class="modal-close" onclick="document.getElementById('calls-modal-overlay').classList.remove('visible')">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div class="calls-content" id="calls-history-list">
+                <div class="empty-state">
+                    <span class="material-symbols-outlined">call_missed_outgoing</span>
+                    <p>История звонков пуста</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <nav class="mobile-tab-bar" id="mobileTabBar" aria-label="Навигация">
         <div class="tab-pill" id="tabPill">
             <div class="tab-indicator" id="tabIndicator"></div>
@@ -297,41 +553,73 @@
         backBtn.style.opacity = '0';
         backBtn.style.pointerEvents = 'none';
 
-        function showTab(tab) {
+        window.showTab = function(tab) {
             currentTab = tab;
-            var idx = parseInt(document.querySelector('[data-tab="' + tab + '"]').dataset.idx, 10);
-            tabIndicator.style.transform = 'translateX(' + (idx * 100) + '%)';
-            tabBtns.forEach(function (btn) {
-                btn.classList.toggle('active', btn.dataset.tab === tab);
-            });
-            sidebar.style.display      = tab === 'chats'    ? ''      : 'none';
-            viewCalls.style.display    = tab === 'calls'    ? 'flex'  : 'none';
-            viewSettings.style.display = tab === 'settings' ? 'flex'  : 'none';
-            mainChat.style.transform   = 'translateX(100%)';
-            mainChat.classList.remove('slide-in');
+            var tabBtn = document.querySelector('[data-tab="' + tab + '"]');
+            if (tabBtn) {
+                var idx = parseInt(tabBtn.dataset.idx, 10);
+                if (tabIndicator) tabIndicator.style.transform = 'translateX(' + (idx * 100) + '%)';
+                tabBtns.forEach(function (btn) {
+                    btn.classList.toggle('active', btn.dataset.tab === tab);
+                });
+            }
+
+            if (sidebar) sidebar.style.display = tab === 'chats' ? '' : 'none';
+            if (viewCalls) viewCalls.style.display = tab === 'calls' ? 'flex' : 'none';
+            if (viewSettings) viewSettings.style.display = tab === 'settings' ? 'flex' : 'none';
+            
+            var vProfile = document.getElementById('view-profile');
+            var vDesign  = document.getElementById('view-design');
+            var vOther   = document.getElementById('view-other-profile');
+            if (vProfile) vProfile.style.display = tab === 'profile' ? 'flex' : 'none';
+            if (vDesign)  vDesign.style.display  = tab === 'design'  ? 'flex' : 'none';
+            if (vOther)   vOther.style.display   = tab === 'other_profile' ? 'flex' : 'none';
+
+            if (mainChat) {
+                mainChat.style.transform = 'translateX(100%)';
+                mainChat.classList.remove('slide-in');
+            }
         }
 
         function openChat() {
             if (chatOpen) return;
             chatOpen = true;
-            sidebar.style.display      = 'none';
-            viewCalls.style.display    = 'none';
-            viewSettings.style.display = 'none';
-            mainChat.classList.add('slide-in');
-            mainChat.style.transform   = '';
-            backBtn.style.opacity      = '1';
-            backBtn.style.pointerEvents = 'all';
-            tabBar.classList.add('chat-open');
+            if (sidebar) sidebar.style.display = 'none';
+            if (viewCalls) viewCalls.style.display = 'none';
+            if (viewSettings) viewSettings.style.display = 'none';
+            var vp = document.getElementById('view-profile'); if(vp) vp.style.display='none';
+            var vd = document.getElementById('view-design'); if(vd) vd.style.display='none';
+            if (mainChat) {
+                mainChat.classList.add('slide-in');
+                mainChat.style.transform = '';
+            }
+            if (backBtn) {
+                backBtn.style.opacity = '1';
+                backBtn.style.pointerEvents = 'all';
+            }
+            if (tabBar) tabBar.classList.add('chat-open');
         }
 
         function closeChat() {
             chatOpen = false;
-            mainChat.classList.remove('slide-in');
-            mainChat.style.transform   = 'translateX(100%)';
-            backBtn.style.opacity      = '0';
-            backBtn.style.pointerEvents = 'none';
-            tabBar.classList.remove('chat-open');
-            showTab(currentTab);
+            if (mainChat) {
+                mainChat.classList.remove('slide-in');
+                mainChat.style.transform = 'translateX(100%)';
+            }
+            if (backBtn) {
+                backBtn.style.opacity = '0';
+                backBtn.style.pointerEvents = 'none';
+            }
+            if (tabBar) tabBar.classList.remove('chat-open');
+            showTab(currentTab === 'profile' || currentTab === 'design' ? 'settings' : currentTab);
+            if (window._resetChatSelection) window._resetChatSelection();
+        }
+
+        var mobileProfBtn = document.getElementById('mobile-profile-btn');
+        if (mobileProfBtn) {
+            mobileProfBtn.addEventListener('click', function() {
+                showTab('profile');
+            });
         }
 
         backBtn.addEventListener('click', closeChat);

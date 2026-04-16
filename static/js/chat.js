@@ -6,6 +6,18 @@ const noChatState = document.getElementById('no-chat-selected');
 const activeChatLayout = document.getElementById('active-chat-layout');
 const chatNameEl = document.getElementById('current-chat-name');
 const chatAvatarEl = document.getElementById('current-chat-avatar');
+let searchResultsBox = document.getElementById('search-results-box');
+
+function renderAvatar(src, className = 'avatar', id = '') {
+    if (!src) return `<img src="https://ui-avatars.com/api/?name=U&background=random" class="${className}" ${id ? `id="${id}"` : ''}>`;
+    const isVideo = src.endsWith('.mp4') || src.endsWith('.webm') || src.startsWith('data:video/');
+    if (isVideo) {
+        return `<video src="${src}" class="${className}" ${id ? `id="${id}"` : ''} autoplay loop muted playsinline style="opacity:0; transition:opacity 0.4s; object-fit:cover;" oncanplay="this.style.opacity=1"></video>`;
+    }
+    return `<img src="${src}" class="${className}" ${id ? `id="${id}"` : ''} style="opacity:0; transition:opacity 0.4s; object-fit:cover;" onload="this.style.opacity=1">`;
+}
+
+function escHtml(t) { if(!t) return ''; return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 const messagesContainer = document.getElementById('chat-messages');
 let messageInput = document.getElementById('message-input');
 const sendBtn = document.getElementById('send-btn');
@@ -185,7 +197,7 @@ const EMOJI_CATEGORIES = [
     }
 ];
 
-const searchResultsBox = document.createElement('div');
+searchResultsBox = document.createElement('div');
 searchResultsBox.className = 'search-results-box';
 searchResultsBox.style.cssText = 'display: none; position: absolute; top: 100%; left: 15px; right: 15px; background: rgba(20, 20, 20, 0.95); backdrop-filter: blur(10px); border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.1); margin-top: 5px; z-index: 9999; overflow-y: auto; max-height: 300px;';
 headerContainer.style.position = 'relative';
@@ -367,7 +379,16 @@ function onChatClick(e) {
     currentChatAvatar = item.querySelector('.avatar')?.src || '';
     currentChatIsPersonal = !!(targetId && targetId !== 'null' && targetId !== '');
     chatNameEl.textContent = item.querySelector('.chat-name').childNodes[0].textContent.trim();
-    chatAvatarEl.src = item.querySelector('.avatar').src;
+    
+    
+    const avatarImg = item.querySelector('.avatar');
+    if (avatarImg) {
+        const avatarSrc = avatarImg.src || avatarImg.currentSrc;
+        const headerAvatarWrapper = document.getElementById('current-chat-avatar-wrapper');
+        if (headerAvatarWrapper) {
+            headerAvatarWrapper.innerHTML = renderAvatar(avatarSrc, 'avatar', 'current-chat-avatar');
+        }
+    }
     const itemPremium = item.querySelector('.premium-icon');
     if (itemPremium) { chatPremiumEl.style.display = 'block'; chatPremiumEl.style.webkitMaskImage = itemPremium.style.webkitMaskImage; chatPremiumEl.style.maskImage = itemPremium.style.maskImage; } else { chatPremiumEl.style.display = 'none'; }
     if (!targetId || targetId === 'null' || targetId === '') { if (inviteToChatBtn) inviteToChatBtn.style.display = 'flex'; } else { if (inviteToChatBtn) inviteToChatBtn.style.display = 'none'; }
@@ -409,8 +430,8 @@ function onChatContextMenu(e) {
 }
 
 function startChatWithUser(userId, userName) {
-    searchResultsBox.style.display = 'none';
-    searchInput.value = '';
+    if (searchResultsBox) searchResultsBox.style.display = 'none';
+    if (searchInput) searchInput.value = '';
     let existingItem = document.querySelector(`.chat-item[data-target-id="${userId}"]`);
     if (existingItem) { existingItem.click(); return; }
     const chatList = document.querySelector('.chat-list');
@@ -418,8 +439,18 @@ function startChatWithUser(userId, userName) {
     tempItem.className = 'chat-item';
     tempItem.setAttribute('data-chat-id', 'null');
     tempItem.setAttribute('data-target-id', userId);
-    tempItem.innerHTML = `<img src="https://ui-avatars.com/api/?name=${userName}&background=random&color=fff&rounded=true" class="avatar"><div class="chat-info"><div class="chat-header"><div class="chat-name">${userName}</div></div><div class="chat-message-row"><span class="msg-text">Начните диалог</span></div></div>`;
-    chatList.prepend(tempItem);
+    
+    tempItem.innerHTML = `
+        ${renderAvatar(`https://ui-avatars.com/api/?name=${userName}&background=random&color=fff&rounded=true`, 'avatar')}
+        <div class="chat-info">
+            <div class="chat-header">
+                <div class="chat-name">${userName}</div>
+            </div>
+            <div class="chat-message-row">
+                <span class="msg-text">Начните диалог</span>
+            </div>
+        </div>`;
+    if (chatList) chatList.prepend(tempItem);
     bindChatClickEvents();
     tempItem.click();
 }
@@ -456,7 +487,6 @@ function createFileContent(msg) {
         const img = document.createElement('img');
         img.className = 'msg-image';
         img.src = msg.file_url;
-        img.alt = msg.file_name || '';
         img.loading = 'lazy';
         img.onload = () => {
             if (messagesContainer.scrollHeight - messagesContainer.scrollTop <= messagesContainer.clientHeight + 150) {
@@ -581,7 +611,7 @@ function createMessageElement(msg, animate = false) {
         return msgDiv;
     }
 
-    const authorHtml = isOwn ? '' : `<div class="msg-author">${escHtml(msg.login)}</div>`;
+    const authorHtml = isOwn ? '' : `<div class="msg-author clickable" data-user-id="${msg.user_id}">${escHtml(msg.login)}</div>`;
     const editedHtml = msg.is_edited ? '<span class="msg-edited-label">изменено</span>' : '';
     const ticksHtml = isOwn ? (isPending
         ? `<span class="material-symbols-outlined" style="font-size:14px;">schedule</span>`
@@ -1153,14 +1183,19 @@ async function updateSidebar() {
                 if (existingTemp) { existingTemp.setAttribute('data-chat-id', chatId); chatItem = existingTemp; }
                 else { chatItem = document.createElement('div'); chatItem.className = 'chat-item'; chatItem.setAttribute('data-chat-id', chatId); chatItem.setAttribute('data-target-id', chat.target_user_id); if (currentChatId == chatId) chatItem.classList.add('active'); chatList.prepend(chatItem); bindChatClickEvents(); }
             }
+            
             const readIcon = chat.last_status ? `<span class="material-symbols-outlined" style="font-size:14px; color:#4CAF50;">done_all</span>` : `<span class="material-symbols-outlined" style="font-size:14px;">done</span>`;
-            let previewText = chat.last_msg;
+            let previewText = chat.last_msg || '';
             if (previewText.startsWith('__CALL_INVITE__')) previewText = '📞 Входящий видеозвонок';
             else if (previewText.startsWith('__CHATLINK__')) previewText = '📩 Приглашение в чат';
-            else {
-                previewText = previewText.replace(/__AEMOJI__([^\/]+)\/\/\/(.+?)__/g, '⭐ $2');
+            else { previewText = previewText.replace(/__AEMOJI__([^\/]+)\/\/\/(.+?)__/g, '⭐ $2'); }
+
+            const newHtml = `${renderAvatar(chat.avatar, 'avatar')} <div class="chat-info"><div class="chat-header"><div class="chat-name">${chat.name}${chat.premium ? `<div class="premium-icon" style="-webkit-mask-image: url('/static/premium/${chat.premium}.svg'); mask-image: url('/static/premium/${chat.premium}.svg');"></div>` : ''}</div><div class="chat-meta"><span class="chat-time">${chat.last_time ? `${readIcon} ${chat.last_time}` : ''}</span></div></div><div class="chat-message-row"><span class="msg-text">${previewText}</span><div class="chat-meta">${chat.unread > 0 ? `<span class="unread-badge">${chat.unread}</span>` : ''}</div></div></div>`;
+            
+            if (chatItem.getAttribute('data-last-html') !== newHtml) {
+                chatItem.innerHTML = newHtml;
+                chatItem.setAttribute('data-last-html', newHtml);
             }
-            chatItem.innerHTML = `<img src="${chat.avatar}" alt="Avatar" class="avatar"><div class="chat-info"><div class="chat-header"><div class="chat-name">${chat.name}${chat.premium ? `<div class="premium-icon" style="-webkit-mask-image: url('/static/premium/${chat.premium}.svg'); mask-image: url('/static/premium/${chat.premium}.svg');"></div>` : ''}</div><div class="chat-meta"><span class="chat-time">${chat.last_time ? `${readIcon} ${chat.last_time}` : ''}</span></div></div><div class="chat-message-row"><span class="msg-text">${previewText}</span><div class="chat-meta">${chat.unread > 0 ? `<span class="unread-badge">${chat.unread}</span>` : ''}</div></div></div>`;
         }
     } catch(e) {}
 }
@@ -1195,7 +1230,7 @@ function formatMessageContent(text) {
     formatted = formatted.replace(/__AEMOJI__([^\/]+)\/\/\/(.+?)__/g, (match, cat, name) => {
         const safeName = name.replace(/"/g, '&quot;');
         const url = `${ANIMATED_EMOJI_BASE}/${encodeURIComponent(cat)}/${encodeURIComponent(name)}.webp`;
-        return `<img src="${url}" class="animated-emoji-inline" data-cat="${cat}" data-name="${safeName}" alt="${safeName}" title="${safeName}" style="width: 24px; height: 24px; vertical-align: middle; display: inline-block;">`;
+        return `<img src="${url}" class="animated-emoji-inline" data-cat="${cat}" data-name="${safeName}" title="${safeName}" style="width: 24px; height: 24px; vertical-align: middle; display: inline-block;">`;
     });
 
     return formatted;
@@ -1383,25 +1418,180 @@ moreOptionsBtn.addEventListener('click', async () => {
         if (res.ok) {
             const data = await res.json();
             settingsParticipantsList.innerHTML = '';
-            if (data.participants?.length > 0) data.participants.forEach(p => { settingsParticipantsList.innerHTML += `<div class="contact-row" style="cursor:default;"><img src="${p.avatar}" alt=""><div class="contact-info"><div class="contact-name">${p.login}</div><div class="contact-login">${p.role === 'owner' ? 'Создатель' : 'Участник'}</div></div></div>`; });
-            else settingsParticipantsList.innerHTML = '<div style="text-align:center; padding: 10px; color:#aaa;">Участников нет</div>';
-            if (!data.is_personal && data.owner_id == window._currentUserId) {
-                const delBtn = document.createElement('button');
-                delBtn.id = 'delete-group-action';
-                delBtn.className = 'contact-action-btn';
-                delBtn.style.cssText = 'width: 100%; margin-top: 15px; background: rgba(255,82,82,0.15); border-color: #ff5252; color: #ff5252;';
-                delBtn.textContent = 'Удалить группу';
-                delBtn.onclick = async () => { if (confirm('Удалить эту группу навсегда?')) { try { const r = await fetch(`/api/chats/${currentChatId}`, { method: 'DELETE' }); if (r.ok) { chatSettingsOverlay.classList.remove('visible'); currentChatId = null; activeChatLayout.style.display = 'none'; noChatState.style.display = 'flex'; document.querySelector('.chat-item.active')?.remove(); } } catch(e){} } };
-                settingsParticipantsList.parentElement.appendChild(delBtn);
+            if (data.participants?.length > 0) {
+                data.participants.forEach(p => {
+                    const row = document.createElement('div');
+                    row.className = 'contact-row';
+                    if (p.id != window._currentUserId) {
+                        row.style.cursor = 'pointer';
+                        row.onclick = () => {
+                            chatSettingsOverlay.classList.remove('visible');
+                            window.openOtherProfile(p.id);
+                        };
+                    }
+                    row.innerHTML = `<img src="${p.avatar}" alt=""><div class="contact-info"><div class="contact-name">${p.login}</div><div class="contact-login">${p.role === 'owner' ? 'Создатель' : 'Участник'}</div></div>`;
+                    settingsParticipantsList.appendChild(row);
+                });
+            } else {
+                settingsParticipantsList.innerHTML = '<div style="text-align:center; padding: 10px; color:#aaa;">Участников нет</div>';
             }
-        } else settingsParticipantsList.innerHTML = '<div style="text-align:center; padding: 10px; color:#aaa;">Не удалось загрузить</div>';
-    } catch (e) { settingsParticipantsList.innerHTML = '<div style="text-align:center; padding: 10px; color:#aaa;">Ошибка сети</div>'; }
+                if (!data.is_personal && data.owner_id == window._currentUserId) {
+                    const delBtn = document.createElement('button');
+                    delBtn.id = 'delete-group-action';
+                    delBtn.className = 'contact-action-btn';
+                    delBtn.style.cssText = 'width: 100%; margin-top: 15px; background: rgba(255,82,82,0.15); border-color: #ff5252; color: #ff5252;';
+                    delBtn.textContent = 'Удалить группу';
+                    delBtn.onclick = async () => {
+                        if (confirm('Удалить эту группу навсегда?')) {
+                            try {
+                                const r = await fetch(`/api/chats/${currentChatId}`, { method: 'DELETE' });
+                                if (r.ok) {
+                                    chatSettingsOverlay.classList.remove('visible');
+                                    currentChatId = null;
+                                    activeChatLayout.style.display = 'none';
+                                    noChatState.style.display = 'flex';
+                                    document.querySelector('.chat-item.active')?.remove();
+                                }
+                            } catch(e){}
+                        }
+                    };
+                    settingsParticipantsList.parentElement.appendChild(delBtn);
+                }
+            } else {
+                settingsParticipantsList.innerHTML = '<div style="text-align:center; padding: 10px; color:#aaa;">Не удалось загрузить</div>';
+            }
+        } catch (e) {
+            settingsParticipantsList.innerHTML = '<div style="text-align:center; padding: 10px; color:#aaa;">Ошибка сети</div>';
+        }
 });
 
 closeChatSettingsBtn.addEventListener('click', () => chatSettingsOverlay.classList.remove('visible'));
 openInviteFromSettingsBtn.addEventListener('click', async () => { chatSettingsOverlay.classList.remove('visible'); selectedForInvite.clear(); inviteChatSearch.value = ''; await loadContactsForModals(); renderContactsList(inviteChatContactsList, selectedForInvite); inviteChatOverlay.classList.add('visible'); });
 
+window.openOtherProfile = async function(userId) {
+    if (!userId) return;
+    try {
+        const res = await fetch(`/api/user/${userId}`);
+        if (!res.ok) return;
+        const user = await res.json();
+        
+        const updateField = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+        const updateImg = (id, src) => { const el = document.getElementById(id); if (el) el.src = src; };
+
+        updateImg('other-profile-avatar', user.avatar);
+        updateField('other-profile-name', user.login);
+        updateField('other-profile-login', '@' + user.login);
+        updateField('other-profile-bio', user.bio || 'Нет информации');
+
+        updateImg('other-profile-avatar-mob', user.avatar);
+        updateField('other-profile-name-mob', user.login);
+        updateField('other-profile-login-mob', '@' + user.login);
+        updateField('other-profile-bio-mob', user.bio || 'Нет информации');
+
+        const goChat = async () => {
+            const resp = await fetch('/api/chats/get_or_create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ target_user_id: user.id })
+            });
+            if (resp.ok) {
+                const data = await resp.json();
+                document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('visible'));
+                updateSidebar();
+                setTimeout(() => {
+                    const el = document.querySelector(`.chat-item[data-chat-id="${data.chat_id}"]`);
+                    if (el) el.click();
+                    if (window.innerWidth <= 768) window.showTab('chats');
+                }, 300);
+            }
+        };
+
+        const goCall = () => {
+            document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('visible'));
+            startCallWithUserInChat(user.id);
+        };
+
+        const msgBtn = document.getElementById('other-profile-msg-btn');
+        const msgBtnMob = document.getElementById('other-profile-msg-btn-mob');
+        const callBtn = document.getElementById('other-profile-call-btn');
+        const callBtnMob = document.getElementById('other-profile-call-btn-mob');
+
+        if (msgBtn) msgBtn.onclick = goChat;
+        if (msgBtnMob) msgBtnMob.onclick = goChat;
+        if (callBtn) callBtn.onclick = goCall;
+        if (callBtnMob) callBtnMob.onclick = goCall;
+
+        if (window.innerWidth <= 768) {
+            window.showTab('other_profile');
+        } else {
+            document.getElementById('other-profile-modal-overlay').classList.add('visible');
+        }
+    } catch(e) {}
+};
+
+async function startCallWithUserInChat(userId) {
+    const resp = await fetch('/api/chats/get_or_create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ target_user_id: userId })
+    });
+    if (resp.ok) {
+        const data = await resp.json();
+        const cid = data.chat_id;
+        const callResp = await fetch('/api/call/start', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ target_user_id: userId, chat_id: cid })
+        });
+        if (callResp.ok) {
+            const cdata = await callResp.json();
+            window.location.href = cdata.call_url;
+        }
+    }
+}
+
+document.getElementById('my-bio-input')?.addEventListener('blur', async (e) => {
+    const bio = e.target.value.trim();
+    try {
+        await fetch('/api/user/profile', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ bio })
+        });
+    } catch(e) {}
+});
+
+messagesContainer.addEventListener('click', (e) => {
+    const target = e.target.closest('.msg-author, .msg-author-avatar');
+    if (target) {
+        const uid = target.getAttribute('data-user-id');
+        if (uid && uid != window._currentUserId) window.openOtherProfile(uid);
+    }
+});
+
 Object.defineProperty(window, '_currentChatId', { get: () => currentChatId, configurable: true });
+
+window.openGroupModal = async function() {
+    selectedForGroup.clear();
+    if (groupNameInput) groupNameInput.value = '';
+    await loadContactsForModals();
+    renderContactsList(groupContactsList, selectedForGroup);
+    groupModalOverlay.classList.add('visible');
+};
+
+window.setTheme = (theme) => {
+    if (theme === 'light') {
+        document.documentElement.classList.add('light-theme');
+        setCookie('theme', 'light', 365);
+    } else {
+        document.documentElement.classList.remove('light-theme');
+        setCookie('theme', 'dark', 365);
+    }
+    const cb = document.getElementById('theme-checkbox');
+    const scb = document.getElementById('settings-theme-checkbox');
+    if (cb) cb.checked = (theme === 'dark');
+    if (scb) scb.checked = (theme === 'dark');
+};
 
 window._sendMessageToChat = async function(chatId, text) {
     if (!chatId || !text) return;
@@ -1410,6 +1600,28 @@ window._sendMessageToChat = async function(chatId, text) {
 
 window.copyCodeBlock = function(btn, encodedCode) {
     navigator.clipboard.writeText(decodeURIComponent(encodedCode)).then(() => { const orig = btn.innerHTML; btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:16px; color:#4CAF50;">done</span>'; setTimeout(() => { btn.innerHTML = orig; }, 2000); }).catch(console.error);
+};
+
+window.startCall = async function(chatId) {
+    if (!chatId) return;
+    const item = document.querySelector(`.chat-item[data-chat-id="${chatId}"]`);
+    const targetId = item?.getAttribute('data-target-id');
+    if (!targetId) { openCallWindow(`/call?channel=${chatId}`, chatId); return; }
+    try {
+        const resp = await fetch('/api/call/start', { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify({ target_user_id: parseInt(targetId), chat_id: parseInt(chatId) }) 
+        });
+        const data = await resp.json();
+        if (data.channel) { 
+            openCallWindow(`/call?channel=${data.channel}`, data.channel); 
+            if (typeof pollNewMessages === 'function') pollNewMessages(); 
+            if (typeof updateSidebar === 'function') updateSidebar(); 
+        }
+    } catch (err) { 
+        openCallWindow(`/call?channel=${chatId}`, chatId); 
+    }
 };
 
 bindChatClickEvents();
@@ -1428,8 +1640,241 @@ const drawerThemeToggle = document.getElementById('drawer-theme-toggle');
 const themeCheckbox = document.getElementById('theme-checkbox');
 
 if (menuBtn && sideDrawer && drawerOverlay) {
-    menuBtn.addEventListener('click', () => { sideDrawer.classList.add('open'); drawerOverlay.classList.add('visible'); const um = document.querySelector('meta[name="current-user"]'); if (um && document.getElementById('drawer-user-name')) document.getElementById('drawer-user-name').textContent = um.content; });
-    drawerOverlay.addEventListener('click', () => { sideDrawer.classList.remove('open'); drawerOverlay.classList.remove('visible'); });
-    if (drawerCreateGroup) drawerCreateGroup.addEventListener('click', () => { sideDrawer.classList.remove('open'); drawerOverlay.classList.remove('visible'); openGroupModal(); });
-    if (drawerThemeToggle) drawerThemeToggle.addEventListener('click', (e) => { if (e.target !== themeCheckbox) themeCheckbox.checked = !themeCheckbox.checked; document.documentElement.classList.toggle('light-theme'); setCookie('theme', document.documentElement.classList.contains('light-theme') ? 'light' : 'dark', 365); });
+    menuBtn.addEventListener('click', () => {
+        sideDrawer.classList.add('open');
+        drawerOverlay.classList.add('visible');
+        const um = document.querySelector('meta[name="current-user"]');
+        if (um && document.getElementById('drawer-user-name')) document.getElementById('drawer-user-name').textContent = um.content;
+    });
+
+    drawerOverlay.addEventListener('click', () => {
+        sideDrawer.classList.remove('open');
+        drawerOverlay.classList.remove('visible');
+    });
+
+    const closeDrawer = () => {
+        sideDrawer.classList.remove('open');
+        drawerOverlay.classList.remove('visible');
+    };
+
+    document.getElementById('drawer-profile')?.addEventListener('click', () => {
+        closeDrawer();
+        document.getElementById('profile-modal-overlay').classList.add('visible');
+    });
+
+    document.getElementById('drawer-premium')?.addEventListener('click', () => {
+        alert('Tornado Premium пока что не работает.');
+    });
+
+    document.getElementById('drawer-calls')?.addEventListener('click', () => {
+        closeDrawer();
+        const list = document.getElementById('calls-history-list');
+        if (list) {
+            const items = document.querySelectorAll('.chat-item');
+            if (items.length > 0) {
+                list.innerHTML = '';
+                items.forEach(item => {
+                    const name = item.querySelector('.chat-name')?.textContent.trim();
+                    const avatar = item.querySelector('.avatar')?.src;
+                    const id = item.dataset.chatId;
+                    const entry = document.createElement('div');
+                    entry.className = 'drawer-item';
+                    entry.style.padding = '12px 0';
+                    entry.innerHTML = `
+                        <img src="${avatar}" style="width:40px;height:40px;border-radius:50%;margin-right:12px;">
+                        <div style="flex:1;">
+                            <div style="font-weight:600;">${name}</div>
+                            <div style="font-size:12px;color:var(--text-muted);">Исходящий звонок</div>
+                        </div>
+                        <span class="material-symbols-outlined" style="color:var(--green);cursor:pointer;" onclick="startCall('${id}')">call</span>
+                    `;
+                    list.appendChild(entry);
+                });
+            }
+        }
+        document.getElementById('calls-modal-overlay').classList.add('visible');
+    });
+
+    document.getElementById('drawer-design')?.addEventListener('click', () => {
+        closeDrawer();
+        document.getElementById('design-modal-overlay').classList.add('visible');
+    });
+
+    if (drawerCreateGroup) drawerCreateGroup.addEventListener('click', () => {
+        closeDrawer();
+        openGroupModal();
+    });
+
+    if (drawerThemeToggle) drawerThemeToggle.addEventListener('click', (e) => {
+        if (e.target !== themeCheckbox) themeCheckbox.checked = !themeCheckbox.checked;
+        const isLight = document.documentElement.classList.toggle('light-theme');
+        setCookie('theme', isLight ? 'light' : 'dark', 365);
+        if (isLight) {
+            document.getElementById('theme-light-btn')?.classList.add('active');
+            document.getElementById('theme-dark-btn')?.classList.remove('active');
+        } else {
+            document.getElementById('theme-dark-btn')?.classList.add('active');
+            document.getElementById('theme-light-btn')?.classList.remove('active');
+        }
+    });
 }
+
+document.getElementById('avatar-upload-input')?.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.type.startsWith('video/') || file.type.endsWith('gif')) {
+        const isPremium = document.querySelector('meta[name="is-premium"]')?.content === 'True';
+        if (!isPremium) {
+            alert('Установка видео-аватаров доступна только Premium пользователям.');
+            return;
+        }
+    }
+
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+        let finalData = ev.target.result;
+
+        if (file.type.startsWith('image/') && !file.type.endsWith('gif')) {
+            finalData = await compressImage(ev.target.result, 400, 400);
+        }
+
+        try {
+            const resp = await fetch('/api/user/profile', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ avatar: finalData })
+            });
+            if (resp.ok) {
+                const data = await resp.json();
+                const profileContainer = document.getElementById('profile-avatar-container');
+                if (profileContainer) {
+                    profileContainer.innerHTML = renderAvatar(data.avatar, 'profile-big-avatar', 'my-profile-avatar') + '<div class="avatar-edit-overlay"><span class="material-symbols-outlined">photo_camera</span></div>';
+                }
+                const drawerAvatar = document.getElementById('drawer-user-avatar');
+                if (drawerAvatar && drawerAvatar.parentElement) {
+                    drawerAvatar.parentElement.innerHTML = renderAvatar(data.avatar, 'drawer-avatar', 'drawer-user-avatar');
+                }
+                const settingsAvatar = document.getElementById('settingsAvatar');
+                if (settingsAvatar && settingsAvatar.parentElement) {
+                    settingsAvatar.parentElement.innerHTML = renderAvatar(data.avatar, 'avatar', 'settingsAvatar');
+                }
+            }
+        } catch (err) { console.error(err); }
+    };
+    reader.readAsDataURL(file);
+});
+
+async function compressImage(base64, mw, mh) {
+    return new Promise((res) => {
+        const img = new Image();
+        img.src = base64;
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            let w = img.width, h = img.height;
+            if (w > h) { if (w > mw) { h *= mw / w; w = mw; } }
+            else { if (h > mh) { w *= mh / h; h = mh; } }
+            canvas.width = w; canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, w, h);
+            res(canvas.toDataURL('image/jpeg', 0.8));
+        };
+    });
+}
+
+document.querySelectorAll('.accent-color').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const color = btn.getAttribute('data-color');
+        document.documentElement.style.setProperty('--green', color);
+        document.documentElement.style.setProperty('--text-accent', color);
+        document.documentElement.style.setProperty('--green-dim', color + '1f');
+        document.documentElement.style.setProperty('--green-glow', color + '40');
+        document.documentElement.style.setProperty('--green-border', color + '59');
+        document.querySelectorAll('.accent-color').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        setCookie('accent-color', color, 365);
+    });
+});
+
+document.getElementById('theme-dark-btn')?.addEventListener('click', () => {
+    document.documentElement.classList.remove('light-theme');
+    const cb = document.getElementById('theme-checkbox');
+    if (cb) cb.checked = true;
+    document.getElementById('theme-dark-btn').classList.add('active');
+    document.getElementById('theme-light-btn')?.classList.remove('active');
+    setCookie('theme', 'dark', 365);
+});
+
+document.getElementById('theme-light-btn')?.addEventListener('click', () => {
+    document.documentElement.classList.add('light-theme');
+    const cb = document.getElementById('theme-checkbox');
+    if (cb) cb.checked = false;
+    document.getElementById('theme-light-btn').classList.add('active');
+    document.getElementById('theme-dark-btn')?.classList.remove('active');
+    setCookie('theme', 'light', 365);
+});
+
+document.getElementById('font-family-select')?.addEventListener('change', (e) => {
+    document.body.style.setProperty('--main-font', e.target.value);
+    document.documentElement.style.setProperty('font-family', e.target.value);
+    setCookie('font-family', e.target.value, 365);
+});
+
+document.querySelectorAll('.wallpaper-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const wp = btn.getAttribute('data-wallpaper');
+        const chatMsgs = document.getElementById('chat-messages');
+        if (wp === 'none') {
+            chatMsgs.style.backgroundImage = 'none';
+            setCookie('wallpaper', 'none', 365);
+        } else if (wp === 'lines') {
+            chatMsgs.style.backgroundImage = 'url("data:image/svg+xml,%3Csvg width=\'100\' height=\'100\' viewBox=\'0 0 100 100\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cpath d=\'M0 10h100M0 30h100M0 50h100M0 70h100M0 90h100\' fill=\'none\' stroke=\'rgba(255,255,255,0.03)\' stroke-width=\'1\'/%3E%3C/svg%3E")';
+            chatMsgs.style.backgroundRepeat = 'repeat';
+            setCookie('wallpaper', 'lines', 365);
+        }
+    });
+});
+
+document.getElementById('wallpaper-file-btn')?.addEventListener('click', () => {
+    document.getElementById('wallpaper-file-input').click();
+});
+
+document.getElementById('wallpaper-file-input')?.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            document.getElementById('chat-messages').style.backgroundImage = `url(${ev.target.result})`;
+            document.getElementById('chat-messages').style.backgroundSize = 'cover';
+        };
+        reader.readAsDataURL(file);
+    }
+});
+
+window._resetChatSelection = function() {
+    currentChatId = null;
+    currentTargetId = null;
+    document.querySelectorAll('.chat-item').forEach(c => c.classList.remove('active'));
+    noChatState.style.display = 'flex';
+    activeChatLayout.style.display = 'none';
+    if (chatInputWrapper) chatInputWrapper.style.display = 'none';
+};
+
+function loadDesignPresets() {
+    const accent = getCookie('accent-color');
+    if (accent) {
+        document.documentElement.style.setProperty('--green', accent);
+        document.documentElement.style.setProperty('--text-accent', accent);
+        document.documentElement.style.setProperty('--green-dim', accent + '1f');
+        document.documentElement.style.setProperty('--green-glow', accent + '40');
+        document.documentElement.style.setProperty('--green-border', accent + '59');
+    }
+    const wp = getCookie('wallpaper');
+    if (wp) {
+        setTimeout(() => {
+            const btn = document.querySelector(`.wallpaper-btn[data-wallpaper="${wp}"]`);
+            if (btn) btn.click();
+        }, 100);
+    }
+}
+loadDesignPresets();

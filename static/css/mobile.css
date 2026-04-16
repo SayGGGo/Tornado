@@ -276,7 +276,7 @@ html {
     display: flex; align-items: center;
   }
 
-  .reg-step .glass-panel { border-radius: 16px !important; margin-top: 4px; overflow: hidden; }
+  .reg-step .glass-panel { border-radius: 16px !important; margin-top: 4px; overflow-y: auto !important; -webkit-overflow-scrolling: touch; touch-action: pan-y; }
 
   .reg-step .switch-row {
     background: rgba(255,255,255,0.04);
@@ -880,4 +880,117 @@ html {
 @media (hover: none) and (pointer: coarse) {
   .chat-item:active { background: rgba(255,255,255,0.05) !important; }
   .glass-btn:active, .btn:active { filter: brightness(0.88); }
+}
+
+@media (max-width: 768px) {
+    .video-grid {
+        grid-template-columns: 1fr;
+        gap: 8px;
+        padding: 8px;
+    }
+    .video-wrapper {
+        height: 240px;
+        border-radius: 16px;
+    }
+    .call-controls {
+        bottom: 24px;
+        padding: 12px;
+        width: 90%;
+        justify-content: space-around;
+    }
+    .ctrl-btn {
+        width: 50px;
+        height: 50px;
+    }
+    .participants-bar {
+        display: none;
+    }
+    .header-name {
+        font-size: 16px;
+    }
+    .header-status {
+        font-size: 11px;
+    }
+}
+
+@media (max-width: 768px) {
+  
+  .modal-overlay {
+    background: var(--bg, #070708) !important;
+    align-items: flex-start !important;
+    z-index: 2000 !important;
+  }
+  
+  .profile-modal, .design-modal, .calls-modal, .invite-modal, .group-modal {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    border: none !important;
+    padding-top: var(--sat) !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  .modal-top {
+    padding: 20px 15px !important;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+
+  .profile-content, .design-content, .calls-content, .invite-content, .group-content {
+    flex: 1 !important;
+    overflow-y: auto !important;
+    padding: 20px 15px !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  
+  .sidebar .header .menu-btn { display: none !important; }
+  
+  .header-user-avatar-wrap {
+    display: block !important;
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 1.5px solid var(--green);
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  
+  .header-user-avatar-wrap .avatar {
+    width: 100%; height: 100%;
+    object-fit: cover;
+  }
+}
+
+@media (max-width: 768px) {
+  .side-drawer, .drawer-overlay { display: none !important; }
+  .pc-only { display: none !important; }
+  .mobile-only { display: flex !important; }
+
+  .mobile-profile-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    overflow: hidden;
+    cursor: pointer;
+    margin-right: 12px;
+    border: 1.5px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.05);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .mobile-profile-btn img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+@media (min-width: 769px) {
+  .mobile-only { display: none !important; }
 }

@@ -1,8 +1,11 @@
 <div class="sidebar" id="sidebar">
     <div class="header">
-        <button class="menu-btn">
+        <button class="menu-btn pc-only">
             <span class="material-symbols-outlined">menu</span>
         </button>
+        <div class="mobile-profile-btn mobile-only" id="mobile-profile-btn">
+            <img src="{{ current_user.avatar or 'https://ui-avatars.com/api/?name=' ~ current_user.login ~ '&background=random' }}" class="avatar">
+        </div>
 
         <div id="drawer-overlay" class="drawer-overlay"></div>
         <div id="side-drawer" class="side-drawer">
@@ -15,13 +18,13 @@
             </div>
 
             <div class="drawer-items">
-                <div class="drawer-item">
+                <div class="drawer-item" id="drawer-profile">
                     <span class="material-symbols-outlined">person</span>
                     <span>Мой профиль</span>
                 </div>
-                <div class="drawer-item">
-                    <span class="material-symbols-outlined">account_balance_wallet</span>
-                    <span>Кошелёк</span>
+                <div class="drawer-item" id="drawer-premium">
+                    <span class="material-symbols-outlined">stars</span>
+                    <span>Tornado Premium</span>
                 </div>
 
                 <div class="drawer-divider"></div>
@@ -30,25 +33,17 @@
                     <span class="material-symbols-outlined">group</span>
                     <span>Создать группу</span>
                 </div>
-                <div class="drawer-item">
+                <div class="drawer-item" id="drawer-create-channel">
                     <span class="material-symbols-outlined">campaign</span>
                     <span>Создать канал</span>
                 </div>
-                <div class="drawer-item">
-                    <span class="material-symbols-outlined">contacts</span>
-                    <span>Контакты</span>
-                </div>
-                <div class="drawer-item">
+                <div class="drawer-item" id="drawer-calls">
                     <span class="material-symbols-outlined">call</span>
                     <span>Звонки</span>
                 </div>
-                <div class="drawer-item">
-                    <span class="material-symbols-outlined">bookmark</span>
-                    <span>Избранное</span>
-                </div>
-                <div class="drawer-item">
-                    <span class="material-symbols-outlined">settings</span>
-                    <span>Настройки</span>
+                <div class="drawer-item" id="drawer-design">
+                    <span class="material-symbols-outlined">palette</span>
+                    <span>Дизайн</span>
                 </div>
                 <div class="drawer-item" id="drawer-theme-toggle">
                     <span class="material-symbols-outlined">dark_mode</span>
@@ -58,6 +53,10 @@
                         <span class="slider"></span>
                     </div>
                 </div>
+                <a href="https://github.com/SayGGGo/Tornado" target="_blank" class="drawer-item" id="drawer-github" style="text-decoration: none; color: inherit;">
+                    <span class="material-symbols-outlined">code</span>
+                    <span>GitHub</span>
+                </a>
             </div>
 
             <div class="drawer-footer">
