@@ -1,4 +1,4 @@
-<img src="todo.svg">
+<img src="https://tornado.saydef.xyz/for_rdm/todo.svg">
 
 ### ~~Самое важное~~
 - [x] Инициализировать репозиторий

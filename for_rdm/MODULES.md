@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="moduls.svg" alt="TORNADO">
+  <img src="https://tornado.saydef.xyz/for_rdm/moduls.svg" alt="TORNADO">
 </p>
 
 

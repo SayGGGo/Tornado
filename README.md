@@ -1,9 +1,9 @@
 <p align="center">
   <a href="http://89.111.168.223:3000/">
-    <img src="for_rdm/ttext.svg" alt="TORNADO" width="80%">
+    <img src="https://tornado.saydef.xyz/for_rdm/ttext.svg" alt="TORNADO" width="80%">
 </a>
   <a href="http://89.111.168.223:3000/" title="Перейти на сайт">
-    <img src="for_rdm/down.svg" alt="DEMO — TORNADO.SAYDEF.XYZ">
+    <img src="https://tornado.saydef.xyz/for_rdm/down.svg" alt="DEMO — TORNADO.SAYDEF.XYZ">
   </a>
 </p>
 
@@ -30,7 +30,7 @@
 ---
 
 <h2 style="display: flex;justify-content: left; gap: 8px;">
-    <img height="30" src="for_rdm/ttext.svg">
+    <img height="30" src="https://tornado.saydef.xyz/for_rdm/ttext.svg">
 </h2>
 
 — это защищенная коммуникационная платформа, разработанная в рамках модели **B2G и B2B**. Система ориентирована на создание единого цифрового пространства для образовательных центров, ВУЗов и предприятий, обеспечивая безопасный обмен данными и интеграцию с внешними сервисами.
@@ -112,7 +112,7 @@ python app.py
 
 ## Лицензия и цены
 
-<img src="for_rdm/price.png" alt="Прайс">
+<img src="https://tornado.saydef.xyz/for_rdm/price.png" alt="Прайс">
 <p align="center">
 </p>
 
