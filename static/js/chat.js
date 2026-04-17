@@ -298,7 +298,7 @@ document.addEventListener('DOMContentLoaded', function () {
         newDiv.id = 'message-input';
         newDiv.className = messageInput.className;
         newDiv.setAttribute('contenteditable', 'true');
-        newDiv.setAttribute('data-placeholder', messageInput.getAttribute('placeholder') || 'Сообщение');
+        newDiv.setAttribute('data-placeholder', messageInput.getAttribute('placeholder') || 'Сообщение (Shift+Enter — новая строка)');
         messageInput.replaceWith(newDiv);
         messageInput = newDiv;
     }
@@ -335,6 +335,17 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     initEmojiPicker();
+
+    const spotifyToggle = document.getElementById('spotify-toggle');
+    if (spotifyToggle) {
+        spotifyToggle.addEventListener('change', function() {
+            fetch('/api/spotify/toggle', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ enabled: this.checked })
+            });
+        });
+    }
 });
 
 resizer.addEventListener('mousedown', (e) => {
@@ -1233,6 +1244,8 @@ function formatMessageContent(text) {
         return `<img src="${url}" class="animated-emoji-inline" data-cat="${cat}" data-name="${safeName}" title="${safeName}" style="width: 24px; height: 24px; vertical-align: middle; display: inline-block;">`;
     });
 
+    formatted = formatted.replace(/\n/g, '<br>');
+
     return formatted;
 }
 
@@ -1337,7 +1350,13 @@ function bindInputEvents() {
             }
         });
         messageInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            } else if (e.key === 'Enter' && e.shiftKey) {
+                e.preventDefault();
+                document.execCommand('insertLineBreak');
+            }
             if (e.key === 'Escape' && editingMessageId) { cancelEdit(); }
         });
         messageInput.addEventListener('paste', (e) => {
@@ -1593,6 +1612,236 @@ window.setTheme = (theme) => {
     if (scb) scb.checked = (theme === 'dark');
 };
 
+window.setGlassMode = function(enabled) {
+    if (enabled) {
+        document.documentElement.classList.add('glass-mode');
+        setCookie('glass-mode', '1', 365);
+    } else {
+        document.documentElement.classList.remove('glass-mode');
+        setCookie('glass-mode', '0', 365);
+    }
+    document.querySelectorAll('[id^="glass-mode-checkbox"]').forEach(cb => { cb.checked = !!enabled; });
+    document.querySelectorAll('.glass-settings-panel').forEach(p => { p.style.display = enabled ? '' : 'none'; });
+};
+
+window.setGlassParams = function(params) {
+    const saved = JSON.parse(getCookie('glass-params') || '{}');
+    const merged = Object.assign(saved, params);
+    setCookie('glass-params', JSON.stringify(merged), 365);
+
+    if (params.opacity !== undefined) {
+        document.documentElement.style.setProperty('--glass-opacity', params.opacity);
+    }
+
+    const filterParams = {};
+    if (params.preBlur !== undefined) filterParams.preBlur = params.preBlur;
+    if (params.noiseScale !== undefined) filterParams.noiseScale = params.noiseScale;
+    if (params.animationSpeed !== undefined) filterParams.animationSpeed = params.animationSpeed;
+    if (params.baseFrequency !== undefined) filterParams.baseFrequency = params.baseFrequency;
+    if (params.chromaBase !== undefined) filterParams.chromaBase = params.chromaBase;
+    if (params.chromaSpread !== undefined) filterParams.chromaSpread = params.chromaSpread;
+    if (params.highlightOpacity !== undefined) filterParams.highlightOpacity = params.highlightOpacity;
+
+    if (Object.keys(filterParams).length) {
+        window.dispatchEvent(new CustomEvent('glass-update-params', { detail: filterParams }));
+    }
+};
+
+function syncGlassSliders(params) {
+    const safeSet = (sel, key, def) => {
+        document.querySelectorAll(sel).forEach(s => {
+            const v = Number.isFinite(Number(params[key])) ? params[key] : def;
+            s.value = v;
+            if (s.nextElementSibling) s.nextElementSibling.textContent = v;
+        });
+    };
+    safeSet('.glass-opacity-slider', 'opacity',        0.45);
+    safeSet('.glass-blur-slider',    'preBlur',        2);
+    safeSet('.glass-noise-slider',   'noiseScale',     5);
+    safeSet('.glass-speed-slider',   'animationSpeed', 0.3);
+}
+
+window.setGlassLiteMode = function(enabled) {
+    if (enabled) {
+        document.documentElement.classList.add('glass-lite');
+        setCookie('glass-lite', '1', 365);
+    } else {
+        document.documentElement.classList.remove('glass-lite');
+        setCookie('glass-lite', '0', 365);
+    }
+    document.querySelectorAll('[id^="glass-lite-checkbox"]').forEach(cb => { cb.checked = !!enabled; });
+    window.dispatchEvent(new CustomEvent('glass-update-params', { detail: { liteMode: !!enabled } }));
+};
+
+window.setMaterialMode = function(enabled) {
+    if (enabled) {
+        document.documentElement.classList.add('material-theme');
+        setCookie('material-theme', '1', 365);
+    } else {
+        document.documentElement.classList.remove('material-theme');
+        setCookie('material-theme', '0', 365);
+        document.documentElement.classList.remove('light-theme');
+        setCookie('material-light', '0', 365);
+        document.querySelectorAll('[id^="material-light-checkbox"]').forEach(c => { c.checked = false; });
+    }
+    document.querySelectorAll('[id^="material-mode-checkbox"]').forEach(cb => { cb.checked = !!enabled; });
+    document.querySelectorAll('[id^="material-light-row"]').forEach(el => { el.style.display = enabled ? '' : 'none'; });
+};
+
+window.setMaterialLightMode = function(enabled) {
+    if (enabled) {
+        document.documentElement.classList.add('light-theme');
+        setCookie('material-light', '1', 365);
+    } else {
+        document.documentElement.classList.remove('light-theme');
+        setCookie('material-light', '0', 365);
+    }
+    document.querySelectorAll('[id^="material-light-checkbox"]').forEach(cb => { cb.checked = !!enabled; });
+};
+
+const MSG_STYLES = {
+    default:  { bg: null, text: '#000',                  meta: 'rgba(0,0,0,0.5)' },
+    neutral:  { bg: 'rgba(255,255,255,0.09)',             text: 'rgba(255,255,255,0.87)', meta: 'rgba(255,255,255,0.35)' },
+    dark:     { bg: 'rgba(255,255,255,0.05)',             text: 'rgba(255,255,255,0.87)', meta: 'rgba(255,255,255,0.35)' },
+    blue:     { bg: 'rgba(10,132,255,0.85)',              text: '#fff',                  meta: 'rgba(255,255,255,0.55)' },
+    none:     { bg: 'transparent',                       text: 'rgba(255,255,255,0.87)', meta: 'rgba(255,255,255,0.38)' },
+};
+
+window.setMsgOwnStyle = function(style) {
+    const preset = MSG_STYLES[style] || MSG_STYLES.default;
+    const root = document.documentElement;
+    if (preset.bg === null) {
+        const accent = getComputedStyle(root).getPropertyValue('--green').trim();
+        root.style.setProperty('--msg-own-bg', accent.startsWith('#') ? hexToRgba(accent, 0.88) : accent);
+    } else {
+        root.style.setProperty('--msg-own-bg', preset.bg);
+    }
+    root.style.setProperty('--msg-own-text', preset.text);
+    root.style.setProperty('--msg-own-meta', preset.meta);
+    setCookie('msg-own-style', style, 365);
+    document.querySelectorAll('.msg-style-btn').forEach(b => {
+        b.classList.toggle('active', b.getAttribute('data-msg-style') === style);
+    });
+};
+
+function hexToRgba(hex, a) {
+    const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+    return `rgba(${r},${g},${b},${a})`;
+}
+
+let bgEnabled = true;
+
+window.setBgEnabled = function(enabled) {
+    bgEnabled = !!enabled;
+    if (window.bgToggle) window.bgToggle(bgEnabled);
+    setCookie('bg-enabled', bgEnabled ? '1' : '0', 365);
+    document.querySelectorAll('[id^="bg-toggle-btn"]').forEach(el => {
+        el.textContent = bgEnabled ? 'Вкл' : 'Выкл';
+        el.style.color = bgEnabled ? 'var(--green)' : 'var(--text-muted)';
+    });
+    document.querySelectorAll('.bg-settings-panel').forEach(p => {
+        p.style.display = bgEnabled ? '' : 'none';
+    });
+};
+
+window.setBgSettings = function(params) {
+    const saved = JSON.parse(getCookie('bg-params') || '{}');
+    const merged = Object.assign(saved, params);
+    setCookie('bg-params', JSON.stringify(merged), 365);
+    if (window.setBgParams) window.setBgParams(params);
+};
+
+function syncBgSliders(params) {
+    const safeSet = (sel, key, def) => {
+        document.querySelectorAll(sel).forEach(s => {
+            const v = Number.isFinite(params[key]) ? params[key] : def;
+            s.value = v;
+            if (s.nextElementSibling) s.nextElementSibling.textContent = v;
+        });
+    };
+    safeSet('.bg-speed-slider',   'zOffsetSpeed', 0.00009);
+    safeSet('.bg-scale-slider',   'noiseScale',   0.008);
+    safeSet('.bg-lines-slider',   'lineCount',    10);
+    safeSet('.bg-opacity-slider', 'opacity',      0.35);
+    safeSet('.bg-cell-slider',    'cellSize',      8);
+}
+
+const BIND_ACTIONS = {
+    'glass-mode':   { label: 'Liquid Glass',   fn: () => window.setGlassMode(!document.documentElement.classList.contains('glass-mode')) },
+    'material-mode':{ label: 'Material Design',fn: () => window.setMaterialMode(!document.documentElement.classList.contains('material-theme')) },
+    'theme':        { label: 'Тема',           fn: () => setTheme(document.documentElement.classList.contains('light-theme') ? 'dark' : 'light') },
+    'bg-toggle':    { label: 'Фон',            fn: () => window.setBgEnabled(!bgEnabled) },
+    'glass-lite':   { label: 'Lite Glass',     fn: () => window.setGlassLiteMode(!document.documentElement.classList.contains('glass-lite')) },
+};
+
+let keybinds = {};
+let bindRecordingFor = null;
+
+function loadKeybinds() {
+    try { keybinds = JSON.parse(getCookie('keybinds') || '{}'); } catch { keybinds = {}; }
+    document.querySelectorAll('.bind-badge[data-bind-for]').forEach(el => {
+        const id = el.getAttribute('data-bind-for');
+        el.textContent = keybinds[id] ? formatKey(keybinds[id]) : '';
+    });
+}
+
+function saveKeybinds() {
+    setCookie('keybinds', JSON.stringify(keybinds), 365);
+}
+
+function formatKey(code) {
+    return code.replace(/^Key/, '').replace(/^Digit/, '').replace(/^Arrow/, '↑↓←→'['UDLR'.indexOf(code.slice(5))]).replace('AltLeft','Alt').replace('AltRight','Alt⊞').replace('ShiftLeft','⇧').replace('ShiftRight','⇧').replace('ControlLeft','Ctrl').replace('ControlRight','Ctrl⊞').replace('Space','Space');
+}
+
+document.addEventListener('mousedown', function(e) {
+    if (e.button !== 1) return;
+    const row = e.target.closest('[data-bind-id]');
+    if (!row) return;
+    e.preventDefault();
+    const id = row.getAttribute('data-bind-id');
+    if (!BIND_ACTIONS[id]) return;
+
+    bindRecordingFor = id;
+    document.querySelectorAll(`.bind-badge[data-bind-for="${id}"]`).forEach(el => {
+        el.textContent = '...';
+        el.classList.add('bind-recording');
+    });
+
+    const onKey = (ke) => {
+        if (ke.key === 'Escape') {
+            keybinds[id] = '';
+            saveKeybinds();
+        } else {
+            keybinds[id] = ke.code;
+            saveKeybinds();
+        }
+        document.querySelectorAll(`.bind-badge[data-bind-for="${id}"]`).forEach(el => {
+            el.textContent = keybinds[id] ? formatKey(keybinds[id]) : '';
+            el.classList.remove('bind-recording');
+        });
+        bindRecordingFor = null;
+        document.removeEventListener('keydown', onKey, { capture: true });
+    };
+    document.addEventListener('keydown', onKey, { capture: true, once: true });
+});
+
+document.addEventListener('keydown', function(e) {
+    if (bindRecordingFor) return;
+    const activeEl = document.activeElement;
+    if (activeEl && (activeEl.isContentEditable || activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) return;
+    for (const [id, code] of Object.entries(keybinds)) {
+        if (!code || e.code !== code) continue;
+        const action = BIND_ACTIONS[id];
+        if (!action) continue;
+        e.preventDefault();
+        action.fn();
+        if (window.islandEmit) {
+            window.islandEmit('island:status', { text: action.label, color: 'var(--green)', autoDismiss: true });
+        }
+        break;
+    }
+}, { capture: true });
+
 window._sendMessageToChat = async function(chatId, text) {
     if (!chatId || !text) return;
     try { const resp = await fetch('/api/messages', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: parseInt(chatId), content: text }) }); if (resp.ok) { pollNewMessages(); updateSidebar(); } } catch (e) {}
@@ -1629,8 +1878,129 @@ bindChatClickEvents();
 function setCookie(n, v, d) { let e = ""; if (d) { let dt = new Date(); dt.setTime(dt.getTime() + d * 86400000); e = "; expires=" + dt.toUTCString(); } document.cookie = n + "=" + (v || "") + e + "; path=/"; }
 function getCookie(n) { let eq = n + "="; for (let c of document.cookie.split(';')) { c = c.trim(); if (c.indexOf(eq) === 0) return c.substring(eq.length); } return null; }
 
-function initTheme() { const t = getCookie('theme'); const cb = document.getElementById('theme-checkbox'); if (t === 'light') { document.documentElement.classList.add('light-theme'); if (cb) cb.checked = false; } else { if (cb) cb.checked = true; } }
+function initTheme() {
+    const t = getCookie('theme');
+    const cb = document.getElementById('theme-checkbox');
+    if (t === 'light') {
+        document.documentElement.classList.add('light-theme');
+        if (cb) cb.checked = false;
+    } else {
+        if (cb) cb.checked = true;
+    }
+    if (getCookie('glass-mode') === '1') {
+        document.documentElement.classList.add('glass-mode');
+        document.querySelectorAll('[id^="glass-mode-checkbox"]').forEach(c => { c.checked = true; });
+        document.querySelectorAll('.glass-settings-panel').forEach(p => { p.style.display = ''; });
+        const gp = JSON.parse(getCookie('glass-params') || '{}');
+        if (gp.opacity !== undefined) document.documentElement.style.setProperty('--glass-opacity', gp.opacity);
+        if (Object.keys(gp).length) {
+            syncGlassSliders(gp);
+            window.__glassInitParams = gp;
+            window.dispatchEvent(new CustomEvent('glass-update-params', { detail: gp }));
+        }
+        if (getCookie('glass-lite') === '1') {
+            document.documentElement.classList.add('glass-lite');
+            document.querySelectorAll('[id^="glass-lite-checkbox"]').forEach(c => { c.checked = true; });
+            window.__glassInitParams = Object.assign(window.__glassInitParams || {}, { liteMode: true });
+        }
+    }
+    if (getCookie('material-theme') === '1') {
+        document.documentElement.classList.add('material-theme');
+        document.querySelectorAll('[id^="material-mode-checkbox"]').forEach(c => { c.checked = true; });
+        document.querySelectorAll('[id^="material-light-row"]').forEach(el => { el.style.display = ''; });
+        if (getCookie('material-light') === '1') {
+            document.documentElement.classList.add('light-theme');
+            document.querySelectorAll('[id^="material-light-checkbox"]').forEach(c => { c.checked = true; });
+        }
+    }
+    const ms = getCookie('msg-own-style');
+    if (ms && MSG_STYLES[ms]) window.setMsgOwnStyle(ms);
+    else {
+        document.querySelectorAll('.msg-style-btn[data-msg-style="default"]').forEach(b => b.classList.add('active'));
+    }
+    if (getCookie('bg-enabled') === '0') {
+        bgEnabled = false;
+        document.querySelectorAll('[id^="bg-toggle-btn"]').forEach(el => {
+            el.textContent = 'Выкл';
+            el.style.color = 'var(--text-muted)';
+        });
+        if (window.bgToggle) window.bgToggle(false);
+    } else {
+        bgEnabled = true;
+        document.querySelectorAll('.bg-settings-panel').forEach(p => { p.style.display = ''; });
+    }
+    const bp = JSON.parse(getCookie('bg-params') || '{}');
+    if (Object.keys(bp).length) {
+        syncBgSliders(bp);
+        if (window.setBgParams) window.setBgParams(bp);
+    }
+    loadKeybinds();
+}
 initTheme();
+
+document.addEventListener('change', function(e) {
+    const id = e.target?.id || '';
+    if (id.startsWith('glass-mode-checkbox')) window.setGlassMode(e.target.checked);
+    if (id.startsWith('glass-lite-checkbox')) window.setGlassLiteMode(e.target.checked);
+    if (id.startsWith('material-mode-checkbox')) {
+        window.setMaterialMode(e.target.checked);
+        document.querySelectorAll('[id^="material-light-row"]').forEach(el => {
+            el.style.display = e.target.checked ? '' : 'none';
+        });
+        if (!e.target.checked) {
+            document.querySelectorAll('[id^="material-light-checkbox"]').forEach(c => { c.checked = false; });
+            window.setMaterialLightMode(false);
+        }
+    }
+    if (id.startsWith('material-light-checkbox')) window.setMaterialLightMode(e.target.checked);
+});
+
+document.addEventListener('click', function(e) {
+    if (e.target && (e.target.id?.startsWith('bg-toggle-btn'))) {
+        window.setBgEnabled(!bgEnabled);
+    }
+    if (e.target && e.target.classList.contains('msg-style-btn')) {
+        const style = e.target.getAttribute('data-msg-style');
+        if (style) window.setMsgOwnStyle(style);
+    }
+});
+
+document.addEventListener('input', function(e) {
+    const t = e.target;
+    if (!t || !t.classList) return;
+    const val = parseFloat(t.value);
+    const valEl = t.nextElementSibling;
+    if (valEl) valEl.textContent = val;
+
+    if (t.classList.contains('glass-opacity-slider')) {
+        document.querySelectorAll('.glass-opacity-slider').forEach(s => { if (s !== t) { s.value = val; if (s.nextElementSibling) s.nextElementSibling.textContent = val; } });
+        window.setGlassParams({ opacity: val });
+    } else if (t.classList.contains('glass-blur-slider')) {
+        document.querySelectorAll('.glass-blur-slider').forEach(s => { if (s !== t) { s.value = val; if (s.nextElementSibling) s.nextElementSibling.textContent = val; } });
+        window.setGlassParams({ preBlur: val });
+    } else if (t.classList.contains('glass-noise-slider')) {
+        document.querySelectorAll('.glass-noise-slider').forEach(s => { if (s !== t) { s.value = val; if (s.nextElementSibling) s.nextElementSibling.textContent = val; } });
+        window.setGlassParams({ noiseScale: val });
+    } else if (t.classList.contains('glass-speed-slider')) {
+        document.querySelectorAll('.glass-speed-slider').forEach(s => { if (s !== t) { s.value = val; if (s.nextElementSibling) s.nextElementSibling.textContent = val; } });
+        window.setGlassParams({ animationSpeed: val });
+    } else if (t.classList.contains('bg-speed-slider')) {
+        document.querySelectorAll('.bg-speed-slider').forEach(s => { if (s !== t) { s.value = val; if (s.nextElementSibling) s.nextElementSibling.textContent = val; } });
+        window.setBgSettings({ zOffsetSpeed: val });
+    } else if (t.classList.contains('bg-scale-slider')) {
+        document.querySelectorAll('.bg-scale-slider').forEach(s => { if (s !== t) { s.value = val; if (s.nextElementSibling) s.nextElementSibling.textContent = val; } });
+        window.setBgSettings({ noiseScale: val });
+    } else if (t.classList.contains('bg-lines-slider')) {
+        document.querySelectorAll('.bg-lines-slider').forEach(s => { if (s !== t) { s.value = val; if (s.nextElementSibling) s.nextElementSibling.textContent = val; } });
+        window.setBgSettings({ lineCount: val });
+    } else if (t.classList.contains('bg-opacity-slider')) {
+        document.querySelectorAll('.bg-opacity-slider').forEach(s => { if (s !== t) { s.value = val; if (s.nextElementSibling) s.nextElementSibling.textContent = val; } });
+        window.setBgSettings({ opacity: val });
+    } else if (t.classList.contains('bg-cell-slider')) {
+        document.querySelectorAll('.bg-cell-slider').forEach(s => { if (s !== t) { s.value = val; if (s.nextElementSibling) s.nextElementSibling.textContent = val; } });
+        window.setBgSettings({ cellSize: val });
+    }
+});
 
 const menuBtn = document.querySelector('.menu-btn');
 const sideDrawer = document.getElementById('side-drawer');

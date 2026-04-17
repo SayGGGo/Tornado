@@ -57,4 +57,4 @@ class GroupScraper:
                 return groups
         except Exception as e:
             logger.error(f"Scraper error: {e}")
-            return self.cache["data"] or [{"name": "Ошибка загрузки", "value": "error"}]
+            return self.cache["data"] or []
