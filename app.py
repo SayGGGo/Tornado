@@ -44,8 +44,8 @@ register_spotify(app)
 
 @app.before_request
 def anti_ddos():
-    if not DDoSGuard.check(request.remote_addr):
-        return jsonify({"error": "Anti-DDoS Block"}), 429
+    if not DDoSGuard.check(request.remote_addr, request.headers.get('User-Agent'), request.method, request.path, request.referrer):
+        return jsonify({"error": "Anti-System Block"}), 429
 
 @app.teardown_appcontext
 def shutdown_session(exception=None):

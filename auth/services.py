@@ -12,7 +12,7 @@ active_auth_requests = {}
 
 class AuthService:
     def register_user(self, data):
-        if not SecurityManager.verify_captcha(data):
+        if not SecurityManager.verify_captcha(data) or data.get("website"):
             return {"success": False, "message": "Капча не пройдена"}
 
         required_fields = ["fio", "login", "password", "password_retry"]
@@ -54,7 +54,7 @@ class AuthService:
         return {"success": True, "redirect": url_for("chat")}
 
     def login_user(self, data):
-        if not SecurityManager.verify_captcha(data):
+        if not SecurityManager.verify_captcha(data) or data.get("website"):
             return {"success": False, "message": "Капча не пройдена"}
 
         user = User.query.filter_by(login=data.get("login")).first()
