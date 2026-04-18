@@ -46,8 +46,20 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          timeout: 120s
+          command_timeout: 10m
           script: |
             cd /root/Tornado || exit
-            git pull origin main
+            git fetch --all
+            git reset --hard origin/main
             ./venv/bin/pip install -r requirements.txt
+            
+            # Настройка авторестарта в systemd (если сервис существует)
+            if [ -f /etc/systemd/system/flask_app.service ]; then
+                sudo sed -i '/^Restart=/d' /etc/systemd/system/flask_app.service
+                sudo sed -i '/^RestartSec=/d' /etc/systemd/system/flask_app.service
+                sudo sed -i '/\[Service\]/a Restart=always\nRestartSec=5' /etc/systemd/system/flask_app.service
+                sudo systemctl daemon-reload
+            fi
+            
             sudo systemctl restart flask_app

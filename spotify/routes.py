@@ -34,6 +34,7 @@ def register_spotify(app):
                 "client_id": Config.SPOTIFY_CLIENT_ID,
                 "client_secret": Config.SPOTIFY_CLIENT_SECRET,
             },
+            timeout=10
         )
         
         token_data = response.json()
@@ -63,6 +64,7 @@ def register_spotify(app):
                 "client_id": Config.SPOTIFY_CLIENT_ID,
                 "client_secret": Config.SPOTIFY_CLIENT_SECRET,
             },
+            timeout=10
         )
         
         token_data = response.json()
@@ -89,7 +91,7 @@ def register_spotify(app):
                 
         headers = {"Authorization": f"Bearer {user.spotify_token}"}
         try:
-            res = requests.get("https://api.spotify.com/v1/me/player/currently-playing", headers=headers)
+            res = requests.get("https://api.spotify.com/v1/me/player/currently-playing", headers=headers, timeout=5)
             if res.status_code == 204:
                 return jsonify({"ok": True, "active": False})
             
@@ -103,7 +105,7 @@ def register_spotify(app):
             
             if track_id:
                 try:
-                    features_res = requests.get(f"https://api.spotify.com/v1/audio-features/{track_id}", headers=headers)
+                    features_res = requests.get(f"https://api.spotify.com/v1/audio-features/{track_id}", headers=headers, timeout=5)
                     if features_res.status_code == 200:
                         features_data = features_res.json()
                         tempo = features_data.get("tempo", 120)
@@ -139,13 +141,13 @@ def register_spotify(app):
         
         try:
             if action == "play":
-                requests.put("https://api.spotify.com/v1/me/player/play", headers=headers)
+                requests.put("https://api.spotify.com/v1/me/player/play", headers=headers, timeout=5)
             elif action == "pause":
-                requests.put("https://api.spotify.com/v1/me/player/pause", headers=headers)
+                requests.put("https://api.spotify.com/v1/me/player/pause", headers=headers, timeout=5)
             elif action == "next":
-                requests.post("https://api.spotify.com/v1/me/player/next", headers=headers)
+                requests.post("https://api.spotify.com/v1/me/player/next", headers=headers, timeout=5)
             elif action == "prev":
-                requests.post("https://api.spotify.com/v1/me/player/previous", headers=headers)
+                requests.post("https://api.spotify.com/v1/me/player/previous", headers=headers, timeout=5)
             
             return jsonify({"ok": True})
         except Exception as e:

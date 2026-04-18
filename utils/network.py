@@ -32,14 +32,15 @@ class NetworkTools:
 
 
 class GroupScraper:
+    _cache = {"data": [], "last_updated": 0}
+
     def __init__(self):
-        self.cache = {"data": [], "last_updated": 0}
         self.url = "https://genius-school.kuzstu.ru/%D1%80%D0%B0%D1%81%D0%BF%D0%B8%D1%81%D0%B0%D0%BD%D0%B8%D0%B5/"
 
     def fetch_groups(self):
         current_time = time.time()
-        if self.cache["data"] and (current_time - self.cache["last_updated"] < 3600):
-            return self.cache["data"]
+        if self._cache["data"] and (current_time - self._cache["last_updated"] < 3600):
+            return self._cache["data"]
 
         try:
             res = requests.get(self.url, timeout=10)
@@ -53,8 +54,8 @@ class GroupScraper:
             ]
 
             if groups:
-                self.cache.update({"data": groups, "last_updated": current_time})
+                self._cache.update({"data": groups, "last_updated": current_time})
                 return groups
         except Exception as e:
             logger.error(f"Scraper error: {e}")
-            return self.cache["data"] or []
+            return self._cache["data"] or []

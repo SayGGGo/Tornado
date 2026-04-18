@@ -34,19 +34,23 @@ app.config['SECRET_KEY'] = Config.SECRET_KEY
 
 init_models(app)
 
+register_bot_api(app)
+register_auth(app)
+register_system(app)
+register_chat(app)
+register_admin(app)
+register_spotify(app)
+
+@app.teardown_appcontext
+def shutdown_session(exception=None):
+    db.session.remove()
+
 server_ip_cache = None
 groups_cache = {"data": [], "last_updated": 0}
 
 if __name__ == "__main__":
     from dotenv import load_dotenv
     load_dotenv()
-    
-    register_bot_api(app)
-    register_auth(app)
-    register_system(app)
-    register_chat(app)
-    register_admin(app)
-    register_spotify(app)
 
     ssl_ctx = None
     if Config.USE_SSL:
