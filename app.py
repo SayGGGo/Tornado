@@ -21,6 +21,7 @@ from config import Config, logger
 from botapi import register_bot_api
 from models import init_models, User, Chat, Message, ChatParticipant, Settings, db
 from utils import verify_turnstile, get_groups, get_randomization, verify_key, check_github_updates
+from utils.security import DDoSGuard
 from auth import register_auth
 from system import register_system
 from chat import register_chat
@@ -40,6 +41,11 @@ register_system(app)
 register_chat(app)
 register_admin(app)
 register_spotify(app)
+
+@app.before_request
+def anti_ddos():
+    if not DDoSGuard.check(request.remote_addr):
+        return jsonify({"error": "Anti-DDoS Block"}), 429
 
 @app.teardown_appcontext
 def shutdown_session(exception=None):

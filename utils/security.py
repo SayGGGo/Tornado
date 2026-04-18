@@ -107,3 +107,22 @@ class SecurityManager:
         except Exception as e:
             logger.error(f"License verification error: {e}")
             return False
+
+class DDoSGuard:
+    _p = {}
+    _b = {}
+    @classmethod
+    def check(cls, ip):
+        import time
+        n = time.time()
+        if ip in cls._b:
+            if n < cls._b[ip]: return False
+            del cls._b[ip]
+        if ip not in cls._p: cls._p[ip] = []
+        cls._p[ip] = [t for t in cls._p[ip] if n - t < 10]
+        cls._p[ip].append(n)
+        if len(cls._p[ip]) > 60:
+            cls._b[ip] = n + 600
+            logger.warning(f"[DDoSGuard] Banned {ip}")
+            return False
+        return True
