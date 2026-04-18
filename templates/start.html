@@ -135,6 +135,7 @@
                     <span class="step-title-mobile">Расскажите о себе</span>
                     <span class="step-subtitle-mobile">Выберите вашу группу и заполните дополнительные поля</span>
 
+                    {% if groups %}
                     <div class="form-row select-row">
                         <label>Группа <span class="required">*</span></label>
                         <div class="custom-select" id="cs-position">
@@ -147,9 +148,12 @@
                                     <div class="cs-option" data-value="{{ group.value }}">{{ group.name }}</div>
                                 {% endfor %}
                             </div>
-                            <input type="hidden" name="position" id="position_input" required>
+                            <input type="hidden" name="position" id="position_input">
                         </div>
                     </div>
+                    {% else %}
+                    <input type="hidden" name="position" id="position_input" value="">
+                    {% endif %}
 
                     <div id="dynamic-fields" style="display: none; opacity: 0; transition: opacity 0.5s ease;">
 

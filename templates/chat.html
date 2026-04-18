@@ -28,6 +28,9 @@
             height: 0;
             overflow: visible;
         }
+        @media (max-width: 768px) {
+            #dynamic-island-root { display: none !important; }
+        }
     </style>
     {% include 'more.html' %}
 </head>
@@ -55,7 +58,7 @@
                 </div>
 
                 <div class="chat-header-wrapper">
-                    <div class="chat-layout-header liquid-glass-fallback">
+                    <div class="chat-layout-header liquid-glass">
                         <div class="chat-user-info">
                             <button class="mobile-chat-back" id="mobileChatBack" style="display:none;" aria-label="Назад">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
@@ -122,7 +125,7 @@
                     <button class="icon-btn smile-btn" id="emoji-toggle-btn">
                         <span class="material-symbols-outlined">mood</span>
                     </button>
-                    <textarea id="message-input" class="chat-input" placeholder="Сообщение" rows="1"></textarea>
+                    <textarea id="message-input" class="chat-input" placeholder="Сообщение (Shift+Enter — новая строка)"></textarea>
                     <input type="file" id="file-input" style="display:none;" accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.zip,.rar,.txt,.csv,.xls,.xlsx" multiple>
                     <button class="icon-btn attach-btn" id="attach-btn">
                         <span class="material-symbols-outlined">attach_file</span>
@@ -284,8 +287,19 @@
                         <div class="accent-color" style="background: #34c759;" data-color="#34c759"></div>
                         <div class="accent-color" style="background: #007aff;" data-color="#007aff"></div>
                         <div class="accent-color" style="background: #af52de;" data-color="#af52de"></div>
+                        <div class="accent-color" style="background: #D0BCFF;" data-color="#D0BCFF"></div>
                         <div class="accent-color" style="background: #ff9500;" data-color="#ff9500"></div>
                         <div class="accent-color" style="background: #ff3b30;" data-color="#ff3b30"></div>
+                    </div>
+                </div>
+                <div class="design-section" style="margin-top:24px;">
+                    <div class="section-title">Мои сообщения</div>
+                    <div class="msg-style-options">
+                        <button class="msg-style-btn active" data-msg-style="default">Акцентный</button>
+                        <button class="msg-style-btn" data-msg-style="neutral">Нейтральный</button>
+                        <button class="msg-style-btn" data-msg-style="dark">Тёмный</button>
+                        <button class="msg-style-btn" data-msg-style="blue">Синий</button>
+                        <button class="msg-style-btn" data-msg-style="none">Без фона</button>
                     </div>
                 </div>
                 <div class="design-section" style="margin-top:24px;">
@@ -300,6 +314,97 @@
                     <div class="wallpaper-options">
                         <button class="wallpaper-btn" data-wallpaper="lines">Линии</button>
                         <button class="wallpaper-btn" data-wallpaper="none">Пустые</button>
+                    </div>
+                </div>
+                <div class="design-section" style="margin-top:24px;">
+                    <div class="section-title">Оформление</div>
+                    <div class="design-mode-row" data-bind-id="glass-mode">
+                        <span class="material-symbols-outlined" style="font-size:18px;color:var(--text-dim);">blur_on</span>
+                        <span style="flex:1;">Liquid Glass</span>
+                        <kbd class="bind-badge" data-bind-for="glass-mode" title="СКМ — назначить бинд"></kbd>
+                        <label class="theme-switch">
+                            <input type="checkbox" id="glass-mode-checkbox-mob">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="glass-settings-panel" id="glass-settings-mob">
+                        <div class="glass-preview-wrap">
+                            <div class="glass-preview-box liquid-glass">Предпросмотр</div>
+                        </div>
+                        <div class="glass-slider-row">
+                            <label>Прозрачность</label>
+                            <input type="range" class="glass-opacity-slider" min="0.1" max="0.9" step="0.05" value="0.45">
+                            <span class="glass-val">0.45</span>
+                        </div>
+                        <div class="glass-slider-row">
+                            <label>Размытие</label>
+                            <input type="range" class="glass-blur-slider" min="0" max="8" step="0.5" value="2">
+                            <span class="glass-val">2</span>
+                        </div>
+                        <div class="glass-slider-row">
+                            <label>Шум</label>
+                            <input type="range" class="glass-noise-slider" min="0" max="20" step="0.5" value="5">
+                            <span class="glass-val">5</span>
+                        </div>
+                        <div class="glass-slider-row">
+                            <label>Скорость анимации</label>
+                            <input type="range" class="glass-speed-slider" min="0" max="2" step="0.1" value="0.3">
+                            <span class="glass-val">0.3</span>
+                        </div>
+                        <div class="design-mode-row" style="padding:6px 0;border:none;">
+                            <span class="material-symbols-outlined" style="font-size:16px;color:var(--text-dim);">bolt</span>
+                            <span style="flex:1;font-size:13px;">Lite (слабые устройства)</span>
+                            <label class="theme-switch">
+                                <input type="checkbox" id="glass-lite-checkbox-mob">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="design-mode-row" data-bind-id="material-mode">
+                        <span class="material-symbols-outlined" style="font-size:18px;color:var(--text-dim);">palette</span>
+                        <span style="flex:1;">Material Design 3</span>
+                        <kbd class="bind-badge" data-bind-for="material-mode" title="СКМ — назначить бинд"></kbd>
+                        <label class="theme-switch">
+                            <input type="checkbox" id="material-mode-checkbox-mob">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="material-sub-row" id="material-light-row-mob" style="display:none;padding:6px 0 0 26px;">
+                        <span style="font-size:12px;color:var(--text-muted);flex:1;">Светлая тема MD3</span>
+                        <label class="theme-switch">
+                            <input type="checkbox" id="material-light-checkbox-mob">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+                <div class="design-section" style="margin-top:24px;">
+                    <div class="section-title">Фон <span id="bg-toggle-btn-mob" style="float:right;cursor:pointer;font-size:11px;color:var(--text-muted);font-weight:500;">Вкл</span></div>
+                    <div class="bg-settings-panel" id="bg-settings-mob">
+                        <div class="glass-slider-row">
+                            <label>Скорость</label>
+                            <input type="range" class="bg-speed-slider" min="0.00001" max="0.0003" step="0.00001" value="0.00009">
+                            <span class="glass-val">0.09</span>
+                        </div>
+                        <div class="glass-slider-row">
+                            <label>Масштаб</label>
+                            <input type="range" class="bg-scale-slider" min="0.002" max="0.02" step="0.001" value="0.008">
+                            <span class="glass-val">0.008</span>
+                        </div>
+                        <div class="glass-slider-row">
+                            <label>Линий</label>
+                            <input type="range" class="bg-lines-slider" min="1" max="20" step="1" value="10">
+                            <span class="glass-val">10</span>
+                        </div>
+                        <div class="glass-slider-row">
+                            <label>Прозрачность</label>
+                            <input type="range" class="bg-opacity-slider" min="0.05" max="1" step="0.05" value="0.35">
+                            <span class="glass-val">0.35</span>
+                        </div>
+                        <div class="glass-slider-row">
+                            <label>Размер ячейки</label>
+                            <input type="range" class="bg-cell-slider" min="4" max="20" step="1" value="8">
+                            <span class="glass-val">8</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -458,31 +563,158 @@
                 </button>
             </div>
             <div class="design-content">
-                <div class="design-section">
-                    <div class="section-title">Акцентный цвет</div>
-                    <div class="accent-colors">
-                        <div class="accent-color" style="background: #34c759;" data-color="#34c759"></div>
-                        <div class="accent-color" style="background: #007aff;" data-color="#007aff"></div>
-                        <div class="accent-color" style="background: #af52de;" data-color="#af52de"></div>
-                        <div class="accent-color" style="background: #ff9500;" data-color="#ff9500"></div>
-                        <div class="accent-color" style="background: #ff3b30;" data-color="#ff3b30"></div>
+                <div class="design-grid">
+                    <div class="design-column">
+                        <div class="design-section">
+                            <div class="section-title">Акцентный цвет</div>
+                            <div class="accent-colors">
+                                <div class="accent-color" style="background: #34c759;" data-color="#34c759"></div>
+                                <div class="accent-color" style="background: #007aff;" data-color="#007aff"></div>
+                                <div class="accent-color" style="background: #af52de;" data-color="#af52de"></div>
+                                <div class="accent-color" style="background: #D0BCFF;" data-color="#D0BCFF"></div>
+                                <div class="accent-color" style="background: #ff9500;" data-color="#ff9500"></div>
+                                <div class="accent-color" style="background: #ff3b30;" data-color="#ff3b30"></div>
+                            </div>
+                        </div>
+                        <div class="design-section">
+                            <div class="section-title">Мои сообщения</div>
+                            <div class="msg-style-options">
+                                <button class="msg-style-btn active" data-msg-style="default">Акцентный</button>
+                                <button class="msg-style-btn" data-msg-style="neutral">Нейтральный</button>
+                                <button class="msg-style-btn" data-msg-style="dark">Тёмный</button>
+                                <button class="msg-style-btn" data-msg-style="blue">Синий</button>
+                                <button class="msg-style-btn" data-msg-style="none">Без фона</button>
+                            </div>
+                        </div>
+                        <div class="design-section">
+                            <div class="section-title">Тема</div>
+                            <div class="theme-options">
+                                <button class="theme-btn active" id="theme-dark-btn">Темная</button>
+                                <button class="theme-btn" id="theme-light-btn">Светлая</button>
+                            </div>
+                        </div>
+                        <div class="design-section">
+                            <div class="section-title">Обои для чатов</div>
+                            <div class="wallpaper-options">
+                                <button class="wallpaper-btn" data-wallpaper="lines">Линии</button>
+                                <button class="wallpaper-btn" data-wallpaper="none">Пустые</button>
+                                <button class="wallpaper-btn" id="wallpaper-file-btn">Из файла</button>
+                                <input type="file" id="wallpaper-file-input" style="display:none;" accept="image/*">
+                            </div>
+                        </div>
                     </div>
-                </div>
-                <div class="design-section">
-                    <div class="section-title">Тема</div>
-                    <div class="theme-options">
-                        <button class="theme-btn active" id="theme-dark-btn">Темная</button>
-                        <button class="theme-btn" id="theme-light-btn">Светлая</button>
-                    </div>
-                </div>
-                </div>
-                <div class="design-section">
-                    <div class="section-title">Обои для чатов</div>
-                    <div class="wallpaper-options">
-                        <button class="wallpaper-btn" data-wallpaper="lines">Линии</button>
-                        <button class="wallpaper-btn" data-wallpaper="none">Пустые</button>
-                        <button class="wallpaper-btn" id="wallpaper-file-btn">Из файла</button>
-                        <input type="file" id="wallpaper-file-input" style="display:none;" accept="image/*">
+
+                    <div class="design-column">
+                        <div class="design-section">
+                            <div class="section-title">Динамический остров</div>
+                            <div class="island-preview-container">
+                                <div class="island-preview-mock">
+                                     <div id="island-preview-root" style="transform: scale(0.85); margin-top: 10px;"></div>
+                                </div>
+                                <div style="width: 100%;">
+                                    <div class="design-mode-row" style="padding: 0; border: none; margin-bottom: 20px;">
+                                        <span class="material-symbols-outlined" style="font-size: 18px; color: #1DB954;">music_note</span>
+                                        <span style="flex: 1; margin-left: 10px;">Spotify Integration</span>
+                                        <label class="theme-switch">
+                                            <input type="checkbox" id="spotify-toggle" {% if current_user.spotify_enabled %}checked{% endif %}>
+                                            <span class="slider"></span>
+                                        </label>
+                                    </div>
+                                    <button id="spotify-connect-btn" class="spotify-connect-btn {% if current_user.spotify_token %}connected{% endif %}" onclick="location.href='/spotify/login'">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.503 17.295c-.218.358-.684.469-1.042.251-2.88-1.758-6.505-2.157-10.776-1.18-.411.096-.819-.162-.915-.572s.162-.819.572-.915c4.686-1.072 8.7-.605 11.91 1.353.357.218.468.684.251 1.043zm1.47-3.262c-.275.446-.853.587-1.299.312-3.296-2.025-8.319-2.612-12.216-1.429-.504.153-1.04-.132-1.193-.636s.132-1.04.636-1.193c4.46-1.353 10-1.687 13.76.623.446.275.587.853.312 1.299zm.127-3.386C15.116 8.356 8.52 8.138 4.718 9.292c-.612.185-1.258-.162-1.444-.775-.185-.612.162-1.258.775-1.444 4.368-1.325 11.643-1.072 16.236 1.655.55.326.734 1.036.408 1.586s-1.036.734-1.586.408z"/>
+                                        </svg>
+                                        {% if current_user.spotify_token %}Переподключить Spotify{% else %}Подключить Spotify{% endif %}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="design-section" style="margin-top: 24px;">
+                            <div class="section-title">Оформление</div>
+                            <div class="design-mode-row" data-bind-id="glass-mode">
+                                <span class="material-symbols-outlined" style="font-size:18px;color:var(--text-dim);">blur_on</span>
+                                <span style="flex:1;">Liquid Glass</span>
+                                <kbd class="bind-badge" data-bind-for="glass-mode" title="СКМ — назначить бинд"></kbd>
+                                <label class="theme-switch">
+                                    <input type="checkbox" id="glass-mode-checkbox">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div class="glass-settings-panel" id="glass-settings-desktop">
+                                <div class="glass-preview-wrap">
+                                    <div class="glass-preview-box liquid-glass">Предпросмотр</div>
+                                </div>
+                                <div class="glass-slider-row">
+                                    <label>Прозрачность</label>
+                                    <input type="range" class="glass-opacity-slider" min="0.1" max="0.9" step="0.05" value="0.45">
+                                    <span class="glass-val">0.45</span>
+                                </div>
+                                <div class="glass-slider-row">
+                                    <label>Размытие</label>
+                                    <input type="range" class="glass-blur-slider" min="0" max="8" step="0.5" value="2">
+                                    <span class="glass-val">2</span>
+                                </div>
+                                <div class="glass-slider-row">
+                                    <label>Шум</label>
+                                    <input type="range" class="glass-noise-slider" min="0" max="20" step="0.5" value="5">
+                                    <span class="glass-val">5</span>
+                                </div>
+                                <div class="glass-slider-row">
+                                    <label>Скорость анимации</label>
+                                    <input type="range" class="glass-speed-slider" min="0" max="2" step="0.1" value="0.3">
+                                    <span class="glass-val">0.3</span>
+                                </div>
+                                <div class="design-mode-row" style="padding:6px 0;border:none;">
+                                    <span class="material-symbols-outlined" style="font-size:16px;color:var(--text-dim);">bolt</span>
+                                    <span style="flex:1;font-size:13px;">Lite (слабые устройства)</span>
+                                    <label class="theme-switch">
+                                        <input type="checkbox" id="glass-lite-checkbox">
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="design-mode-row" data-bind-id="material-mode">
+                                <span class="material-symbols-outlined" style="font-size:18px;color:var(--text-dim);">palette</span>
+                                <span style="flex:1;">Material Design 3</span>
+                                <kbd class="bind-badge" data-bind-for="material-mode" title="СКМ — назначить бинд"></kbd>
+                                <label class="theme-switch">
+                                    <input type="checkbox" id="material-mode-checkbox">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="design-section" style="margin-top: 24px;">
+                            <div class="section-title">Фон <span id="bg-toggle-btn-desktop" style="float:right;cursor:pointer;font-size:11px;color:var(--text-muted);font-weight:500;">Вкл</span></div>
+                            <div class="bg-settings-panel" id="bg-settings-desktop">
+                                <div class="glass-slider-row">
+                                    <label>Скорость</label>
+                                    <input type="range" class="bg-speed-slider" min="0.00001" max="0.0003" step="0.00001" value="0.00009">
+                                    <span class="glass-val">0.09</span>
+                                </div>
+                                <div class="glass-slider-row">
+                                    <label>Масштаб</label>
+                                    <input type="range" class="bg-scale-slider" min="0.002" max="0.02" step="0.001" value="0.008">
+                                    <span class="glass-val">0.008</span>
+                                </div>
+                                <div class="glass-slider-row">
+                                    <label>Линий</label>
+                                    <input type="range" class="bg-lines-slider" min="1" max="20" step="1" value="10">
+                                    <span class="glass-val">10</span>
+                                </div>
+                                <div class="glass-slider-row">
+                                    <label>Прозрачность</label>
+                                    <input type="range" class="bg-opacity-slider" min="0.05" max="1" step="0.05" value="0.35">
+                                    <span class="glass-val">0.35</span>
+                                </div>
+                                <div class="glass-slider-row">
+                                    <label>Размер ячейки</label>
+                                    <input type="range" class="bg-cell-slider" min="4" max="20" step="1" value="8">
+                                    <span class="glass-val">8</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

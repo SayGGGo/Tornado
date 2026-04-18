@@ -325,3 +325,36 @@ def register_chat(app):
 
         result = chat_service.delete_chat(chat_id, session["user_id"])
         return jsonify(result), 200 if "success" in result else 403
+
+    @app.route("/api/user/profile", methods=["POST"])
+    def update_user_profile():
+        if "user_id" not in session:
+            return jsonify({"error": "Unauthorized"}), 401
+
+        user = db.session.get(User, session["user_id"])
+        if not user:
+            return jsonify({"error": "Not found"}), 404
+
+        data = request.json or {}
+        changed = False
+
+        if "avatar" in data:
+            avatar_data = data["avatar"]
+            if avatar_data and isinstance(avatar_data, str):
+                if avatar_data.startswith("data:image/") or avatar_data.startswith("data:video/"):
+                    user.avatar = avatar_data
+                    changed = True
+                elif avatar_data.startswith("http"):
+                    user.avatar = avatar_data
+                    changed = True
+
+        if "bio" in data:
+            bio = str(data["bio"]).strip()[:200]
+            user.bio = bio
+            changed = True
+
+        if changed:
+            db.session.commit()
+
+        avatar_url = user.avatar if user.avatar else f"https://ui-avatars.com/api/?name={user.login}&background=random&color=fff&rounded=true&bold=true"
+        return jsonify({"success": True, "avatar": avatar_url, "bio": user.bio or ""})

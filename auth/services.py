@@ -15,7 +15,7 @@ class AuthService:
         if not SecurityManager.verify_captcha(data):
             return {"success": False, "message": "Капча не пройдена"}
 
-        required_fields = ["fio", "login", "password", "password_retry", "position"]
+        required_fields = ["fio", "login", "password", "password_retry"]
         if not all(data.get(k) for k in required_fields):
             return {"success": False, "message": "Заполните все обязательные поля"}
 
@@ -39,7 +39,7 @@ class AuthService:
             fio=str(data["fio"]).strip(),
             login=str(data["login"]).strip(),
             password_hash=generate_password_hash(data["password"]),
-            group_id=str(data["position"]).strip(),
+            group_id=str(data.get("position", "")).strip(),
             study_type=str(data.get("hiring_volume", "")).strip(),
             platforms=str(data.get("channels", "")).strip(),
             projects=str(data.get("painpoints", "")).strip(),

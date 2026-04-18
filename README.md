@@ -1,8 +1,8 @@
 <p align="center">
-  <a href="http://89.111.168.223:3000/">
+  <a href="https://tornado.saydef.xyz/">
     <img src="https://tornado.saydef.xyz/for_rdm/ttext.svg" alt="TORNADO" width="80%">
 </a>
-  <a href="http://89.111.168.223:3000/" title="Перейти на сайт">
+  <a href="https://tornado.saydef.xyz/" title="Перейти на сайт">
     <img src="https://tornado.saydef.xyz/for_rdm/down.svg" alt="DEMO — TORNADO.SAYDEF.XYZ">
   </a>
 </p>

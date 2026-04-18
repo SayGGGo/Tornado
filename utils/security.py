@@ -82,6 +82,10 @@ class SecurityManager:
 
     @staticmethod
     def verify_captcha(data: dict) -> bool:
+        provider, _ = CaptchaManager.get_active_provider()
+        if not provider:
+            return True
+
         yandex_token = data.get("smart-token")
         turnstile_token = data.get("cf-turnstile-response")
 

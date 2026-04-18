@@ -1,11 +1,16 @@
 import os
-from dotenv import load_dotenv
+import hashlib
 
-load_dotenv()
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 
 
 class Config:
-    SECRET_KEY = os.getenv("SECRET_KEY", os.urandom(24))
+    _secret = os.getenv("SECRET_KEY")
+    SECRET_KEY = _secret if _secret else hashlib.sha256(b"tornado-default-dev-key").hexdigest()
     SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", "sqlite:///tornado.db")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
@@ -30,8 +35,13 @@ class Config:
     FLASK_DEBUG = os.getenv("FLASK_DEBUG", "false")
     FLASK_HOST = os.getenv("FLASK_HOST", "0.0.0.0")
     FLASK_PORT = os.getenv("FLASK_PORT", "3000")
+    USE_SSL = os.getenv("USE_SSL") == "True"
 
     ADMIN_SESSION_IND = os.getenv("ADMIN_PAGE", "0")
 
     AGORA_APP_ID = os.getenv("AGORA_APP_ID", "0")
     AGORA_APP_CERTIFICATE = os.getenv("AGORA_APP_CERTIFICATE", "0")
+
+    SPOTIFY_CLIENT_ID = os.getenv("SPOTIFY_CLIENT_ID")
+    SPOTIFY_CLIENT_SECRET = os.getenv("SPOTIFY_CLIENT_SECRET")
+    SPOTIFY_REDIRECT_URI = os.getenv("SPOTIFY_REDIRECT_URI")

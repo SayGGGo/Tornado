@@ -25,6 +25,8 @@ from auth import register_auth
 from system import register_system
 from chat import register_chat
 from admin import register_admin
+from spotify import register_spotify
+
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -36,11 +38,21 @@ server_ip_cache = None
 groups_cache = {"data": [], "last_updated": 0}
 
 if __name__ == "__main__":
+    from dotenv import load_dotenv
+    load_dotenv()
     
     register_bot_api(app)
     register_auth(app)
     register_system(app)
     register_chat(app)
     register_admin(app)
+    register_spotify(app)
 
-    app.run(host=Config.FLASK_HOST,  port=Config.FLASK_PORT)
+    ssl_ctx = None
+    if Config.USE_SSL:
+        if os.path.exists("server.crt") and os.path.exists("server.key"):
+            ssl_ctx = ("server.crt", "server.key")
+        else:
+            ssl_ctx = "adhoc"
+
+    app.run(host=Config.FLASK_HOST,  port=Config.FLASK_PORT, ssl_context=ssl_ctx)

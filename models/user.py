@@ -3,10 +3,10 @@ from . import db
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     fio = db.Column(db.String(150), nullable=False)
-    avatar = db.Column(db.String(200))
+    avatar = db.Column(db.Text)
     login = db.Column(db.String(50), unique=True, nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
-    group_id = db.Column(db.String(50), nullable=False)
+    group_id = db.Column(db.String(50), nullable=False, default="")
     study_type = db.Column(db.String(50))
     platforms = db.Column(db.String(200))
     projects = db.Column(db.String(200))
@@ -24,3 +24,8 @@ class User(db.Model):
 
     ide_connected = db.Column(db.Boolean, default=False)
     ide_token = db.Column(db.String(200))
+
+    spotify_token = db.Column(db.Text)
+    spotify_refresh_token = db.Column(db.Text)
+    spotify_token_expires = db.Column(db.Integer)
+    spotify_enabled = db.Column(db.Boolean, default=False)
