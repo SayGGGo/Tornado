@@ -6,6 +6,7 @@ from .settings import Config
 class NoApiFilter(logging.Filter):
     def filter(self, record):
         msg = record.getMessage()
+        if " 429 " in msg: return False
         return "/api/messages" not in msg and "/api/chats" not in msg
 
 

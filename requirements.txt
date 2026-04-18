@@ -16,3 +16,5 @@ pytest~=9.0.2
 agora-token-builder
 flask_sqlalchemy
 openpyxl
+gunicorn
+eventlet

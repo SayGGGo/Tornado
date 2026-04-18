@@ -112,6 +112,7 @@ class DDoSGuard:
     _p = {}
     _b = {}
     _h = {}
+    _c = 0
     _ua_blacklist = ['python-requests', 'curl', 'wget', 'scrapy', 'selenium', 'headless', 'phantomjs', 'postman', 'aiohttp', 'httpx']
 
     @classmethod
@@ -119,24 +120,31 @@ class DDoSGuard:
         import time
         n = time.time()
         
+        cls._c += 1
+        if cls._c > 5000:
+            cls._c = 0
+            cls._p = {k: v for k, v in cls._p.items() if v and n - v[-1] < 60}
+            cls._b = {k: v for k, v in cls._b.items() if v > n}
+            cls._h = {k: v for k, v in cls._h.items() if v > n}
+
         target = f"{ip}:{uid or sid or 'anon'}"
         
         if path.startswith('/static/'):
             cls._h[target] = n + 3600
             return True
 
+        if target in cls._b:
+            if n < cls._b[target]: return False
+            del cls._b[target]
+
         ua = (ua or "").lower()
         if any(bot in ua for bot in cls._ua_blacklist) or (not ua and not uid):
             cls._b[target] = n + 86400
             return False
 
-        if target in cls._b:
-            if n < cls._b[target]: return False
-            del cls._b[target]
-
         if method == "POST" and path in ['/login', '/register', '/auth/login', '/auth/register']:
             if target not in cls._h and not uid:
-                cls._b[target] = n + 1800
+                cls._b[target] = n + 3600
                 return False
 
         if ip not in cls._p: cls._p[ip] = []

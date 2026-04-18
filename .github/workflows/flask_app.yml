@@ -55,12 +55,26 @@ jobs:
             ./venv/bin/pip install -r requirements.txt
             
             SERVICE_FILE="/etc/systemd/system/flask_app.service"
-            if [ -f "$SERVICE_FILE" ]; then
-                sudo grep -q "Restart=" "$SERVICE_FILE" || sudo sed -i '/\[Service\]/a Restart=always' "$SERVICE_FILE"
-                sudo sed -i 's/^Restart=.*/Restart=always/' "$SERVICE_FILE"
-                sudo grep -q "RestartSec=" "$SERVICE_FILE" || sudo sed -i '/\[Service\]/a RestartSec=5' "$SERVICE_FILE"
-                sudo sed -i 's/^RestartSec=.*/RestartSec=5/' "$SERVICE_FILE"
-                sudo systemctl daemon-reload
-            fi
-            
+            cat << EOF | sudo tee $SERVICE_FILE
+            [Unit]
+            Description=Gunicorn instance to serve Tornado Flask App
+            After=network.target
+
+            [Service]
+            User=root
+            Group=www-data
+            WorkingDirectory=/root/Tornado
+            Environment="PATH=/root/Tornado/venv/bin"
+            ExecStart=/root/Tornado/venv/bin/gunicorn --worker-class eventlet -w 1 --bind 0.0.0.0:80 app:app
+            Restart=always
+            RestartSec=5
+            StandardOutput=append:/root/Tornado/app-trn.log
+            StandardError=append:/root/Tornado/app-trn.log
+
+            [Install]
+            WantedBy=multi-user.target
+            EOF
+
+            sudo systemctl daemon-reload
+            sudo systemctl enable flask_app
             sudo systemctl restart flask_app
