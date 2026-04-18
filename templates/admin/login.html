@@ -100,6 +100,7 @@
                     btn.classList.remove('locked');
                     btn.innerHTML = '<span class="btn-text">Авторизация</span>';
                     if (typeof turnstile !== 'undefined') turnstile.reset();
+                    if (window.smartCaptcha) window.smartCaptcha.reset();
                 }
             } catch (err) {
                 btn.classList.remove('locked');

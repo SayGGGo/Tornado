@@ -67,6 +67,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 showError(result.message);
                 nextBtn.innerHTML = originalHTML;
                 nextBtn.classList.remove('locked');
+
+                if (window.turnstile) {
+                    turnstile.reset();
+                } else if (window.smartCaptcha) {
+                    window.smartCaptcha.reset();
+                }
             }
         } catch {
             showError('Ошибка соединения с сервером');

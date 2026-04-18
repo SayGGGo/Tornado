@@ -1,30 +1,3 @@
-document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(() => document.getElementById('cardWindow').classList.add('ready'), 80);
-    const form = document.getElementById('loginForm');
-    const btn  = document.getElementById('loginBtn');
-    const errDiv = document.getElementById('error-msg');
-    function showError(msg) {
-      errDiv.textContent = msg; errDiv.style.display = 'block'; errDiv.style.opacity = '1';
-      setTimeout(() => { errDiv.style.opacity='0'; setTimeout(()=>{errDiv.style.display='none';errDiv.style.opacity='1';},300); },3500);
-    }
-    form.addEventListener('input', () => {
-      const ok = [...form.querySelectorAll('[required]')].every(i => i.value.trim());
-      btn.classList.toggle('locked', !ok); btn.disabled = !ok;
-    });
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault(); if (btn.classList.contains('locked')) return;
-      const data = Object.fromEntries(new FormData(form).entries());
-      const orig = btn.querySelector('span').textContent;
-      btn.querySelector('span').textContent = 'Загрузка...'; btn.classList.add('locked');
-      try {
-        const res = await fetch('/login'+window.location.search,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
-        const r = await res.json();
-        if (r.success) { window.location.href = r.redirect; }
-        else { showError(r.message||'Неверный логин или пароль'); btn.querySelector('span').textContent=orig; btn.classList.remove('locked'); }
-      } catch { showError('Ошибка соединения с сервером'); btn.querySelector('span').textContent=orig; btn.classList.remove('locked'); }
-    });
-  });
-
   (function() {
     const panel   = document.getElementById('vizPanel');
     const canvas3 = document.getElementById('three-canvas');
@@ -282,18 +255,17 @@ document.addEventListener('DOMContentLoaded', () => {
     animate();
   })();
 
-  document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(() => document.getElementById('cardWindow').classList.add('ready'), 80);
-
-    const form = document.getElementById('loginForm');
-    const btn = document.getElementById('loginBtn');
-    const errDiv = document.getElementById('error-msg');
-    let captchaSolved = false;
-
     window.onCaptchaSuccess = function(token) {
-      captchaSolved = true;
-      checkFormValidity();
+      if (window.setCaptchaSolved) window.setCaptchaSolved(true);
     };
+
+    document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(() => document.getElementById('cardWindow').classList.add('ready'), 80);
+
+        const form = document.getElementById('loginForm');
+        const btn = document.getElementById('loginBtn');
+        const errDiv = document.getElementById('error-msg');
+        let captchaSolved = !document.getElementById('captcha-box').querySelector('.cf-turnstile, .smart-captcha');
 
     function showError(msg) {
       errDiv.textContent = msg;
@@ -315,7 +287,13 @@ document.addEventListener('DOMContentLoaded', () => {
       btn.disabled = !isReady;
     }
 
-    form.addEventListener('input', checkValidity);
+    window.setCaptchaSolved = (val) => {
+      captchaSolved = val;
+      checkFormValidity();
+    };
+
+    form.addEventListener('input', checkFormValidity);
+    checkFormValidity();
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
