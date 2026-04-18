@@ -111,48 +111,41 @@ class SecurityManager:
 class DDoSGuard:
     _p = {}
     _b = {}
-    _ua_blacklist = [
-        'python-requests', 'curl', 'wget', 'scrapy', 'selenium', 
-        'headless', 'phantomjs', 'postman', 'aiohttp', 'httpx'
-    ]
-
     _h = {}
+    _ua_blacklist = ['python-requests', 'curl', 'wget', 'scrapy', 'selenium', 'headless', 'phantomjs', 'postman', 'aiohttp', 'httpx']
 
     @classmethod
-    def check(cls, ip, ua, method, path, ref):
+    def check(cls, ip, ua, method, path, ref, uid=None, sid=None):
         import time
         n = time.time()
         
+        target = f"{ip}:{uid or sid or 'anon'}"
+        
         if path.startswith('/static/'):
-            cls._h[ip] = n + 3600
+            cls._h[target] = n + 3600
             return True
 
         ua = (ua or "").lower()
-        if any(bot in ua for bot in cls._ua_blacklist) or not ua:
-            cls._b[ip] = n + 86400
+        if any(bot in ua for bot in cls._ua_blacklist) or (not ua and not uid):
+            cls._b[target] = n + 86400
             return False
+
+        if target in cls._b:
+            if n < cls._b[target]: return False
+            del cls._b[target]
 
         if method == "POST" and path in ['/login', '/register', '/auth/login', '/auth/register']:
-            if ip not in cls._h or n > cls._h[ip]:
-                cls._b[ip] = n + 3600
-                logger.warning(f"[BotGuard] No asset flow from {ip}")
+            if target not in cls._h and not uid:
+                cls._b[target] = n + 1800
                 return False
 
-        if method == "POST" and path != "/api/code/complete" and not (ref and Config.FLASK_HOST in ref):
-            cls._b[ip] = n + 3600
-            return False
-
-        if ip in cls._b:
-            if n < cls._b[ip]: return False
-            del cls._b[ip]
-        
         if ip not in cls._p: cls._p[ip] = []
         cls._p[ip] = [t for t in cls._p[ip] if n - t < 10]
         cls._p[ip].append(n)
         
-        if len(cls._p[ip]) > 60:
-            cls._b[ip] = n + 1800
-            logger.warning(f"[DDoSGuard] Banned {ip}")
+        limit = 500 if uid else 60
+        if len(cls._p[ip]) > limit:
+            cls._b[target] = n + 600
             return False
             
         return True
