@@ -113,7 +113,7 @@ class DDoSGuard:
     _b = {}
     _h = {}
     _c = 0
-    _ua_blacklist = ['python-requests', 'curl', 'wget', 'scrapy', 'selenium', 'headless', 'phantomjs', 'postman', 'aiohttp', 'httpx']
+    _ua_blacklist = ['python-requests', 'wget', 'scrapy', 'selenium', 'headless', 'phantomjs', 'postman', 'aiohttp', 'httpx']
 
     @classmethod
     def check(cls, ip, ua, method, path, ref, uid=None, sid=None):
