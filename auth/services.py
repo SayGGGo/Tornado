@@ -35,6 +35,10 @@ class AuthService:
         if User.query.filter_by(login=login).first():
             return {"success": False, "message": "Пользователь с таким логином уже существует"}
 
+        from chat.services import EncryptionService
+        crypto = EncryptionService()
+        priv, pub = crypto.generate_keys()
+
         new_user = User(
             fio=str(data["fio"]).strip(),
             login=str(data["login"]).strip(),
@@ -44,7 +48,9 @@ class AuthService:
             platforms=str(data.get("channels", "")).strip(),
             projects=str(data.get("painpoints", "")).strip(),
             source=str(data.get("current_ats", "")).strip(),
-            premium=bool(data.get("premium_sub"))
+            premium=bool(data.get("premium_sub")),
+            public_key=pub,
+            private_key=priv
         )
 
         db.session.add(new_user)

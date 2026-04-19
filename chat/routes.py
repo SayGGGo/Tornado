@@ -1,7 +1,8 @@
 import os
 import re
+from datetime import datetime, timedelta
 from flask import render_template, jsonify, session, request, redirect, url_for, send_from_directory, abort
-from models import db, User
+from models import db, User, ChatParticipant
 from .services import ChatService, AgoraService, FileService, EncryptionService, flood_control
 from config import Config
 import uuid
@@ -19,10 +20,46 @@ def register_chat(app):
             session.pop("user_id", None)
             return redirect(url_for("login"))
 
+        if not user.public_key or not user.private_key:
+            crypto = EncryptionService()
+            priv, pub = crypto.generate_keys()
+            user.private_key = priv
+            user.public_key = pub
+            db.session.commit()
+
+        user.last_seen = datetime.utcnow()
+        db.session.commit()
+
         folders = [{"name": "Все", "count": 0, "active": True}]
         msg_data = chat_service.get_user_chats(user.id)
 
         return render_template("chat.html", current_user=user, msg_data=msg_data, folders=folders)
+
+    @app.route("/api/user/update_status", methods=["POST"])
+    def update_status():
+        if "user_id" not in session:
+            return jsonify({"ok": False}), 401
+        user = db.session.get(User, session["user_id"])
+        if user:
+            user.last_seen = datetime.utcnow()
+            db.session.commit()
+            return jsonify({"ok": True})
+        return jsonify({"ok": False}), 404
+
+    @app.route("/api/chat/typing", methods=["POST"])
+    def update_typing():
+        if "user_id" not in session:
+            return jsonify({"ok": False}), 401
+        chat_id = request.json.get("chat_id")
+        if not chat_id:
+            return jsonify({"ok": False}), 400
+        
+        part = ChatParticipant.query.filter_by(user_id=session["user_id"], chat_id=chat_id).first()
+        if part:
+            part.last_typing = datetime.utcnow()
+            db.session.commit()
+            return jsonify({"ok": True})
+        return jsonify({"ok": False}), 403
 
     @app.route("/api/user/<int:target_user_id>", methods=["GET"])
     def get_user_info(target_user_id):
@@ -33,12 +70,15 @@ def register_chat(app):
         if not user:
             return jsonify({"error": "Not found"}), 404
 
+        is_online = user.last_seen and (datetime.utcnow() - user.last_seen) < timedelta(minutes=2)
         avatar = user.avatar if getattr(user, 'avatar', None) else f"https://ui-avatars.com/api/?name={user.login}&background=random&color=fff&rounded=true&bold=true"
         return jsonify({
             "id": user.id,
             "login": user.login,
             "avatar": avatar,
-            "bio": user.bio or ""
+            "bio": user.bio or "",
+            "online": is_online,
+            "last_seen": user.last_seen.strftime("%Y-%m-%d %H:%M:%S") if user.last_seen else None
         })
 
     @app.route("/api/messages", methods=["GET"])
@@ -59,26 +99,21 @@ def register_chat(app):
     def send_message():
         if "user_id" not in session:
             return jsonify({"error": "Unauthorized"}), 401
-
         data = request.json or {}
         chat_id = data.get("chat_id")
         target_user_id = data.get("target_user_id")
-
         if not chat_id and target_user_id:
             chat_data = chat_service.get_or_create_personal_chat(session["user_id"], target_user_id)
             chat_id = chat_data["chat_id"]
-
         result = chat_service.post_message(session["user_id"], chat_id, data.get("content"))
         if "success" in result:
             result["chat_id"] = chat_id
-
         return jsonify(result), 200 if "success" in result else 429 if "Слишком" in result.get("error", "") else 400
 
     @app.route("/api/messages/<int:message_id>", methods=["PUT"])
     def edit_message(message_id):
         if "user_id" not in session:
             return jsonify({"error": "Unauthorized"}), 401
-
         data = request.json or {}
         new_content = data.get("content")
         result = chat_service.edit_message(session["user_id"], message_id, new_content)
@@ -88,7 +123,6 @@ def register_chat(app):
     def delete_message(message_id):
         if "user_id" not in session:
             return jsonify({"error": "Unauthorized"}), 401
-
         result = chat_service.delete_message(session["user_id"], message_id)
         return jsonify(result), 200 if "success" in result else 400
 
@@ -96,18 +130,15 @@ def register_chat(app):
     def serve_file(filename):
         if "user_id" not in session:
             abort(401)
-
         sig = request.args.get("sig", "")
         if not sig or not FileService.verify_signature(filename, sig):
             abort(403)
-
         safe = os.path.basename(filename)
         if not re.match(r'^[0-9a-f]{32}\.[a-z0-9]{1,10}$', safe):
             abort(400)
         fpath = os.path.join(FileService.UPLOAD_DIR, safe)
         if not os.path.isfile(fpath):
             abort(404)
-
         resp = send_from_directory(FileService.UPLOAD_DIR, safe)
         resp.headers['Cache-Control'] = 'private, max-age=86400'
         resp.headers['X-Content-Type-Options'] = 'nosniff'
@@ -117,21 +148,17 @@ def register_chat(app):
     def messages_status():
         if "user_id" not in session:
             return jsonify([]), 401
-
         chat_id_raw = request.args.get("chat_id")
         ids_str = request.args.get("ids", "")
         if not chat_id_raw or not ids_str:
             return jsonify([])
-
-        from models import ChatParticipant, Message
+        from models import Message
         chat_id_val = int(chat_id_raw)
         if not ChatParticipant.query.filter_by(user_id=session["user_id"], chat_id=chat_id_val).first():
             return jsonify([])
-
         ids = [int(x) for x in ids_str.split(",") if x.strip().isdigit()][:200]
         if not ids:
             return jsonify([])
-
         messages = Message.query.filter(Message.id.in_(ids), Message.chat_id == chat_id_val).all()
         curr_user = db.session.get(User, session["user_id"])
         crypto = EncryptionService()
@@ -212,11 +239,12 @@ def register_chat(app):
             return jsonify({"error": "Unauthorized"}), 401
 
         channel_name = request.args.get("channel")
+        use_secondary = request.args.get("secondary") == "true"
         if not channel_name:
             return jsonify({"error": "Channel name required"}), 400
 
         agora_service = AgoraService()
-        token = agora_service.generate_rtc_token(channel_name, session["user_id"])
+        token = agora_service.generate_rtc_token(channel_name, session["user_id"], use_secondary=use_secondary)
 
         return jsonify({
             "token": token,
@@ -232,6 +260,7 @@ def register_chat(app):
         data = request.json or {}
         target_user_id = data.get("target_user_id")
         chat_id = data.get("chat_id")
+        use_secondary = data.get("secondary") == True
 
         if not target_user_id or not chat_id:
             return jsonify({"error": "Missing fields"}), 400
@@ -240,11 +269,14 @@ def register_chat(app):
         agora_service = AgoraService()
 
         channel_name = f"call_{uuid.uuid4().hex[:16]}"
-        token = agora_service.generate_rtc_token(channel_name, session["user_id"])
+        token = agora_service.generate_rtc_token(channel_name, session["user_id"], use_secondary=use_secondary)
 
         caller_avatar = caller.avatar if getattr(caller, 'avatar', None) else f"https://ui-avatars.com/api/?name={caller.fio}&background=random&color=fff&rounded=true&bold=true"
 
         call_url = f"/call?channel={channel_name}"
+        if use_secondary:
+            call_url += "&secondary=true"
+            
         invite_message = f"__CALL_INVITE__{channel_name}|{caller.login}|{caller_avatar}"
 
         result = chat_service.post_message(session["user_id"], int(chat_id), invite_message)

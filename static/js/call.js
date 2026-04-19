@@ -23,6 +23,24 @@ let timerInterval = null;
 let activeSpeakerUid = null;
 let pinnedUid = null;
 
+const islandSyncChannel = new BroadcastChannel('tornado_island_sync');
+function syncCallToIsland() {
+    const participantCount = Object.keys(remoteUsers).length + 1;
+    islandSyncChannel.postMessage({
+        type: 'call_update',
+        data: {
+            channel: channelName,
+            participants: participantCount,
+            startTime: callStartTime,
+            name: targetName,
+            avatar: currentUserAvatar
+        }
+    });
+}
+islandSyncChannel.onmessage = (e) => {
+    if (e.data.type === 'call_end_request') leaveCall();
+};
+
 const userInfoCache = {};
 
 const statusEl = document.getElementById('call-status');
@@ -274,6 +292,7 @@ async function joinCall() {
         if (tracksToPublish.length > 0) {
             await client.publish(tracksToPublish);
         }
+        syncCallToIsland();
 
     } catch (error) {
         setStatus('Ошибка подключения', false);
@@ -360,6 +379,7 @@ client.on('user-left', (user) => {
     if (Object.keys(remoteUsers).length === 0) {
         setStatus('Ожидание участников...', false);
     }
+    syncCallToIsland();
 });
 
 btnMic.addEventListener('click', async () => {
@@ -483,6 +503,7 @@ async function leaveCall() {
         }
     }
     try { await client.leave(); } catch (e) {}
+    islandSyncChannel.postMessage({ type: 'call_left' });
     window.close();
     setTimeout(() => window.location.href = '/chat', 300);
 }

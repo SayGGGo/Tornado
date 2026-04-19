@@ -1,3 +1,4 @@
+from datetime import datetime
 from . import db
 
 class User(db.Model):
@@ -29,3 +30,5 @@ class User(db.Model):
     spotify_refresh_token = db.Column(db.Text)
     spotify_token_expires = db.Column(db.Integer)
     spotify_enabled = db.Column(db.Boolean, default=False)
+
+    last_seen = db.Column(db.DateTime, default=datetime.utcnow)

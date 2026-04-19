@@ -10,7 +10,7 @@ def register_spotify(app):
         if "user_id" not in session:
             return redirect(url_for("auth_login"))
         
-        scope = "user-read-currently-playing user-read-playback-state user-modify-playback-state"
+        scope = "user-read-currently-playing user-read-playback-state user-modify-playback-state user-read-recently-played"
         auth_url = (
             f"https://accounts.spotify.com/authorize?response_type=code"
             f"&client_id={Config.SPOTIFY_CLIENT_ID}"
@@ -111,6 +111,20 @@ def register_spotify(app):
                         tempo = features_data.get("tempo", 120)
                 except: pass
 
+            next_track = None
+            try:
+                queue_res = requests.get("https://api.spotify.com/v1/me/player/queue", headers=headers, timeout=5)
+                if queue_res.status_code == 200:
+                    queue_data = queue_res.json()
+                    if queue_data.get("queue"):
+                        nt = queue_data["queue"][0]
+                        next_track = {
+                            "track": nt.get("name"),
+                            "artist": ", ".join([a["name"] for a in nt.get("artists", [])]),
+                            "image": nt.get("album", {}).get("images", [{}])[0].get("url")
+                        }
+            except: pass
+
             return jsonify({
                 "ok": True,
                 "active": True,
@@ -121,7 +135,8 @@ def register_spotify(app):
                 "image": item.get("album", {}).get("images", [{}])[0].get("url"),
                 "progress_ms": data.get("progress_ms"),
                 "duration_ms": item.get("duration_ms"),
-                "tempo": tempo
+                "tempo": tempo,
+                "next_track": next_track
             })
         except Exception as e:
             return jsonify({"ok": False, "error": str(e)})

@@ -1201,7 +1201,17 @@ async function updateSidebar() {
             else if (previewText.startsWith('__CHATLINK__')) previewText = '📩 Приглашение в чат';
             else { previewText = previewText.replace(/__AEMOJI__([^\/]+)\/\/\/(.+?)__/g, '⭐ $2'); }
 
-            const newHtml = `${renderAvatar(chat.avatar, 'avatar')} <div class="chat-info"><div class="chat-header"><div class="chat-name">${chat.name}${chat.premium ? `<div class="premium-icon" style="-webkit-mask-image: url('/static/premium/${chat.premium}.svg'); mask-image: url('/static/premium/${chat.premium}.svg');"></div>` : ''}</div><div class="chat-meta"><span class="chat-time">${chat.last_time ? `${readIcon} ${chat.last_time}` : ''}</span></div></div><div class="chat-message-row"><span class="msg-text">${previewText}</span><div class="chat-meta">${chat.unread > 0 ? `<span class="unread-badge">${chat.unread}</span>` : ''}</div></div></div>`;
+            const onlineDot = chat.online ? `<div class="online-status-dot"></div>` : '';
+            const typingClass = chat.typing ? 'msg-text-typing' : '';
+            
+            const avatarHtml = `
+                <div class="avatar-wrapper">
+                    ${renderAvatar(chat.avatar, 'avatar')}
+                    ${onlineDot}
+                </div>
+            `;
+
+            const newHtml = `${avatarHtml} <div class="chat-info"><div class="chat-header"><div class="chat-name">${chat.name}${chat.premium ? `<div class="premium-icon" style="-webkit-mask-image: url('/static/premium/${chat.premium}.svg'); mask-image: url('/static/premium/${chat.premium}.svg');"></div>` : ''}</div><div class="chat-meta"><span class="chat-time">${chat.last_time ? `${readIcon} ${chat.last_time}` : ''}</span></div></div><div class="chat-message-row"><span class="msg-text ${typingClass}">${previewText}</span><div class="chat-meta">${chat.unread > 0 ? `<span class="unread-badge">${chat.unread}</span>` : ''}</div></div></div>`;
             
             if (chatItem.getAttribute('data-last-html') !== newHtml) {
                 chatItem.innerHTML = newHtml;

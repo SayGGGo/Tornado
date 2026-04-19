@@ -18,6 +18,7 @@ class ChatParticipant(db.Model):
     chat_id = db.Column(db.Integer, db.ForeignKey("chat.id"), nullable=False)
     role = db.Column(db.String(20), default="member")
     joined_at = db.Column(db.DateTime, default=datetime.utcnow)
+    last_typing = db.Column(db.DateTime, nullable=True)
 
     user = db.relationship("User", back_populates="chat_memberships")
     chat = db.relationship("Chat", back_populates="participants")

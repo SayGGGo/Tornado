@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime
 import base64
 import os
 import uuid
@@ -225,6 +226,7 @@ class ChatService:
         participants = ChatParticipant.query.filter_by(user_id=user_id).all()
         chats_data = {}
         curr_user = db.session.get(User, user_id)
+        now = datetime.utcnow()
 
         for p in participants:
             chat = p.chat
@@ -245,38 +247,49 @@ class ChatService:
                 Message.user_id != user_id).count() if is_read_attr else 0
             last_status = getattr(last_msg, 'is_read', False) if last_msg and last_msg.user_id == user_id else False
 
+            is_typing = False
+            typing_users = []
+            parts = ChatParticipant.query.filter(ChatParticipant.chat_id == chat.id, ChatParticipant.user_id != user_id).all()
+            for op in parts:
+                if op.last_typing and (now - op.last_typing).total_seconds() < 6:
+                    is_typing = True
+                    typing_users.append(op.user.login)
+
             if chat.personal:
-                other_check = ChatParticipant.query.filter(ChatParticipant.chat_id == chat.id,
-                                                           ChatParticipant.user_id != user_id).first()
+                other_check = parts[0] if parts else None
                 if other_check:
                     user = other_check.user
+                    is_online = user.last_seen and (now - user.last_seen).total_seconds() < 120
                     chats_data[str(chat.id)] = {
                         "name": user.login,
-                        "avatar": user.avatar if getattr(user, 'avatar',
-                                                         None) else f"https://ui-avatars.com/api/?name={user.fio}&background=random&color=fff&rounded=true&bold=true&uppercase=true",
+                        "avatar": user.avatar if getattr(user, 'avatar', None) else f"https://ui-avatars.com/api/?name={user.fio}&background=random&color=fff&rounded=true&bold=true&uppercase=true",
                         "active": False,
-                        "last_msg": msg_preview,
+                        "last_msg": "печатает..." if is_typing else msg_preview,
                         "last_time": last_msg.timestamp.strftime("%H:%M") if last_msg else "",
                         "last_status": last_status,
                         "unread": unread_count,
                         "pinned": False,
                         "muted": False,
                         "premium": "1" if getattr(user, 'premium', False) else "",
-                        "target_user_id": user.id
+                        "target_user_id": user.id,
+                        "online": is_online,
+                        "typing": is_typing
                     }
             else:
                 chats_data[str(chat.id)] = {
                     "name": chat.name,
                     "avatar": f"https://ui-avatars.com/api/?name={chat.name}&background=random&color=fff&rounded=true&bold=true&uppercase=true",
                     "active": False,
-                    "last_msg": msg_preview,
+                    "last_msg": f"{', '.join(typing_users)} печатает..." if is_typing else msg_preview,
                     "last_time": last_msg.timestamp.strftime("%H:%M") if last_msg else "",
                     "last_status": last_status,
                     "unread": unread_count,
                     "pinned": False,
                     "muted": False,
                     "premium": "",
-                    "target_user_id": ""
+                    "target_user_id": "",
+                    "typing": is_typing,
+                    "typing_list": typing_users
                 }
 
         return chats_data
@@ -305,8 +318,10 @@ class ChatService:
             db.session.commit()
 
         result = []
+        now = datetime.utcnow()
         for msg in messages:
             avatar = msg.author.avatar if getattr(msg.author, 'avatar', None) else f"https://ui-avatars.com/api/?name={msg.author.login}&background=random&color=fff&rounded=true&bold=true"
+            is_online = msg.author.last_seen and (now - msg.author.last_seen).total_seconds() < 120
             if msg.is_deleted:
                 result.append({
                     "id": msg.id,
@@ -321,7 +336,8 @@ class ChatService:
                     "file_url": None,
                     "file_name": None,
                     "file_type": None,
-                    "file_size": None
+                    "file_size": None,
+                    "online": is_online
                 })
             else:
                 result.append({
@@ -337,7 +353,8 @@ class ChatService:
                     "file_url": msg.file_url,
                     "file_name": msg.file_name,
                     "file_type": msg.file_type,
-                    "file_size": msg.file_size
+                    "file_size": msg.file_size,
+                    "online": is_online
                 })
         return result
 
@@ -555,16 +572,19 @@ class ChatService:
 class AgoraService:
     def __init__(self):
         self.app_id = Config.AGORA_APP_ID
-        self.app_certificate = Config.AGORA_APP_CERTIFICATE
+        self.primary_cert = Config.AGORA_APP_CERTIFICATE
+        self.secondary_cert = Config.SECONDARY_CERTIFICATE
 
-    def generate_rtc_token(self, channel_name, user_id, role=1):
+    def generate_rtc_token(self, channel_name, user_id, role=1, use_secondary=False):
         expiration_time_in_seconds = 3600
         current_timestamp = int(time.time())
         privilege_expired_ts = current_timestamp + expiration_time_in_seconds
+        
+        cert = self.secondary_cert if use_secondary else self.primary_cert
 
         token = RtcTokenBuilder.buildTokenWithUid(
             self.app_id,
-            self.app_certificate,
+            cert,
             channel_name,
             user_id,
             role,
