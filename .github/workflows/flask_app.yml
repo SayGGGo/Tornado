@@ -65,7 +65,7 @@ jobs:
             Group=www-data
             WorkingDirectory=/root/Tornado
             Environment="PATH=/root/Tornado/venv/bin"
-            ExecStart=/root/Tornado/venv/bin/gunicorn --worker-class gthread -w 4 -t 60 --threads 2 --bind 0.0.0.0:8000 app:app
+            ExecStart=/root/Tornado/venv/bin/gunicorn --worker-class gthread -w 4 -t 60 --threads 2 --bind 0.0.0.0:443 app:app
             Restart=always
             RestartSec=5
             StandardOutput=append:/root/Tornado/app-trn.log
