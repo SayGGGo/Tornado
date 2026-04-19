@@ -117,6 +117,9 @@ class DDoSGuard:
 
     @classmethod
     def check(cls, ip, ua, method, path, ref, uid=None, sid=None):
+        if not Config.ANTI_DDOS:
+            return True
+            
         if Config.WHITE_LIST and ip == Config.WHITE_LIST:
             return True
 
