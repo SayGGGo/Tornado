@@ -59,22 +59,22 @@ jobs:
             [Unit]
             Description=Gunicorn instance to serve Tornado Flask App
             After=network.target
-
+            
             [Service]
             User=root
             Group=www-data
             WorkingDirectory=/root/Tornado
             Environment="PATH=/root/Tornado/venv/bin"
-            ExecStart=/root/Tornado/venv/bin/gunicorn --worker-class eventlet -w 1 --bind 0.0.0.0:443 app:app
+            ExecStart=/root/Tornado/venv/bin/gunicorn --worker-class eventlet -w 1 --bind 0.0.0.0:443 --certfile=/root/Tornado/server.crt --keyfile=/root/Tornado/server.key app:app
             Restart=always
             RestartSec=5
             StandardOutput=append:/root/Tornado/app-trn.log
             StandardError=append:/root/Tornado/app-trn.log
-
+            
             [Install]
             WantedBy=multi-user.target
             EOF
-
+            
             sudo systemctl daemon-reload
             sudo systemctl enable flask_app
             sudo systemctl restart flask_app
