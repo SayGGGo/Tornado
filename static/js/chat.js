@@ -2424,15 +2424,12 @@ function urlBase64ToUint8Array(base64String) {
 async function initServiceWorker() {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
     try {
-        _swRegistration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
         navigator.serviceWorker.addEventListener('message', (e) => {
             if (e.data && e.data.type === 'NOTIF_CLICK' && e.data.chatId) {
                 const item = document.querySelector(`.chat-item[data-chat-id="${e.data.chatId}"]`);
                 if (item) item.click();
             }
         });
-        const existing = await _swRegistration.pushManager.getSubscription();
-        if (existing) { _pushSubscription = existing; }
     } catch {}
 }
 
@@ -2476,11 +2473,6 @@ async function requestAndSubscribe() {
     return perm;
 }
 
-initServiceWorker().then(() => {
-    if ('Notification' in window && Notification.permission === 'granted' && !_pushSubscription) {
-        subscribeToPush();
-    }
-});
 
 window.updateNotifPermUI = function() {
     const supported = 'Notification' in window;
