@@ -1,4 +1,8 @@
 
+function escHtml(t) { if (!t) return ''; return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function escAttr(t) { if (!t) return ''; return String(t).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+const isMobile = window.innerWidth <= 768 || /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
 
 const urlParams = new URLSearchParams(window.location.search);
 const channelName = urlParams.get('channel');
@@ -10,8 +14,14 @@ const currentUserAvatar = document.querySelector('meta[name="current-user-avatar
 document.getElementById('call-name').textContent = targetName;
 document.getElementById('local-off-avatar').src = currentUserAvatar;
 
+if (isMobile) {
+    const canvas = document.getElementById('topo-canvas');
+    if (canvas) canvas.style.display = 'none';
+    document.querySelectorAll('.orb').forEach(el => el.style.display = 'none');
+}
+
 AgoraRTC.setLogLevel(3);
-const client = AgoraRTC.createClient({ mode: 'rtc', codec: 'vp8' });
+const client = AgoraRTC.createClient({ mode: 'rtc', codec: isMobile ? 'h264' : 'vp8' });
 
 let localTracks = { videoTrack: null, audioTrack: null };
 let remoteUsers = {};
@@ -129,13 +139,20 @@ function addParticipantChip(uid, name, avatar, micOn) {
     const chip = document.createElement('div');
     chip.className = 'participant-chip liquid-glass';
     chip.id = `chip-${uid}`;
-    chip.innerHTML = `
-        <img src="${avatar}" alt="${name}">
-        <span>${name}</span>
-        <svg class="p-mic ${micOn ? '' : 'muted'}" viewBox="0 0 24 24">
-            <path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/>
-        </svg>
-    `;
+    const img = document.createElement('img');
+    img.src = avatar;
+    img.alt = '';
+    const span = document.createElement('span');
+    span.textContent = name;
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('class', `p-mic ${micOn ? '' : 'muted'}`);
+    svg.setAttribute('viewBox', '0 0 24 24');
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', 'M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z');
+    svg.appendChild(path);
+    chip.appendChild(img);
+    chip.appendChild(span);
+    chip.appendChild(svg);
     participantsBar.appendChild(chip);
 }
 
@@ -190,21 +207,48 @@ function createRemoteVideoWrapper(uid, name, avatar) {
     wrapper.className = 'video-wrapper liquid-glass';
     wrapper.id = `wrapper-${uid}`;
 
-    wrapper.innerHTML = `
-        <div id="remote-video-${uid}" style="width:100%; height:100%; position:absolute; inset:0; z-index:1;"></div>
-        <div class="remote-placeholder" id="remote-placeholder-${uid}">
-            <img src="${avatar}" class="remote-placeholder-avatar" alt="">
-            <span class="remote-placeholder-name">${name}</span>
-            <div class="remote-placeholder-subtext" id="remote-subtext-${uid}">
-                <span>Ожидание медиа...</span>
-            </div>
-        </div>
-        <div class="video-off-overlay" id="remote-video-off-${uid}" style="display:none;">
-            <img src="${avatar}" alt="">
-            <span>Видео выключено</span>
-        </div>
-        <span class="user-label">${name}</span>
-    `;
+    const videoDiv = document.createElement('div');
+    videoDiv.id = `remote-video-${uid}`;
+    videoDiv.style.cssText = 'width:100%; height:100%; position:absolute; inset:0; z-index:1;';
+
+    const placeholder = document.createElement('div');
+    placeholder.className = 'remote-placeholder';
+    placeholder.id = `remote-placeholder-${uid}`;
+    const phImg = document.createElement('img');
+    phImg.src = avatar;
+    phImg.className = 'remote-placeholder-avatar';
+    phImg.alt = '';
+    const phName = document.createElement('span');
+    phName.className = 'remote-placeholder-name';
+    phName.textContent = name;
+    const phSubtext = document.createElement('div');
+    phSubtext.className = 'remote-placeholder-subtext';
+    phSubtext.id = `remote-subtext-${uid}`;
+    phSubtext.innerHTML = '<span>Ожидание медиа...</span>';
+    placeholder.appendChild(phImg);
+    placeholder.appendChild(phName);
+    placeholder.appendChild(phSubtext);
+
+    const videoOff = document.createElement('div');
+    videoOff.className = 'video-off-overlay';
+    videoOff.id = `remote-video-off-${uid}`;
+    videoOff.style.display = 'none';
+    const voImg = document.createElement('img');
+    voImg.src = avatar;
+    voImg.alt = '';
+    const voSpan = document.createElement('span');
+    voSpan.textContent = 'Видео выключено';
+    videoOff.appendChild(voImg);
+    videoOff.appendChild(voSpan);
+
+    const label = document.createElement('span');
+    label.className = 'user-label';
+    label.textContent = name;
+
+    wrapper.appendChild(videoDiv);
+    wrapper.appendChild(placeholder);
+    wrapper.appendChild(videoOff);
+    wrapper.appendChild(label);
 
     attachPinEvent(wrapper, uid);
     videoGrid.appendChild(wrapper);
@@ -230,30 +274,24 @@ async function joinCall() {
         const response = await fetch(`/api/agora/token?channel=${channelName}`);
         const data = await response.json();
 
-        client.enableAudioVolumeIndicator();
-        client.on("volume-indicator", volumes => {
-            let maxVol = 0;
-            let loudestUid = null;
-
-            volumes.forEach(v => {
-                if (v.level > 15 && v.level > maxVol) {
-                    maxVol = v.level;
-                    loudestUid = v.uid;
-                }
+        if (!isMobile) {
+            client.enableAudioVolumeIndicator();
+            client.on("volume-indicator", volumes => {
+                let maxVol = 0;
+                let loudestUid = null;
+                volumes.forEach(v => {
+                    if (v.level > 15 && v.level > maxVol) { maxVol = v.level; loudestUid = v.uid; }
+                });
+                volumes.forEach(v => {
+                    const wrap = document.getElementById(`wrapper-${v.uid}`);
+                    if (wrap) {
+                        if (v.level > 10) wrap.classList.add('is-speaking');
+                        else wrap.classList.remove('is-speaking');
+                    }
+                });
+                if (loudestUid && !pinnedUid) setSpeaker(loudestUid);
             });
-
-            volumes.forEach(v => {
-                const wrap = document.getElementById(`wrapper-${v.uid}`);
-                if (wrap) {
-                    if (v.level > 10) wrap.classList.add('is-speaking');
-                    else wrap.classList.remove('is-speaking');
-                }
-            });
-
-            if (loudestUid && !pinnedUid) {
-                setSpeaker(loudestUid);
-            }
-        });
+        }
 
         await client.join(data.app_id, channelName, data.token, data.uid);
 
@@ -274,8 +312,12 @@ async function joinCall() {
             document.getElementById('mic-icon-off').style.display = '';
         }
 
+        const videoConfig = isMobile
+            ? { encoderConfig: { width: 320, height: 240, frameRate: 15, bitrateMin: 100, bitrateMax: 300 } }
+            : { encoderConfig: '480p_1' };
+
         try {
-            localTracks.videoTrack = await AgoraRTC.createCameraVideoTrack();
+            localTracks.videoTrack = await AgoraRTC.createCameraVideoTrack(videoConfig);
             localTracks.videoTrack.play('local-video');
         } catch (e) {
             isVideoOn = false;
@@ -536,37 +578,44 @@ async function loadContacts() {
 }
 
 function renderContacts(contacts) {
+    contactsListEl.innerHTML = '';
     if (!contacts.length) {
         contactsListEl.innerHTML = '<div class="empty-state"><svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg><span>Нет контактов</span></div>';
         return;
     }
-    contactsListEl.innerHTML = contacts.map(c => `
-        <div class="contact-row">
-            <img src="${c.avatar}" alt="${c.name}">
-            <div class="contact-info">
-                <div class="contact-name">${c.name}</div>
-                <div class="contact-login">Личный чат</div>
-            </div>
-            <button class="contact-action-btn ${invitedUids.has(c.targetUserId) ? 'sent' : ''}" 
-                    data-chat-id="${c.chatId}" 
-                    data-user-id="${c.targetUserId}" 
-                    data-name="${c.name}">
-                ${invitedUids.has(c.targetUserId) ? 'Отправлено' : 'Позвать'}
-            </button>
-        </div>
-    `).join('');
-
-    contactsListEl.querySelectorAll('.contact-action-btn:not(.sent)').forEach(btn => {
-        btn.addEventListener('click', async () => {
-            const chatId = btn.dataset.chatId;
-            const userId = parseInt(btn.dataset.userId);
-            const name = btn.dataset.name;
-            await sendCallInvite(chatId, name);
-            invitedUids.add(userId);
-            btn.textContent = 'Отправлено';
-            btn.classList.add('sent');
-            showToast(`Приглашение отправлено ${name}`);
-        });
+    contacts.forEach(c => {
+        const row = document.createElement('div');
+        row.className = 'contact-row';
+        const img = document.createElement('img');
+        img.src = c.avatar;
+        img.alt = '';
+        const info = document.createElement('div');
+        info.className = 'contact-info';
+        const cname = document.createElement('div');
+        cname.className = 'contact-name';
+        cname.textContent = c.name;
+        const clogin = document.createElement('div');
+        clogin.className = 'contact-login';
+        clogin.textContent = 'Личный чат';
+        info.appendChild(cname);
+        info.appendChild(clogin);
+        const btn = document.createElement('button');
+        const sent = invitedUids.has(c.targetUserId);
+        btn.className = 'contact-action-btn' + (sent ? ' sent' : '');
+        btn.textContent = sent ? 'Отправлено' : 'Позвать';
+        if (!sent) {
+            btn.addEventListener('click', async () => {
+                await sendCallInvite(c.chatId, c.name);
+                invitedUids.add(c.targetUserId);
+                btn.textContent = 'Отправлено';
+                btn.classList.add('sent');
+                showToast(`Приглашение отправлено ${c.name}`);
+            });
+        }
+        row.appendChild(img);
+        row.appendChild(info);
+        row.appendChild(btn);
+        contactsListEl.appendChild(row);
     });
 }
 

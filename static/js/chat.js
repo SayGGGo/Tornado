@@ -8,13 +8,20 @@ const chatNameEl = document.getElementById('current-chat-name');
 const chatAvatarEl = document.getElementById('current-chat-avatar');
 let searchResultsBox = document.getElementById('search-results-box');
 
+function escAttr(t) { if(!t) return ''; return String(t).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
 function renderAvatar(src, className = 'avatar', id = '') {
-    if (!src) return `<img src="https://ui-avatars.com/api/?name=U&background=random" class="${className}" ${id ? `id="${id}"` : ''}>`;
-    const isVideo = src.endsWith('.mp4') || src.endsWith('.webm') || src.startsWith('data:video/');
+    const _invalid = !src || src === 'null' || src === 'undefined' || src === 'None' || src === '';
+    const validSrc = _invalid ? null : src;
+    const fallback = 'https://ui-avatars.com/api/?name=U&background=random&color=fff&rounded=true';
+    const safeSrc = escAttr(validSrc || fallback);
+    const safeClass = escAttr(className);
+    const idAttr = id ? ` id="${escAttr(id)}"` : '';
+    const isVideo = validSrc && (validSrc.endsWith('.mp4') || validSrc.endsWith('.webm') || validSrc.startsWith('data:video/'));
     if (isVideo) {
-        return `<video src="${src}" class="${className}" ${id ? `id="${id}"` : ''} autoplay loop muted playsinline style="opacity:0; transition:opacity 0.4s; object-fit:cover;" oncanplay="this.style.opacity=1"></video>`;
+        return `<video src="${safeSrc}" class="${safeClass}"${idAttr} autoplay loop muted playsinline style="opacity:0; transition:opacity 0.4s; object-fit:cover; border-radius:50%;" oncanplay="this.style.opacity=1"></video>`;
     }
-    return `<img src="${src}" class="${className}" ${id ? `id="${id}"` : ''} style="opacity:0; transition:opacity 0.4s; object-fit:cover;" onload="this.style.opacity=1">`;
+    return `<img src="${safeSrc}" class="${safeClass}"${idAttr} style="opacity:0; transition:opacity 0.4s; object-fit:cover;" onload="this.style.opacity=1" onerror="this.src='${fallback}'; this.style.opacity=1">`;
 }
 
 function escHtml(t) { if(!t) return ''; return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
@@ -200,7 +207,7 @@ const EMOJI_CATEGORIES = [
 
 searchResultsBox = document.createElement('div');
 searchResultsBox.className = 'search-results-box';
-searchResultsBox.style.cssText = 'display: none; position: absolute; top: 100%; left: 15px; right: 15px; background: rgba(20, 20, 20, 0.95); backdrop-filter: blur(10px); border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.1); margin-top: 5px; z-index: 9999; overflow-y: auto; max-height: 300px;';
+searchResultsBox.style.display = 'none';
 headerContainer.style.position = 'relative';
 headerContainer.appendChild(searchResultsBox);
 
@@ -542,7 +549,7 @@ function createFileContent(msg) {
         card.href = msg.file_url;
         card.target = '_blank';
         card.download = msg.file_name;
-        card.innerHTML = `<span class="material-symbols-outlined">description</span><div class="msg-file-info"><div class="msg-file-name">${msg.file_name || 'Файл'}</div><div class="msg-file-size">${formatFileSize(msg.file_size)}</div></div><span class="material-symbols-outlined" style="font-size:20px; color:var(--text-dim);">download</span>`;
+        card.innerHTML = `<span class="material-symbols-outlined">description</span><div class="msg-file-info"><div class="msg-file-name">${escHtml(msg.file_name || 'Файл')}</div><div class="msg-file-size">${formatFileSize(msg.file_size)}</div></div><span class="material-symbols-outlined" style="font-size:20px; color:var(--text-dim);">download</span>`;
         container.appendChild(card);
     }
     if (msg.content && msg.content !== msg.file_name) {
@@ -557,7 +564,7 @@ function createFileContent(msg) {
 function openImageOverlay(src) {
     const overlay = document.createElement('div');
     overlay.className = 'image-overlay';
-    overlay.innerHTML = `<img src="${src}">`;
+    overlay.innerHTML = `<img src="${escHtml(src)}">`;
     overlay.addEventListener('click', () => overlay.remove());
     document.addEventListener('keydown', function esc(e) { if (e.key === 'Escape') { overlay.remove(); document.removeEventListener('keydown', esc); } });
     document.body.appendChild(overlay);
@@ -1245,7 +1252,7 @@ function renderContactsList(container, selectedSet, filterQuery = '') {
     allAvailableContacts.filter(c => c.name.toLowerCase().includes(filterQuery.toLowerCase())).forEach(c => {
         const row = document.createElement('div');
         row.className = `contact-row ${selectedSet.has(c.target_user_id) ? 'selected' : ''}`;
-        row.innerHTML = `<img src="${escHtml(c.avatar)}" alt=""><div class="contact-info"><div class="contact-name">${escHtml(c.name)}</div><div class="contact-login">Пользователь</div></div>`;
+        row.innerHTML = `${renderAvatar(c.avatar || null, 'avatar contact-avatar')}<div class="contact-info"><div class="contact-name">${escHtml(c.name)}</div><div class="contact-login">@${escHtml(c.name)}</div></div>`;
         row.addEventListener('click', () => { if (selectedSet.has(c.target_user_id)) { selectedSet.delete(c.target_user_id); row.classList.remove('selected'); } else { selectedSet.add(c.target_user_id); row.classList.add('selected'); } });
         container.appendChild(row);
     });
@@ -1418,10 +1425,8 @@ searchInput.addEventListener('input', async (e) => {
         searchResultsBox.style.display = 'block';
         users.slice(0, 5).forEach(u => {
             const div = document.createElement('div');
-            div.style.cssText = 'padding: 12px 15px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.05); color: #fff; transition: background 0.2s;';
-            div.innerHTML = `<span style="display:flex; justify-content:space-between; align-items:center;"><b>${escHtml(u.login)}</b><span style="color: rgba(255,255,255,0.5); font-size: 0.85em;">${escHtml(u.fio || '')}</span></span>`;
-            div.onmouseover = () => div.style.background = 'rgba(255,255,255,0.1)';
-            div.onmouseout = () => div.style.background = 'transparent';
+            div.className = 'search-result-item';
+            div.innerHTML = `<span style="display:flex; justify-content:space-between; align-items:center; gap:8px;"><b>${escHtml(u.login)}</b><span class="search-result-sub">${escHtml(u.fio || '')}</span></span>`;
             div.addEventListener('click', () => startChatWithUser(u.id, u.login));
             searchResultsBox.appendChild(div);
         });
@@ -1454,7 +1459,12 @@ confirmInviteChat.addEventListener('click', async () => { if (!currentChatId || 
 moreOptionsBtn.addEventListener('click', async () => {
     if (!currentChatId || currentChatId === 'null') return;
     document.getElementById('settings-chat-name').textContent = chatNameEl.textContent;
-    document.getElementById('settings-chat-avatar').src = chatAvatarEl.src;
+    const _settingsAvatarWrapper = document.getElementById('settings-chat-avatar');
+    if (_settingsAvatarWrapper) {
+        const _ava = document.getElementById('current-chat-avatar');
+        const _avaSrc = (_ava && (_ava.src || _ava.currentSrc)) || currentChatAvatar || '';
+        _settingsAvatarWrapper.src = _avaSrc;
+    }
     settingsParticipantsList.innerHTML = '<div style="text-align:center; padding: 20px; color:#aaa;">Загрузка...</div>';
     let oldDelBtn = document.getElementById('delete-group-action');
     if (oldDelBtn) oldDelBtn.remove();
@@ -1475,7 +1485,7 @@ moreOptionsBtn.addEventListener('click', async () => {
                             window.openOtherProfile(p.id);
                         };
                     }
-                    row.innerHTML = `<img src="${p.avatar}" alt=""><div class="contact-info"><div class="contact-name">${p.login}</div><div class="contact-login">${p.role === 'owner' ? 'Создатель' : 'Участник'}</div></div>`;
+                    row.innerHTML = `${renderAvatar(p.avatar || null, 'avatar contact-avatar')}<div class="contact-info"><div class="contact-name">${escHtml(p.login)}</div><div class="contact-login">${p.role === 'owner' ? 'Создатель' : 'Участник'}</div></div>`;
                     settingsParticipantsList.appendChild(row);
                 });
             } else {
@@ -1522,14 +1532,27 @@ window.openOtherProfile = async function(userId) {
         const user = await res.json();
         
         const updateField = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
-        const updateImg = (id, src) => { const el = document.getElementById(id); if (el) el.src = src; };
+        const updateAvatar = (id, src) => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            const isVid = src && (src.endsWith('.mp4') || src.endsWith('.webm') || src.startsWith('data:video/'));
+            if (isVid) {
+                const vid = document.createElement('video');
+                vid.src = src; vid.autoplay = true; vid.loop = true; vid.muted = true; vid.playsInline = true;
+                vid.className = el.className; vid.id = el.id;
+                vid.style.cssText = el.style.cssText || 'object-fit:cover;';
+                el.replaceWith(vid);
+            } else {
+                el.src = src || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.login)}&background=random&color=fff&rounded=true`;
+            }
+        };
 
-        updateImg('other-profile-avatar', user.avatar);
+        updateAvatar('other-profile-avatar', user.avatar);
         updateField('other-profile-name', user.login);
         updateField('other-profile-login', '@' + user.login);
         updateField('other-profile-bio', user.bio || 'Нет информации');
 
-        updateImg('other-profile-avatar-mob', user.avatar);
+        updateAvatar('other-profile-avatar-mob', user.avatar);
         updateField('other-profile-name-mob', user.login);
         updateField('other-profile-login-mob', '@' + user.login);
         updateField('other-profile-bio-mob', user.bio || 'Нет информации');
@@ -1994,10 +2017,10 @@ document.addEventListener('click', function(e) {
 
 document.addEventListener('input', function(e) {
     const t = e.target;
-    if (!t || !t.classList) return;
+    if (!t || !t.classList || t.type !== 'range') return;
     const val = parseFloat(t.value);
     const valEl = t.nextElementSibling;
-    if (valEl) valEl.textContent = val;
+    if (valEl && valEl.classList.contains('glass-val')) valEl.textContent = val;
 
     if (t.classList.contains('glass-opacity-slider')) {
         document.querySelectorAll('.glass-opacity-slider').forEach(s => { if (s !== t) { s.value = val; if (s.nextElementSibling) s.nextElementSibling.textContent = val; } });
@@ -2042,6 +2065,11 @@ if (menuBtn && sideDrawer && drawerOverlay) {
         drawerOverlay.classList.add('visible');
         const um = document.querySelector('meta[name="current-user"]');
         if (um && document.getElementById('drawer-user-name')) document.getElementById('drawer-user-name').textContent = um.content;
+        const _daEl = document.getElementById('drawer-user-avatar');
+        if (_daEl) {
+            const _myProf = document.getElementById('my-profile-avatar');
+            if (_myProf && _myProf.src && !_myProf.src.endsWith('/')) _daEl.src = _myProf.src;
+        }
     });
 
     drawerOverlay.addEventListener('click', () => {

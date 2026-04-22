@@ -16,3 +16,6 @@ static/uploads/
 
 .claudeignore
 .claude/
+
+build_exe.py
+app-trn.log

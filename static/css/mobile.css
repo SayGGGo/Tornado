@@ -817,9 +817,41 @@ html {
   .ctrl-tooltip { display: none !important; }
 
   .participants-bar {
-    bottom: calc(var(--sab) + 90px) !important;
-    left: 12px !important; right: 12px !important;
-    justify-content: center; flex-wrap: wrap;
+    position: fixed !important;
+    top: auto !important;
+    bottom: calc(var(--sab) + 86px) !important;
+    left: 8px !important;
+    right: 8px !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    justify-content: center;
+    gap: 6px !important;
+    max-height: 80px;
+    overflow: hidden;
+  }
+
+  .participant-chip {
+    padding: 5px 10px 5px 5px !important;
+    gap: 6px !important;
+  }
+
+  .participant-chip img {
+    width: 24px !important;
+    height: 24px !important;
+  }
+
+  .participant-chip span {
+    font-size: 11px !important;
+    max-width: 80px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .invite-header-btn {
+    font-size: 11px !important;
+    padding: 7px 12px !important;
+    gap: 4px !important;
   }
 
   .modal-overlay { align-items: flex-end !important; }
@@ -829,6 +861,15 @@ html {
     border-radius: 24px 24px 0 0 !important;
     max-height: 82svh !important;
     padding-bottom: calc(var(--sab) + 20px) !important;
+  }
+}
+
+@media (max-width: 768px) and (max-height: 700px) {
+  .video-grid {
+    padding-bottom: calc(var(--sab) + 80px) !important;
+  }
+  .participants-bar {
+    display: none !important;
   }
 }
 
@@ -882,36 +923,6 @@ html {
   .glass-btn:active, .btn:active { filter: brightness(0.88); }
 }
 
-@media (max-width: 768px) {
-    .video-grid {
-        grid-template-columns: 1fr;
-        gap: 8px;
-        padding: 8px;
-    }
-    .video-wrapper {
-        height: 240px;
-        border-radius: 16px;
-    }
-    .call-controls {
-        bottom: 24px;
-        padding: 12px;
-        width: 90%;
-        justify-content: space-around;
-    }
-    .ctrl-btn {
-        width: 50px;
-        height: 50px;
-    }
-    .participants-bar {
-        display: none;
-    }
-    .header-name {
-        font-size: 16px;
-    }
-    .header-status {
-        font-size: 11px;
-    }
-}
 
 @media (max-width: 768px) {
   

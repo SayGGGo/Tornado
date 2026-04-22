@@ -1,5 +1,6 @@
 const canvas = document.getElementById('topo-canvas');
-const ctx = canvas.getContext('2d');
+const ctx = canvas ? canvas.getContext('2d') : null;
+if (!canvas || !ctx) { window.bgToggle = () => {}; window.setBgParams = () => {}; }
 
 let width, height, cols, rows;
 let zOffset = 0;
@@ -63,7 +64,7 @@ function init() {
 }
 
 function animate(time) {
-    if (!running) { rafId = null; return; }
+    if (!running || !ctx) { rafId = null; return; }
     rafId = requestAnimationFrame(animate);
     if (!lastTime) lastTime = time;
     const deltaTime = time - lastTime;
@@ -121,6 +122,8 @@ function animate(time) {
     zOffset += bgParams.zOffsetSpeed * deltaTime;
 }
 
-window.addEventListener('resize', init);
-init();
-rafId = requestAnimationFrame(animate);
+if (canvas && ctx) {
+    window.addEventListener('resize', init);
+    init();
+    rafId = requestAnimationFrame(animate);
+}

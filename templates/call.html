@@ -114,7 +114,13 @@
 
     <div id="liquid-glass-root"></div>
     <script src="{{ url_for('static', filename='dist/glass-bundle.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/bg.js') }}"></script>
+    <script>
+    if (window.innerWidth > 768) {
+        var bgScript = document.createElement('script');
+        bgScript.src = '{{ url_for("static", filename="js/bg.js") }}';
+        document.head.appendChild(bgScript);
+    }
+    </script>
     <script src="{{ url_for('static', filename='js/call.js') }}"></script>
     <script type="module" src="{{ url_for('static', filename='js/i/island.js') }}"></script>
 

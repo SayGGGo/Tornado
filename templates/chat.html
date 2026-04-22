@@ -152,7 +152,12 @@
 
         <div id="view-settings" class="mobile-view" style="display:none;">
             <div class="settings-profile-block" id="mobile-profile-direct">
-                <img class="settings-big-avatar" id="settingsAvatar" src="{{ current_user.avatar or 'https://ui-avatars.com/api/?name=' ~ current_user.login ~ '&background=random' }}">
+                {% set sa_av = current_user.avatar or 'https://ui-avatars.com/api/?name=' ~ (current_user.login or 'U') ~ '&background=random&color=fff&rounded=true' %}
+                {% if sa_av.endswith('.mp4') or sa_av.endswith('.webm') %}
+                <video class="settings-big-avatar" id="settingsAvatar" src="{{ sa_av }}" autoplay loop muted playsinline style="object-fit:cover;"></video>
+                {% else %}
+                <img class="settings-big-avatar" id="settingsAvatar" src="{{ sa_av }}" alt="" onerror="this.src='https://ui-avatars.com/api/?name={{ (current_user.login or 'U')|urlencode }}&background=random&color=fff&rounded=true'">
+                {% endif %}
                 <div class="settings-profile-info">
                     <div class="settings-user-name" id="settingsName">{{ current_user.login }}</div>
                     <div class="settings-user-sub">@{{ current_user.login }}</div>
@@ -223,7 +228,12 @@
                  
                  <div class="profile-header">
                     <div class="profile-avatar-container" style="position:relative; width:120px; height:120px;" onclick="document.getElementById('avatar-upload-input').click()">
-                        <img src="{{ current_user.avatar or 'https://ui-avatars.com/api/?name=' ~ current_user.login ~ '&background=random' }}" class="profile-big-avatar" style="width:120px; height:120px;">
+                        {% set pav = current_user.avatar or 'https://ui-avatars.com/api/?name=' ~ (current_user.login or 'U') ~ '&background=random&color=fff&rounded=true' %}
+                        {% if pav.endswith('.mp4') or pav.endswith('.webm') %}
+                        <video src="{{ pav }}" class="profile-big-avatar" style="width:120px; height:120px; object-fit:cover; border-radius:50%;" autoplay loop muted playsinline></video>
+                        {% else %}
+                        <img src="{{ pav }}" class="profile-big-avatar" style="width:120px; height:120px;" alt="">
+                        {% endif %}
                         <div class="avatar-edit-overlay"><span class="material-symbols-outlined">photo_camera</span></div>
                     </div>
                     <div class="profile-info" style="margin-top:16px;">
@@ -531,7 +541,12 @@
             <div class="profile-content">
                 <div class="profile-header">
                     <div id="profile-avatar-container" class="profile-avatar-container" style="position:relative; cursor:pointer;" onclick="document.getElementById('avatar-upload-input').click()">
-                        <img id="my-profile-avatar" src="{{ current_user.avatar or 'https://ui-avatars.com/api/?name=' ~ current_user.login ~ '&background=random' }}" class="profile-big-avatar">
+                        {% set mpav = current_user.avatar or 'https://ui-avatars.com/api/?name=' ~ (current_user.login or 'U') ~ '&background=random&color=fff&rounded=true' %}
+                        {% if mpav.endswith('.mp4') or mpav.endswith('.webm') %}
+                        <video id="my-profile-avatar" src="{{ mpav }}" class="profile-big-avatar" autoplay loop muted playsinline style="object-fit:cover; border-radius:50%;"></video>
+                        {% else %}
+                        <img id="my-profile-avatar" src="{{ mpav }}" class="profile-big-avatar" alt="">
+                        {% endif %}
                         <div class="avatar-edit-overlay">
                             <span class="material-symbols-outlined">photo_camera</span>
                         </div>
@@ -852,7 +867,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" integrity="sha512-BNaRQnYJYiPSqHHDb58B0yaPfCu+Wgds8Gp/gU33kqBtgNS4tSPHuGibyoeqMV/TJlSKda6FXzoEyYGjTe+vXA==" crossorigin="anonymous"></script>
     <script src="{{ url_for('static', filename='js/chat.js') }}"></script>
     <script src="{{ url_for('static', filename='dist/glass-bundle.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/bg.js') }}"></script>
+    <script>if(window.innerWidth>768){var _s=document.createElement('script');_s.src='{{ url_for("static", filename="js/bg.js") }}';document.head.appendChild(_s);}</script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" integrity="sha512-D9gUyxqja7hBtkWpPWGt9wfbfaMGVt9gnyCvYa+jojwwPHLCzUm5i8rpk7vD7wNee9bA35eYIjobYPaQuKS1MQ==" crossorigin="anonymous"></script>
     <script type="module" src="{{ url_for('static', filename='js/i/island.js') }}"></script>
 
@@ -980,7 +995,7 @@
                 el.className = 'quick-call-item';
                 var avatarImg = document.createElement('img');
                 avatarImg.className = 'qc-avatar';
-                avatarImg.src = avatarEl ? avatarEl.src : '';
+                avatarImg.src = avatarEl ? (avatarEl.src || avatarEl.currentSrc || '') : '';
                 avatarImg.onerror = function() { this.style.display = 'none'; };
                 var nameSpan = document.createElement('span');
                 nameSpan.className = 'qc-name';
@@ -1003,7 +1018,13 @@
         function populateSettings() {
             var drawerAvatar = document.getElementById('drawer-user-avatar');
             var drawerName   = document.getElementById('drawer-user-name');
-            if (drawerAvatar) document.getElementById('settingsAvatar').src = drawerAvatar.src;
+            if (drawerAvatar) {
+                var sAv = document.getElementById('settingsAvatar');
+                if (sAv) {
+                    var avSrc = drawerAvatar.src || drawerAvatar.currentSrc || '';
+                    if (avSrc) sAv.src = avSrc;
+                }
+            }
             if (drawerName)   document.getElementById('settingsName').textContent = drawerName.textContent;
 
             var drawerCheck   = document.getElementById('theme-checkbox');

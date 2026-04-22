@@ -1,12 +1,5 @@
-import random
 import sys
 import os
-import time
-from datetime import datetime
-import hashlib
-import socket
-import subprocess
-import asyncio
 
 try:
     import requests
@@ -50,14 +43,22 @@ def service_worker():
     resp.headers['Service-Worker-Allowed'] = '/'
     return resp
 
+@app.after_request
+def set_security_headers(response):
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+    response.headers['Permissions-Policy'] = 'geolocation=(), payment=()'
+    return response
+
 @app.before_request
 def anti_ddos():
     if 'sid' not in session: session['sid'] = os.urandom(8).hex()
     if not DDoSGuard.check(
-        request.remote_addr, 
-        request.headers.get('User-Agent'), 
-        request.method, 
-        request.path, 
+        request.remote_addr,
+        request.headers.get('User-Agent'),
+        request.method,
+        request.path,
         request.referrer,
         session.get('user_id'),
         session.get('sid')

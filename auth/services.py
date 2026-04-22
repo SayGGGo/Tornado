@@ -70,7 +70,11 @@ class AuthService:
         user = User.query.filter_by(login=data.get("login")).first()
         if user and check_password_hash(user.password_hash, data.get("password", "")):
             session["user_id"] = user.id
-            redirect_url = data.get("next") or url_for("chat")
+            next_url = data.get("next", "")
+            if next_url and isinstance(next_url, str) and next_url.startswith("/") and not next_url.startswith("//"):
+                redirect_url = next_url
+            else:
+                redirect_url = url_for("chat")
             return {"success": True, "redirect": redirect_url}
 
         return {"success": False, "message": "Неверный логин или пароль"}
