@@ -20,6 +20,8 @@
   {% elif captcha_provider == 'yandex' %}
   <script src="https://smartcaptcha.yandexcloud.net/captcha.js" defer></script>
   {% endif %}
+
+  {% include 'more.html' %}
 </head>
 <body>
 
@@ -32,7 +34,6 @@
 
   <div class="card-window" id="cardWindow">
     <div class="login-panel">
-      <!-- Мобильный заголовок с анимированным эмодзи -->
       <div class="login-emoji-header" style="display:none;">
         <div class="tg-emoji tg-emoji--xl">
           <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Telegram-Animated-Emojis/main/Objects/Key.webp" alt="🔑" loading="eager">

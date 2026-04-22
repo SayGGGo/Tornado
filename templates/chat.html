@@ -175,6 +175,11 @@
                     <span>История звонков</span>
                     <span class="material-symbols-outlined settings-chevron">chevron_right</span>
                 </div>
+                <div class="settings-item" onclick="showTab('notifications')">
+                    <span class="material-symbols-outlined">notifications</span>
+                    <span>Уведомления</span>
+                    <span class="material-symbols-outlined settings-chevron">chevron_right</span>
+                </div>
                 <div class="settings-item" onclick="showTab('design')">
                     <span class="material-symbols-outlined">palette</span>
                     <span>Дизайн</span>
@@ -268,6 +273,45 @@
                     <button class="contact-action-btn" id="other-profile-call-btn-mob" style="background: rgba(52,199,89,0.1); border-color: var(--green); color: var(--green);">
                         Позвонить
                     </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-notifications" class="mobile-view" style="display:none;">
+            <div class="mobile-view-header">
+                <button class="icon-btn" onclick="showTab('settings')">
+                    <span class="material-symbols-outlined">arrow_back</span>
+                </button>
+                <span>Уведомления</span>
+            </div>
+            <div class="design-content" style="padding:20px;">
+                <div class="notif-permission-block" id="notif-permission-block-mob" data-state="default">
+                    <div class="notif-perm-icon-wrap">
+                        <span class="material-symbols-outlined notif-perm-icon">notifications</span>
+                    </div>
+                    <div class="notif-perm-text">
+                        <div class="notif-perm-title" id="notif-perm-title-mob">Разрешение не выдано</div>
+                        <div class="notif-perm-sub" id="notif-perm-sub-mob">Нажмите, чтобы разрешить уведомления</div>
+                    </div>
+                    <button class="notif-perm-btn" id="notif-perm-btn-mob">Разрешить</button>
+                </div>
+                <div class="notif-settings-list">
+                    <div class="notif-setting-row">
+                        <span class="material-symbols-outlined">notifications_active</span>
+                        <span style="flex:1;">Push-уведомления</span>
+                        <label class="theme-switch">
+                            <input type="checkbox" id="push-enabled-checkbox-mob" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="notif-setting-row">
+                        <span class="material-symbols-outlined">visibility</span>
+                        <span style="flex:1;">Предпросмотр сообщений</span>
+                        <label class="theme-switch">
+                            <input type="checkbox" id="push-preview-checkbox-mob" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
                 </div>
             </div>
         </div>
@@ -458,6 +502,12 @@
                 </button>
             </div>
             <div class="modal-contacts" id="settings-participants-list" style="max-height: 200px;"></div>
+        </div>
+    </div>
+
+    <div id="customContextMenu" class="context-menu">
+        <div class="context-menu-item" id="ctx-chat-notify">
+            <span class="material-symbols-outlined">notifications_off</span> Отключить уведомления
         </div>
     </div>
 
@@ -738,6 +788,47 @@
         </div>
     </div>
 
+    <div id="notifications-modal-overlay" class="modal-overlay">
+        <div class="notifications-modal liquid-glass-fallback">
+            <div class="modal-top" style="padding: 24px 24px 0;">
+                <div class="modal-title">Уведомления</div>
+                <button class="modal-close" onclick="document.getElementById('notifications-modal-overlay').classList.remove('visible')">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div class="notifications-content">
+                <div class="notif-permission-block" id="notif-permission-block" data-state="default">
+                    <div class="notif-perm-icon-wrap">
+                        <span class="material-symbols-outlined notif-perm-icon">notifications</span>
+                    </div>
+                    <div class="notif-perm-text">
+                        <div class="notif-perm-title" id="notif-perm-title">Разрешение не выдано</div>
+                        <div class="notif-perm-sub" id="notif-perm-sub">Нажмите, чтобы разрешить уведомления</div>
+                    </div>
+                    <button class="notif-perm-btn" id="notif-perm-btn">Разрешить</button>
+                </div>
+                <div class="notif-settings-list">
+                    <div class="notif-setting-row">
+                        <span class="material-symbols-outlined">notifications_active</span>
+                        <span style="flex:1;">Push-уведомления</span>
+                        <label class="theme-switch">
+                            <input type="checkbox" id="push-enabled-checkbox" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="notif-setting-row">
+                        <span class="material-symbols-outlined">visibility</span>
+                        <span style="flex:1;">Предпросмотр сообщений</span>
+                        <label class="theme-switch">
+                            <input type="checkbox" id="push-preview-checkbox" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <nav class="mobile-tab-bar" id="mobileTabBar" aria-label="Навигация">
         <div class="tab-pill" id="tabPill">
             <div class="tab-indicator" id="tabIndicator"></div>
@@ -803,9 +894,12 @@
             var vProfile = document.getElementById('view-profile');
             var vDesign  = document.getElementById('view-design');
             var vOther   = document.getElementById('view-other-profile');
+            var vNotif   = document.getElementById('view-notifications');
             if (vProfile) vProfile.style.display = tab === 'profile' ? 'flex' : 'none';
             if (vDesign)  vDesign.style.display  = tab === 'design'  ? 'flex' : 'none';
             if (vOther)   vOther.style.display   = tab === 'other_profile' ? 'flex' : 'none';
+            if (vNotif)   vNotif.style.display   = tab === 'notifications' ? 'flex' : 'none';
+            if (tab === 'notifications' && window.updateNotifPermUI) window.updateNotifPermUI();
 
             if (mainChat) {
                 mainChat.style.transform = 'translateX(100%)';
@@ -843,7 +937,7 @@
                 backBtn.style.pointerEvents = 'none';
             }
             if (tabBar) tabBar.classList.remove('chat-open');
-            showTab(currentTab === 'profile' || currentTab === 'design' ? 'settings' : currentTab);
+            showTab(currentTab === 'profile' || currentTab === 'design' || currentTab === 'notifications' ? 'settings' : currentTab);
             if (window._resetChatSelection) window._resetChatSelection();
         }
 

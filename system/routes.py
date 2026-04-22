@@ -1,11 +1,12 @@
 from datetime import datetime
-from flask import jsonify, request, render_template, send_file, session
+from flask import jsonify, request, render_template, send_file, session, Response, send_from_directory
 from openpyxl.styles.builtins import output
 from config import logger, Config
 from models import db, User
 from utils import get_randomization, verify_key
 import random
 from models.codes import CodeQu
+import requests
 
 
 def register_system(app):
@@ -178,3 +179,7 @@ def register_system(app):
                 for e in entries
             ],
         })
+
+    @app.route('/favicon-sprite')
+    def get_sprite():
+        return send_from_directory('static', 'sprite.webp')

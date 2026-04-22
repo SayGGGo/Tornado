@@ -67,6 +67,7 @@ const emojiTabsContainer = document.getElementById('emoji-tabs');
 const emojiToggleBtn = document.getElementById('emoji-toggle-btn');
 
 let isResizing = false;
+let contextChatId = null;
 let currentChatId = null;
 let currentTargetId = null;
 let currentChatAvatar = '';
@@ -429,15 +430,24 @@ function onChatClick(e) {
 }
 
 function onChatContextMenu(e) {
+    if (!contextMenu) return;
     e.preventDefault();
+    contextChatId = e.currentTarget.getAttribute('data-chat-id');
+    const ctxNotify = document.getElementById('ctx-chat-notify');
+    if (ctxNotify && contextChatId) {
+        const muted = isChatPushMuted(contextChatId);
+        ctxNotify.innerHTML = `<span class="material-symbols-outlined">${muted ? 'notifications' : 'notifications_off'}</span> ${muted ? 'Включить уведомления' : 'Отключить уведомления'}`;
+    }
     let x = e.clientX, y = e.clientY;
     contextMenu.style.display = 'flex';
-    const mw = contextMenu.offsetWidth, mh = contextMenu.offsetHeight;
-    if (x + mw > window.innerWidth) x = window.innerWidth - mw - 10;
-    if (y + mh > window.innerHeight) y = window.innerHeight - mh - 10;
-    contextMenu.style.left = `${x}px`;
-    contextMenu.style.top = `${y}px`;
-    contextMenu.classList.add('active');
+    requestAnimationFrame(() => {
+        const mw = contextMenu.offsetWidth, mh = contextMenu.offsetHeight;
+        if (x + mw > window.innerWidth) x = window.innerWidth - mw - 10;
+        if (y + mh > window.innerHeight) y = window.innerHeight - mh - 10;
+        contextMenu.style.left = `${x}px`;
+        contextMenu.style.top = `${y}px`;
+        contextMenu.classList.add('active');
+    });
 }
 
 function startChatWithUser(userId, userName) {
@@ -676,6 +686,7 @@ function onMsgContextMenu(e) {
 
 document.addEventListener('click', (e) => {
     if (msgContextMenu && !msgContextMenu.contains(e.target)) { msgContextMenu.style.display = 'none'; msgContextMenu.classList.remove('active'); }
+    if (contextMenu && !contextMenu.contains(e.target)) { contextMenu.style.display = 'none'; contextMenu.classList.remove('active'); }
 });
 
 ctxEditMsg.addEventListener('click', () => {
@@ -1213,6 +1224,12 @@ async function updateSidebar() {
 
             const newHtml = `${avatarHtml} <div class="chat-info"><div class="chat-header"><div class="chat-name">${chat.name}${chat.premium ? `<div class="premium-icon" style="-webkit-mask-image: url('/static/premium/${chat.premium}.svg'); mask-image: url('/static/premium/${chat.premium}.svg');"></div>` : ''}</div><div class="chat-meta"><span class="chat-time">${chat.last_time ? `${readIcon} ${chat.last_time}` : ''}</span></div></div><div class="chat-message-row"><span class="msg-text ${typingClass}">${previewText}</span><div class="chat-meta">${chat.unread > 0 ? `<span class="unread-badge">${chat.unread}</span>` : ''}</div></div></div>`;
             
+            const prevUnread = lastUnreadCounts[chatId] !== undefined ? lastUnreadCounts[chatId] : chat.unread;
+            if (chat.unread > prevUnread && String(chatId) !== String(currentChatId)) {
+                showPushNotification(chat.name, chat.last_msg || '', chat.avatar, chatId);
+            }
+            lastUnreadCounts[chatId] = chat.unread;
+
             if (chatItem.getAttribute('data-last-html') !== newHtml) {
                 chatItem.innerHTML = newHtml;
                 chatItem.setAttribute('data-last-html', newHtml);
@@ -2080,6 +2097,12 @@ if (menuBtn && sideDrawer && drawerOverlay) {
         document.getElementById('design-modal-overlay').classList.add('visible');
     });
 
+    document.getElementById('drawer-notifications')?.addEventListener('click', () => {
+        closeDrawer();
+        document.getElementById('notifications-modal-overlay').classList.add('visible');
+        window.updateNotifPermUI();
+    });
+
     if (drawerCreateGroup) drawerCreateGroup.addEventListener('click', () => {
         closeDrawer();
         openGroupModal();
@@ -2258,3 +2281,121 @@ function loadDesignPresets() {
     }
 }
 loadDesignPresets();
+
+const PUSH_MUTED_KEY = 'push-muted-chats';
+const PUSH_ENABLED_KEY = 'push-notifications-enabled';
+const PUSH_PREVIEW_KEY = 'push-message-preview';
+const lastUnreadCounts = {};
+
+function getPushMuted() {
+    try { return JSON.parse(localStorage.getItem(PUSH_MUTED_KEY) || '[]'); } catch { return []; }
+}
+function isChatPushMuted(chatId) { return getPushMuted().includes(String(chatId)); }
+function toggleChatPushMute(chatId) {
+    let muted = getPushMuted();
+    const sid = String(chatId);
+    muted = muted.includes(sid) ? muted.filter(id => id !== sid) : [...muted, sid];
+    localStorage.setItem(PUSH_MUTED_KEY, JSON.stringify(muted));
+}
+function isPushEnabled() { return localStorage.getItem(PUSH_ENABLED_KEY) !== '0'; }
+function isPushPreviewEnabled() { return localStorage.getItem(PUSH_PREVIEW_KEY) !== '0'; }
+
+function showPushNotification(chatName, content, avatar, chatId) {
+    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+    if (!isPushEnabled()) return;
+    if (document.hasFocus()) return;
+    if (isChatPushMuted(chatId)) return;
+    let body = isPushPreviewEnabled()
+        ? (content.length > 90 ? content.substring(0, 90) + '…' : content)
+        : 'Новое сообщение';
+    if (body.startsWith('__CALL_INVITE__')) body = '📞 Входящий видеозвонок';
+    else if (body.startsWith('__CHATLINK__')) body = '📩 Приглашение в чат';
+    body = body.replace(/__AEMOJI__([^\/]+)\/\/\/(.+?)__/g, '⭐ $2');
+    const n = new Notification(chatName, {
+        body,
+        icon: avatar || '/static/icons/logo.svg',
+        badge: '/static/icons/logo.svg',
+        tag: `tornado-chat-${chatId}`,
+        renotify: true,
+    });
+    n.onclick = () => {
+        window.focus();
+        const item = document.querySelector(`.chat-item[data-chat-id="${chatId}"]`);
+        if (item) item.click();
+        n.close();
+    };
+}
+
+window.updateNotifPermUI = function() {
+    const supported = 'Notification' in window;
+    const perm = supported ? Notification.permission : 'unsupported';
+
+    [
+        { block: 'notif-permission-block', title: 'notif-perm-title', sub: 'notif-perm-sub', btn: 'notif-perm-btn' },
+        { block: 'notif-permission-block-mob', title: 'notif-perm-title-mob', sub: 'notif-perm-sub-mob', btn: 'notif-perm-btn-mob' },
+    ].forEach(({ block, title, sub, btn }) => {
+        const blockEl = document.getElementById(block);
+        const titleEl = document.getElementById(title);
+        const subEl = document.getElementById(sub);
+        const btnEl = document.getElementById(btn);
+        if (!blockEl) return;
+
+        if (!supported) {
+            blockEl.setAttribute('data-state', 'unsupported');
+            if (titleEl) titleEl.textContent = 'Не поддерживается';
+            if (subEl) subEl.textContent = 'Ваш браузер не поддерживает уведомления';
+            if (btnEl) btnEl.style.display = 'none';
+        } else if (perm === 'granted') {
+            blockEl.setAttribute('data-state', 'granted');
+            if (titleEl) titleEl.textContent = 'Уведомления разрешены';
+            if (subEl) subEl.textContent = 'Браузер разрешил push-уведомления';
+            if (btnEl) btnEl.style.display = 'none';
+        } else if (perm === 'denied') {
+            blockEl.setAttribute('data-state', 'denied');
+            if (titleEl) titleEl.textContent = 'Уведомления заблокированы';
+            if (subEl) subEl.textContent = 'Разрешите в настройках браузера';
+            if (btnEl) { btnEl.style.display = ''; btnEl.textContent = 'Как разрешить?'; btnEl.onclick = () => alert('Нажмите на замок в адресной строке браузера → Уведомления → Разрешить.'); }
+        } else {
+            blockEl.setAttribute('data-state', 'default');
+            if (titleEl) titleEl.textContent = 'Разрешение не выдано';
+            if (subEl) subEl.textContent = 'Нажмите, чтобы разрешить уведомления';
+            if (btnEl) { btnEl.style.display = ''; btnEl.textContent = 'Разрешить'; btnEl.onclick = () => Notification.requestPermission().then(() => window.updateNotifPermUI()); }
+        }
+    });
+
+    const dot = document.getElementById('notif-drawer-dot');
+    if (dot) {
+        dot.className = 'notif-perm-dot' + (perm === 'granted' ? ' granted' : perm === 'denied' ? ' denied' : '');
+    }
+
+    const pushEl = document.getElementById('push-enabled-checkbox');
+    const pushMobEl = document.getElementById('push-enabled-checkbox-mob');
+    const previewEl = document.getElementById('push-preview-checkbox');
+    const previewMobEl = document.getElementById('push-preview-checkbox-mob');
+    if (pushEl) pushEl.checked = isPushEnabled();
+    if (pushMobEl) pushMobEl.checked = isPushEnabled();
+    if (previewEl) previewEl.checked = isPushPreviewEnabled();
+    if (previewMobEl) previewMobEl.checked = isPushPreviewEnabled();
+};
+
+document.addEventListener('change', function(e) {
+    if (e.target.id === 'push-enabled-checkbox' || e.target.id === 'push-enabled-checkbox-mob') {
+        localStorage.setItem(PUSH_ENABLED_KEY, e.target.checked ? '1' : '0');
+        const other = document.getElementById(e.target.id === 'push-enabled-checkbox' ? 'push-enabled-checkbox-mob' : 'push-enabled-checkbox');
+        if (other) other.checked = e.target.checked;
+    }
+    if (e.target.id === 'push-preview-checkbox' || e.target.id === 'push-preview-checkbox-mob') {
+        localStorage.setItem(PUSH_PREVIEW_KEY, e.target.checked ? '1' : '0');
+        const other = document.getElementById(e.target.id === 'push-preview-checkbox' ? 'push-preview-checkbox-mob' : 'push-preview-checkbox');
+        if (other) other.checked = e.target.checked;
+    }
+});
+
+document.getElementById('ctx-chat-notify')?.addEventListener('click', () => {
+    if (!contextChatId) return;
+    contextMenu.style.display = 'none';
+    contextMenu.classList.remove('active');
+    toggleChatPushMute(contextChatId);
+});
+
+window.updateNotifPermUI();
