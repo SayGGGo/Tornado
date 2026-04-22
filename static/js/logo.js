@@ -1,6 +1,9 @@
 (() => {
     'use strict';
 
+    if (window.__tornadoFaviconInit) return;
+    window.__tornadoFaviconInit = true;
+
     if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) return;
 
     const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;

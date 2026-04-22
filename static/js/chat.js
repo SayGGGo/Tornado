@@ -19,7 +19,8 @@ function renderAvatar(src, className = 'avatar', id = '') {
     const idAttr = id ? ` id="${escAttr(id)}"` : '';
     const isVideo = validSrc && (validSrc.endsWith('.mp4') || validSrc.endsWith('.webm') || validSrc.startsWith('data:video/'));
     if (isVideo) {
-        return `<video src="${safeSrc}" class="${safeClass}"${idAttr} autoplay loop muted playsinline style="opacity:0; transition:opacity 0.4s; object-fit:cover; border-radius:50%;" oncanplay="this.style.opacity=1"></video>`;
+        const randomId = 'vid_' + Math.random().toString(36).substr(2, 9);
+        return `<video src="${safeSrc}" class="${safeClass}"${idAttr} id="${randomId}" autoplay loop muted playsinline style="opacity:0; transition:opacity 0.4s; object-fit:cover; border-radius:50%; display:block;" oncanplay="this.style.opacity=1" onloadeddata="this.style.opacity=1" onerror="this.style.display='none'" onplay="this.style.opacity=1"></video>`;
     }
     return `<img src="${safeSrc}" class="${safeClass}"${idAttr} style="opacity:0; transition:opacity 0.4s; object-fit:cover;" onload="this.style.opacity=1" onerror="this.src='${fallback}'; this.style.opacity=1">`;
 }
@@ -1199,20 +1200,76 @@ async function saveEdit() {
     } catch (e) {}
 }
 
+function formatLocalTime(isoTimeStr) {
+    if (!isoTimeStr) return '';
+    try {
+        const date = new Date(isoTimeStr);
+        if (isNaN(date.getTime())) return isoTimeStr;
+
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        const msgDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        const time = `${hours}:${minutes}`;
+
+        if (msgDate.getTime() === today.getTime()) return time;
+        if (msgDate.getTime() === yesterday.getTime()) return `Вчера`;
+
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        return `${day}.${month}`;
+    } catch(e) { return isoTimeStr; }
+}
+
+function showChatSkeletons() {
+    const chatList = document.querySelector('.chat-list');
+    chatList.innerHTML = '';
+    for (let i = 0; i < 6; i++) {
+        const skeleton = document.createElement('div');
+        skeleton.className = 'chat-item skeleton-chat';
+        skeleton.innerHTML = `
+            <div class="skeleton skeleton-avatar"></div>
+            <div class="chat-info" style="flex: 1;">
+                <div class="chat-header">
+                    <div class="skeleton skeleton-text" style="width: 120px; height: 14px;"></div>
+                    <div class="skeleton skeleton-text" style="width: 40px; height: 12px;"></div>
+                </div>
+                <div class="chat-message-row">
+                    <div class="skeleton skeleton-text" style="width: 180px; height: 12px;"></div>
+                </div>
+            </div>
+        `;
+        chatList.appendChild(skeleton);
+    }
+}
+
 async function updateSidebar() {
     try {
+        showChatSkeletons();
         const res = await fetch('/api/chats');
         if (!res.ok) return;
         const chatsData = await res.json();
         const chatList = document.querySelector('.chat-list');
-        for (const [chatId, chat] of Object.entries(chatsData)) {
-            let chatItem = document.querySelector(`.chat-item[data-chat-id="${chatId}"]`);
-            if (!chatItem) {
-                const existingTemp = document.querySelector(`.chat-item[data-target-id="${chat.target_user_id}"][data-chat-id="null"]`);
-                if (existingTemp) { existingTemp.setAttribute('data-chat-id', chatId); chatItem = existingTemp; }
-                else { chatItem = document.createElement('div'); chatItem.className = 'chat-item'; chatItem.setAttribute('data-chat-id', chatId); chatItem.setAttribute('data-target-id', chat.target_user_id); if (currentChatId == chatId) chatItem.classList.add('active'); chatList.prepend(chatItem); bindChatClickEvents(); }
-            }
-            
+
+        const sortedChats = Object.entries(chatsData).sort((a, b) => {
+            const timeA = new Date(a[1].last_time || 0).getTime();
+            const timeB = new Date(b[1].last_time || 0).getTime();
+            return timeB - timeA;
+        });
+
+        chatList.innerHTML = '';
+
+        for (const [chatId, chat] of sortedChats) {
+            let chatItem = document.createElement('div');
+            chatItem.className = 'chat-item';
+            chatItem.setAttribute('data-chat-id', chatId);
+            chatItem.setAttribute('data-target-id', chat.target_user_id);
+            if (currentChatId == chatId) chatItem.classList.add('active');
+
             const readIcon = chat.last_status ? `<span class="material-symbols-outlined" style="font-size:14px; color:#4CAF50;">done_all</span>` : `<span class="material-symbols-outlined" style="font-size:14px;">done</span>`;
             let previewText = chat.last_msg || '';
             if (previewText.startsWith('__CALL_INVITE__')) previewText = '📞 Входящий видеозвонок';
@@ -1221,7 +1278,8 @@ async function updateSidebar() {
 
             const onlineDot = chat.online ? `<div class="online-status-dot"></div>` : '';
             const typingClass = chat.typing ? 'msg-text-typing' : '';
-            
+            const localTime = formatLocalTime(chat.last_time);
+
             const avatarHtml = `
                 <div class="avatar-wrapper">
                     ${renderAvatar(chat.avatar, 'avatar')}
@@ -1229,19 +1287,19 @@ async function updateSidebar() {
                 </div>
             `;
 
-            const newHtml = `${avatarHtml} <div class="chat-info"><div class="chat-header"><div class="chat-name">${escHtml(chat.name)}${chat.premium ? `<div class="premium-icon" style="-webkit-mask-image: url('/static/premium/${escHtml(chat.premium)}.svg'); mask-image: url('/static/premium/${escHtml(chat.premium)}.svg');"></div>` : ''}</div><div class="chat-meta"><span class="chat-time">${chat.last_time ? `${readIcon} ${escHtml(chat.last_time)}` : ''}</span></div></div><div class="chat-message-row"><span class="msg-text ${typingClass}">${escHtml(previewText)}</span><div class="chat-meta">${chat.unread > 0 ? `<span class="unread-badge">${escHtml(String(chat.unread))}</span>` : ''}</div></div></div>`;
-            
+            const newHtml = `${avatarHtml} <div class="chat-info"><div class="chat-header"><div class="chat-name">${escHtml(chat.name)}${chat.premium ? `<div class="premium-icon" style="-webkit-mask-image: url('/static/premium/${escHtml(chat.premium)}.svg'); mask-image: url('/static/premium/${escHtml(chat.premium)}.svg');"></div>` : ''}</div><div class="chat-meta"><span class="chat-time">${localTime ? `${readIcon} ${localTime}` : ''}</span></div></div><div class="chat-message-row"><span class="msg-text ${typingClass}">${escHtml(previewText)}</span><div class="chat-meta">${chat.unread > 0 ? `<span class="unread-badge">${escHtml(String(chat.unread))}</span>` : ''}</div></div></div>`;
+
+            chatItem.innerHTML = newHtml;
+            chatList.appendChild(chatItem);
+
             const prevUnread = lastUnreadCounts[chatId] !== undefined ? lastUnreadCounts[chatId] : chat.unread;
             if (chat.unread > prevUnread && String(chatId) !== String(currentChatId)) {
                 showPushNotification(chat.name, chat.last_msg || '', chat.avatar, chatId);
             }
             lastUnreadCounts[chatId] = chat.unread;
-
-            if (chatItem.getAttribute('data-last-html') !== newHtml) {
-                chatItem.innerHTML = newHtml;
-                chatItem.setAttribute('data-last-html', newHtml);
-            }
         }
+
+        bindChatClickEvents();
     } catch(e) {}
 }
 
