@@ -223,14 +223,46 @@ class ChatService:
         self.crypto = EncryptionService()
 
     def get_user_chats(self, user_id):
-        participants = ChatParticipant.query.filter_by(user_id=user_id).all()
+        from sqlalchemy.orm import joinedload, aliased
+        from sqlalchemy import func
+
+        participants = ChatParticipant.query.filter_by(user_id=user_id).options(
+            joinedload(ChatParticipant.chat).joinedload(Chat.participants).joinedload(ChatParticipant.user)
+        ).all()
+        
+        if not participants:
+            return {}
+
+        chat_ids = [p.chat_id for p in participants]
+        
+        last_msgs_sub = db.session.query(
+            Message.chat_id,
+            func.max(Message.id).label('max_id')
+        ).filter(Message.chat_id.in_(chat_ids)).group_by(Message.chat_id).subquery()
+
+        last_messages = Message.query.join(
+            last_msgs_sub,
+            (Message.chat_id == last_msgs_sub.c.chat_id) & (Message.id == last_msgs_sub.c.max_id)
+        ).all()
+        last_msg_map = {m.chat_id: m for m in last_messages}
+
+        unread_counts = db.session.query(
+            Message.chat_id,
+            func.count(Message.id)
+        ).filter(
+            Message.chat_id.in_(chat_ids),
+            Message.is_read == False,
+            Message.user_id != user_id
+        ).group_by(Message.chat_id).all()
+        unread_map = dict(unread_counts)
+
         chats_data = {}
         curr_user = db.session.get(User, user_id)
         now = datetime.utcnow()
 
         for p in participants:
             chat = p.chat
-            last_msg = Message.query.filter_by(chat_id=chat.id).order_by(Message.id.desc()).first()
+            last_msg = last_msg_map.get(chat.id)
             msg_preview = "Нет сообщений"
 
             if last_msg:
@@ -242,21 +274,20 @@ class ChatService:
                     if last_msg.file_name:
                         msg_preview = f"📎 {last_msg.file_name}"
 
-            is_read_attr = hasattr(Message, 'is_read')
-            unread_count = db.session.query(Message).filter_by(chat_id=chat.id, is_read=False).filter(
-                Message.user_id != user_id).count() if is_read_attr else 0
+            unread_count = unread_map.get(chat.id, 0)
             last_status = getattr(last_msg, 'is_read', False) if last_msg and last_msg.user_id == user_id else False
 
             is_typing = False
             typing_users = []
-            parts = ChatParticipant.query.filter(ChatParticipant.chat_id == chat.id, ChatParticipant.user_id != user_id).all()
-            for op in parts:
+            other_participants = [op for op in chat.participants if op.user_id != user_id]
+            
+            for op in other_participants:
                 if op.last_typing and (now - op.last_typing).total_seconds() < 6:
                     is_typing = True
                     typing_users.append(op.user.login)
 
             if chat.personal:
-                other_check = parts[0] if parts else None
+                other_check = other_participants[0] if other_participants else None
                 if other_check:
                     user = other_check.user
                     is_online = user.last_seen and (now - user.last_seen).total_seconds() < 120
@@ -299,7 +330,8 @@ class ChatService:
             return []
 
         curr_user = db.session.get(User, user_id)
-        query = Message.query.filter_by(chat_id=chat_id)
+        from sqlalchemy.orm import joinedload
+        query = Message.query.filter_by(chat_id=chat_id).options(joinedload(Message.author))
 
         if first_id > 0:
             messages = query.filter(Message.id < first_id).order_by(Message.id.desc()).limit(50).all()

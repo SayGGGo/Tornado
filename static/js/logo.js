@@ -89,35 +89,31 @@
         roundPath.lineTo(0, r);     roundPath.quadraticCurveTo(0, 0, r, 0);
     }
 
-    const sliceFrame = async (bitmap, i) => {
-        sliceCtx.clearRect(0, 0, CFG.size, CFG.size);
-        sliceCtx.save();
-        sliceCtx.clip(roundPath);
-        sliceCtx.drawImage(bitmap, 0, i * CFG.size, CFG.size, CFG.size, 0, 0, CFG.size, CFG.size);
-        sliceCtx.restore();
-
-        const blob = hasOffscreen
-            ? await sliceCanvas.convertToBlob({ type: 'image/webp', quality: 0.6 })
-            : await new Promise(res => sliceCanvas.toBlob(res, 'image/webp', 0.6));
-
-        frameUrls[i] = URL.createObjectURL(blob);
-    };
-
     const decodeAllFrames = async bitmap => {
-        for (let i = 0; i < CFG.total; i += CFG.decodeChunkSize) {
-            const batch = [];
-            for (let j = i; j < Math.min(i + CFG.decodeChunkSize, CFG.total); j++) {
-                batch.push(sliceFrame(bitmap, j));
+        for (let i = 0; i < CFG.total; i++) {
+            sliceCtx.clearRect(0, 0, CFG.size, CFG.size);
+            sliceCtx.save();
+            sliceCtx.clip(roundPath);
+            sliceCtx.drawImage(bitmap, 0, i * CFG.size, CFG.size, CFG.size, 0, 0, CFG.size, CFG.size);
+            sliceCtx.restore();
+
+            const blob = hasOffscreen
+                ? await sliceCanvas.convertToBlob({ type: 'image/webp', quality: 0.6 })
+                : await new Promise(res => sliceCanvas.toBlob(res, 'image/webp', 0.6));
+
+            if (frameUrls[i]) URL.revokeObjectURL(frameUrls[i]);
+            frameUrls[i] = URL.createObjectURL(blob);
+
+            if (i % 24 === 0) {
+                await new Promise(r => (window.requestIdleCallback || window.setTimeout)(r, { timeout: 1 }));
             }
-            await Promise.all(batch);
-            await new Promise(r => (window.requestIdleCallback || window.setTimeout)(r, { timeout: 16 }));
         }
         bitmap.close?.();
     };
 
     const loadSprite = async () => {
         try {
-            const res = await fetch(CFG.spriteUrl, { mode: 'cors', credentials: 'omit' });
+            const res = await fetch(CFG.spriteUrl);
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const blob = await res.blob();
             const bitmap = await createImageBitmap(blob);
