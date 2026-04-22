@@ -1,11 +1,62 @@
 import os
 import re
+import json
+import threading
 from datetime import datetime, timedelta
 from flask import render_template, jsonify, session, request, redirect, url_for, send_from_directory, abort
 from models import db, User, ChatParticipant
 from .services import ChatService, AgoraService, FileService, EncryptionService, flood_control
 from config import Config
 import uuid
+
+try:
+    from pywebpush import webpush, WebPushException
+    _WEBPUSH_OK = True
+except ImportError:
+    _WEBPUSH_OK = False
+
+
+def _send_push_background(subscriptions, payload_dict):
+    if not _WEBPUSH_OK or not Config.VAPID_PRIVATE_KEY:
+        return
+    payload = json.dumps(payload_dict).encode()
+    for sub in subscriptions:
+        try:
+            webpush(
+                subscription_info={"endpoint": sub.endpoint, "keys": {"p256dh": sub.p256dh, "auth": sub.auth}},
+                data=payload,
+                vapid_private_key=Config.VAPID_PRIVATE_KEY,
+                vapid_claims={"sub": Config.VAPID_CLAIMS_EMAIL},
+            )
+        except WebPushException:
+            pass
+        except Exception:
+            pass
+
+
+def send_push_to_chat_members(chat_id, sender_id, sender_name, message_text, sender_avatar):
+    from models.push import PushSubscription
+    subs = (PushSubscription.query
+            .join(ChatParticipant, ChatParticipant.user_id == PushSubscription.user_id)
+            .filter(ChatParticipant.chat_id == chat_id, PushSubscription.user_id != sender_id)
+            .all())
+    if not subs:
+        return
+    body = message_text or 'Новое сообщение'
+    if body.startswith('__CALL_INVOKE__') or body.startswith('__CALL_INVITE__'):
+        body = '📞 Входящий видеозвонок'
+    elif body.startswith('__CHATLINK__'):
+        body = '📩 Приглашение в чат'
+    payload = {
+        "title": sender_name,
+        "body": body[:120],
+        "icon": sender_avatar or '/static/icons/logo.svg',
+        "tag": f"tornado-chat-{chat_id}",
+        "chatId": chat_id,
+        "url": "/chat",
+    }
+    t = threading.Thread(target=_send_push_background, args=(subs, payload), daemon=True)
+    t.start()
 
 def register_chat(app):
     chat_service = ChatService()
@@ -105,9 +156,13 @@ def register_chat(app):
         if not chat_id and target_user_id:
             chat_data = chat_service.get_or_create_personal_chat(session["user_id"], target_user_id)
             chat_id = chat_data["chat_id"]
+        sender = db.session.get(User, session["user_id"])
         result = chat_service.post_message(session["user_id"], chat_id, data.get("content"))
         if "success" in result:
             result["chat_id"] = chat_id
+            if sender:
+                avatar = sender.avatar or f"https://ui-avatars.com/api/?name={sender.login}&background=random&color=fff&rounded=true&bold=true"
+                send_push_to_chat_members(chat_id, session["user_id"], sender.login, data.get("content", ""), avatar)
         return jsonify(result), 200 if "success" in result else 429 if "Слишком" in result.get("error", "") else 400
 
     @app.route("/api/messages/<int:message_id>", methods=["PUT"])
@@ -203,6 +258,10 @@ def register_chat(app):
                 last_result = result
 
         if last_result:
+            sender = db.session.get(User, session["user_id"])
+            if sender:
+                avatar = sender.avatar or f"https://ui-avatars.com/api/?name={sender.login}&background=random&color=fff&rounded=true&bold=true"
+                send_push_to_chat_members(int(chat_id), session["user_id"], sender.login, "📎 Файл", avatar)
             return jsonify(last_result), 200
 
         return jsonify({"error": "Неверный формат файла или превышен лимит 50 МБ"}), 400
@@ -390,3 +449,41 @@ def register_chat(app):
 
         avatar_url = user.avatar if user.avatar else f"https://ui-avatars.com/api/?name={user.login}&background=random&color=fff&rounded=true&bold=true"
         return jsonify({"success": True, "avatar": avatar_url, "bio": user.bio or ""})
+
+    @app.route("/api/push/vapid-key", methods=["GET"])
+    def push_vapid_key():
+        return jsonify({"publicKey": Config.VAPID_PUBLIC_KEY})
+
+    @app.route("/api/push/subscribe", methods=["POST"])
+    def push_subscribe():
+        if "user_id" not in session:
+            return jsonify({"error": "Unauthorized"}), 401
+        from models.push import PushSubscription
+        data = request.json or {}
+        endpoint = data.get("endpoint")
+        keys = data.get("keys") or {}
+        p256dh = keys.get("p256dh")
+        auth = keys.get("auth")
+        if not endpoint or not p256dh or not auth:
+            return jsonify({"error": "Invalid subscription"}), 400
+        existing = PushSubscription.query.filter_by(user_id=session["user_id"], endpoint=endpoint).first()
+        if existing:
+            existing.p256dh = p256dh
+            existing.auth = auth
+        else:
+            sub = PushSubscription(user_id=session["user_id"], endpoint=endpoint, p256dh=p256dh, auth=auth)
+            db.session.add(sub)
+        db.session.commit()
+        return jsonify({"ok": True})
+
+    @app.route("/api/push/unsubscribe", methods=["POST"])
+    def push_unsubscribe():
+        if "user_id" not in session:
+            return jsonify({"ok": True})
+        from models.push import PushSubscription
+        data = request.json or {}
+        endpoint = data.get("endpoint")
+        if endpoint:
+            PushSubscription.query.filter_by(user_id=session["user_id"], endpoint=endpoint).delete()
+            db.session.commit()
+        return jsonify({"ok": True})

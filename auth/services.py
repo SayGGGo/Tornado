@@ -39,8 +39,12 @@ class AuthService:
         crypto = EncryptionService()
         priv, pub = crypto.generate_keys()
 
+        import re as _re
+        raw_fio = str(data["fio"]).strip()
+        clean_fio = _re.sub(r'<[^>]*>', '', raw_fio)[:120]
+
         new_user = User(
-            fio=str(data["fio"]).strip(),
+            fio=clean_fio,
             login=str(data["login"]).strip(),
             password_hash=generate_password_hash(data["password"]),
             group_id=str(data.get("position", "")).strip(),

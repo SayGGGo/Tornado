@@ -462,10 +462,10 @@ function startChatWithUser(userId, userName) {
     tempItem.setAttribute('data-target-id', userId);
     
     tempItem.innerHTML = `
-        ${renderAvatar(`https://ui-avatars.com/api/?name=${userName}&background=random&color=fff&rounded=true`, 'avatar')}
+        ${renderAvatar(`https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=random&color=fff&rounded=true`, 'avatar')}
         <div class="chat-info">
             <div class="chat-header">
-                <div class="chat-name">${userName}</div>
+                <div class="chat-name">${escHtml(userName)}</div>
             </div>
             <div class="chat-message-row">
                 <span class="msg-text">Начните диалог</span>
@@ -1222,7 +1222,7 @@ async function updateSidebar() {
                 </div>
             `;
 
-            const newHtml = `${avatarHtml} <div class="chat-info"><div class="chat-header"><div class="chat-name">${chat.name}${chat.premium ? `<div class="premium-icon" style="-webkit-mask-image: url('/static/premium/${chat.premium}.svg'); mask-image: url('/static/premium/${chat.premium}.svg');"></div>` : ''}</div><div class="chat-meta"><span class="chat-time">${chat.last_time ? `${readIcon} ${chat.last_time}` : ''}</span></div></div><div class="chat-message-row"><span class="msg-text ${typingClass}">${previewText}</span><div class="chat-meta">${chat.unread > 0 ? `<span class="unread-badge">${chat.unread}</span>` : ''}</div></div></div>`;
+            const newHtml = `${avatarHtml} <div class="chat-info"><div class="chat-header"><div class="chat-name">${escHtml(chat.name)}${chat.premium ? `<div class="premium-icon" style="-webkit-mask-image: url('/static/premium/${escHtml(chat.premium)}.svg'); mask-image: url('/static/premium/${escHtml(chat.premium)}.svg');"></div>` : ''}</div><div class="chat-meta"><span class="chat-time">${chat.last_time ? `${readIcon} ${escHtml(chat.last_time)}` : ''}</span></div></div><div class="chat-message-row"><span class="msg-text ${typingClass}">${escHtml(previewText)}</span><div class="chat-meta">${chat.unread > 0 ? `<span class="unread-badge">${escHtml(String(chat.unread))}</span>` : ''}</div></div></div>`;
             
             const prevUnread = lastUnreadCounts[chatId] !== undefined ? lastUnreadCounts[chatId] : chat.unread;
             if (chat.unread > prevUnread && String(chatId) !== String(currentChatId)) {
@@ -1419,7 +1419,7 @@ searchInput.addEventListener('input', async (e) => {
         users.slice(0, 5).forEach(u => {
             const div = document.createElement('div');
             div.style.cssText = 'padding: 12px 15px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.05); color: #fff; transition: background 0.2s;';
-            div.innerHTML = `<span style="display:flex; justify-content:space-between; align-items:center;"><b>${u.login}</b><span style="color: rgba(255,255,255,0.5); font-size: 0.85em;">${u.fio}</span></span>`;
+            div.innerHTML = `<span style="display:flex; justify-content:space-between; align-items:center;"><b>${escHtml(u.login)}</b><span style="color: rgba(255,255,255,0.5); font-size: 0.85em;">${escHtml(u.fio || '')}</span></span>`;
             div.onmouseover = () => div.style.background = 'rgba(255,255,255,0.1)';
             div.onmouseout = () => div.style.background = 'transparent';
             div.addEventListener('click', () => startChatWithUser(u.id, u.login));
@@ -2303,7 +2303,6 @@ function isPushPreviewEnabled() { return localStorage.getItem(PUSH_PREVIEW_KEY) 
 function showPushNotification(chatName, content, avatar, chatId) {
     if (!('Notification' in window) || Notification.permission !== 'granted') return;
     if (!isPushEnabled()) return;
-    if (document.hasFocus()) return;
     if (isChatPushMuted(chatId)) return;
     let body = isPushPreviewEnabled()
         ? (content.length > 90 ? content.substring(0, 90) + '…' : content)
@@ -2325,6 +2324,77 @@ function showPushNotification(chatName, content, avatar, chatId) {
         n.close();
     };
 }
+
+let _swRegistration = null;
+let _pushSubscription = null;
+
+function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const raw = atob(base64);
+    return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+}
+
+async function initServiceWorker() {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+    try {
+        _swRegistration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+        navigator.serviceWorker.addEventListener('message', (e) => {
+            if (e.data && e.data.type === 'NOTIF_CLICK' && e.data.chatId) {
+                const item = document.querySelector(`.chat-item[data-chat-id="${e.data.chatId}"]`);
+                if (item) item.click();
+            }
+        });
+        const existing = await _swRegistration.pushManager.getSubscription();
+        if (existing) { _pushSubscription = existing; }
+    } catch {}
+}
+
+async function subscribeToPush() {
+    if (!_swRegistration) return false;
+    try {
+        const keyRes = await fetch('/api/push/vapid-key');
+        const { publicKey } = await keyRes.json();
+        const sub = await _swRegistration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(publicKey),
+        });
+        _pushSubscription = sub;
+        await fetch('/api/push/subscribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(sub.toJSON()),
+        });
+        return true;
+    } catch { return false; }
+}
+
+async function unsubscribeFromPush() {
+    if (!_pushSubscription) return;
+    try {
+        const endpoint = _pushSubscription.endpoint;
+        await _pushSubscription.unsubscribe();
+        _pushSubscription = null;
+        await fetch('/api/push/unsubscribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ endpoint }),
+        });
+    } catch {}
+}
+
+async function requestAndSubscribe() {
+    const perm = await Notification.requestPermission();
+    window.updateNotifPermUI();
+    if (perm === 'granted') await subscribeToPush();
+    return perm;
+}
+
+initServiceWorker().then(() => {
+    if ('Notification' in window && Notification.permission === 'granted' && !_pushSubscription) {
+        subscribeToPush();
+    }
+});
 
 window.updateNotifPermUI = function() {
     const supported = 'Notification' in window;
@@ -2348,8 +2418,8 @@ window.updateNotifPermUI = function() {
         } else if (perm === 'granted') {
             blockEl.setAttribute('data-state', 'granted');
             if (titleEl) titleEl.textContent = 'Уведомления разрешены';
-            if (subEl) subEl.textContent = 'Браузер разрешил push-уведомления';
-            if (btnEl) btnEl.style.display = 'none';
+            if (subEl) subEl.textContent = _pushSubscription ? 'Push-подписка активна' : 'Браузер разрешил уведомления';
+            if (btnEl) { btnEl.style.display = ''; btnEl.textContent = 'Отписаться'; btnEl.onclick = async () => { await unsubscribeFromPush(); window.updateNotifPermUI(); }; }
         } else if (perm === 'denied') {
             blockEl.setAttribute('data-state', 'denied');
             if (titleEl) titleEl.textContent = 'Уведомления заблокированы';
@@ -2359,7 +2429,7 @@ window.updateNotifPermUI = function() {
             blockEl.setAttribute('data-state', 'default');
             if (titleEl) titleEl.textContent = 'Разрешение не выдано';
             if (subEl) subEl.textContent = 'Нажмите, чтобы разрешить уведомления';
-            if (btnEl) { btnEl.style.display = ''; btnEl.textContent = 'Разрешить'; btnEl.onclick = () => Notification.requestPermission().then(() => window.updateNotifPermUI()); }
+            if (btnEl) { btnEl.style.display = ''; btnEl.textContent = 'Разрешить'; btnEl.onclick = () => requestAndSubscribe(); }
         }
     });
 

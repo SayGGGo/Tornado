@@ -2656,6 +2656,11 @@ input:not(:checked) + .slider:before {
     background: rgba(255,69,58,0.1);
     color: #ff453a;
 }
+[data-state="granted"] .notif-perm-btn {
+    border-color: rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.05);
+    color: var(--text-dim);
+}
 
 .notif-settings-list {
     display: flex;

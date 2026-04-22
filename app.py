@@ -42,6 +42,14 @@ register_chat(app)
 register_admin(app)
 register_spotify(app)
 
+@app.route("/sw.js")
+def service_worker():
+    from flask import send_from_directory, make_response
+    resp = make_response(send_from_directory('static', 'sw.js'))
+    resp.headers['Content-Type'] = 'application/javascript'
+    resp.headers['Service-Worker-Allowed'] = '/'
+    return resp
+
 @app.before_request
 def anti_ddos():
     if 'sid' not in session: session['sid'] = os.urandom(8).hex()

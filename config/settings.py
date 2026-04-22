@@ -48,4 +48,8 @@ class Config:
     SPOTIFY_REDIRECT_URI = os.getenv("SPOTIFY_REDIRECT_URI")
     WHITE_LIST = os.getenv("WHITE_LIST", "")
     ANTI_DDOS = os.getenv("ANTI_DDOS", "True") == "True"
+
+    VAPID_PRIVATE_KEY = os.getenv("VAPID_PRIVATE_KEY", "-----BEGIN PRIVATE KEY-----\nMIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgvhj6np/Oy6ZR1xmP\ndNxSw76V5ZLA7BL9e2VJD2spSRehRANCAATXXOcwdsO/x0Mc5uVp7DMUNuXgQtmc\nq7BGlVtBEfZnsoyFNRv3mgAMQbsxjt6GtYm+5Rp1MEmL5qoMwVdnvMGJ\n-----END PRIVATE KEY-----\n")
+    VAPID_PUBLIC_KEY = os.getenv("VAPID_PUBLIC_KEY", "BNdc5zB2w7_HQxzm5WnsMxQ25eBC2ZyrsEaVW0ER9meyjIU1G_eaAAxBuzGO3oa1ib7lGnUwSYvmqgzBV2e8wYk")
+    VAPID_CLAIMS_EMAIL = os.getenv("VAPID_CLAIMS_EMAIL", "mailto:admin@tornado.app")
 
