@@ -130,9 +130,13 @@
                     </div>
                     <div class="chat-meta">
                         <span class="chat-time">
-                            {% if chat.last_status %}
+                            {% if chat.last_status == True %}
                             <span class="icon-read">
-                                <span class="material-symbols-outlined" style="font-size:16px;">done_all</span>
+                                <span class="material-symbols-outlined" style="font-size:16px; color:#4CAF50;">done_all</span>
+                            </span>
+                            {% elif chat.last_status == False %}
+                            <span class="icon-read">
+                                <span class="material-symbols-outlined" style="font-size:16px; opacity:0.5;">done_all</span>
                             </span>
                             {% endif %}
                             {{ chat.last_time }}

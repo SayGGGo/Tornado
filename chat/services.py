@@ -275,7 +275,10 @@ class ChatService:
                         msg_preview = f"📎 {last_msg.file_name}"
 
             unread_count = unread_map.get(chat.id, 0)
-            last_status = getattr(last_msg, 'is_read', False) if last_msg and last_msg.user_id == user_id else False
+            if last_msg and last_msg.user_id == user_id:
+                last_status = True if getattr(last_msg, 'is_read', False) else False
+            else:
+                last_status = None
 
             is_typing = False
             typing_users = []

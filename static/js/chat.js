@@ -626,8 +626,9 @@ function createMessageElement(msg, animate = false) {
         metaDiv.style.cssText = 'padding:4px 0;background:transparent;border:none;box-shadow:none;';
         const card = document.createElement('div');
         card.className = 'invite-card';
-        card.innerHTML = `<div class="invite-card-icon"><span class="material-symbols-outlined">group_add</span></div><div class="call-card-info"><div class="invite-card-title">Приглашение в группу</div><div class="invite-card-subtitle">Нажмите, чтобы присоединиться к чату</div></div>`;
-        card.addEventListener('click', async () => { try { const res = await fetch('/api/chats/join', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: linkChatId }) }); if (res.ok) { updateSidebar(); setTimeout(() => { const btn = document.querySelector(`.chat-item[data-chat-id="${linkChatId}"]`); if (btn) btn.click(); }, 500); } } catch(e){} });
+        card.innerHTML = `<div class="invite-card-icon"><span class="material-symbols-outlined">group_add</span></div><div class="call-card-info"><div class="invite-card-title">Приглашение в группу</div><div class="invite-card-subtitle">Хотите вступить в этот чат?</div><div class="invite-card-actions"><button class="invite-btn invite-btn-accept">Принять</button><button class="invite-btn invite-btn-decline">Отклонить</button></div></div>`;
+        card.querySelector('.invite-btn-accept').addEventListener('click', async (ev) => { ev.stopPropagation(); try { const res = await fetch('/api/chats/join', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: linkChatId }) }); if (res.ok) { updateSidebar(); setTimeout(() => { const btn = document.querySelector(`.chat-item[data-chat-id="${linkChatId}"]`); if (btn) btn.click(); }, 500); } } catch(e){} });
+        card.querySelector('.invite-btn-decline').addEventListener('click', (ev) => { ev.stopPropagation(); card.closest('.msg-content').style.opacity = '0.5'; card.style.pointerEvents = 'none'; });
         const timeDiv = document.createElement('div');
         timeDiv.className = 'msg-meta';
         timeDiv.style.marginTop = '6px';
@@ -1270,7 +1271,11 @@ async function updateSidebar() {
             chatItem.setAttribute('data-target-id', chat.target_user_id);
             if (currentChatId == chatId) chatItem.classList.add('active');
 
-            const readIcon = chat.last_status ? `<span class="material-symbols-outlined" style="font-size:14px; color:#4CAF50;">done_all</span>` : `<span class="material-symbols-outlined" style="font-size:14px;">done</span>`;
+            const readIcon = chat.last_status === true
+                ? `<span class="material-symbols-outlined" style="font-size:14px; color:#4CAF50;">done_all</span>`
+                : chat.last_status === false
+                    ? `<span class="material-symbols-outlined" style="font-size:14px; opacity:0.5;">done_all</span>`
+                    : '';
             let previewText = chat.last_msg || '';
             if (previewText.startsWith('__CALL_INVITE__')) previewText = '📞 Входящий видеозвонок';
             else if (previewText.startsWith('__CHATLINK__')) previewText = '📩 Приглашение в чат';
@@ -1287,7 +1292,7 @@ async function updateSidebar() {
                 </div>
             `;
 
-            const newHtml = `${avatarHtml} <div class="chat-info"><div class="chat-header"><div class="chat-name">${escHtml(chat.name)}${chat.premium ? `<div class="premium-icon" style="-webkit-mask-image: url('/static/premium/${escHtml(chat.premium)}.svg'); mask-image: url('/static/premium/${escHtml(chat.premium)}.svg');"></div>` : ''}</div><div class="chat-meta"><span class="chat-time">${localTime ? `${readIcon} ${localTime}` : ''}</span></div></div><div class="chat-message-row"><span class="msg-text ${typingClass}">${escHtml(previewText)}</span><div class="chat-meta">${chat.unread > 0 ? `<span class="unread-badge">${escHtml(String(chat.unread))}</span>` : ''}</div></div></div>`;
+            const newHtml = `${avatarHtml} <div class="chat-info"><div class="chat-header"><div class="chat-name">${escHtml(chat.name)}${chat.premium ? `<div class="premium-icon" style="-webkit-mask-image: url('/static/premium/${escHtml(chat.premium)}.svg'); mask-image: url('/static/premium/${escHtml(chat.premium)}.svg');"></div>` : ''}</div><div class="chat-meta"><span class="chat-time">${localTime ? `${readIcon}${readIcon ? ' ' : ''}${localTime}` : ''}</span></div></div><div class="chat-message-row"><span class="msg-text ${typingClass}">${escHtml(previewText)}</span><div class="chat-meta">${chat.unread > 0 ? `<span class="unread-badge">${escHtml(String(chat.unread))}</span>` : ''}</div></div></div>`;
 
             chatItem.innerHTML = newHtml;
             chatList.appendChild(chatItem);

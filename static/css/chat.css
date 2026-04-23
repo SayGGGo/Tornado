@@ -1188,7 +1188,7 @@ code {
     background: rgba(255, 255, 255, 0.025);
     border: 1px solid var(--input-border);
     border-radius: 20px;
-    cursor: pointer;
+    cursor: default;
     display: flex;
     gap: 16px;
     margin: 4px 0;
@@ -1199,10 +1199,7 @@ code {
 }
 
 .invite-card:hover {
-    background: rgba(52, 199, 89, 0.05);
-    border-color: var(--green-border);
-    box-shadow: 0 4px 16px rgba(52, 199, 89, 0.15);
-    transform: translateY(-2px);
+    background: rgba(52, 199, 89, 0.03);
 }
 
 .invite-card-icon {
@@ -1234,6 +1231,31 @@ code {
     font-size: 15px;
     font-weight: 500;
     margin-bottom: 4px;
+}
+
+.invite-card-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+}
+.invite-btn {
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 16px;
+    transition: opacity 0.15s;
+}
+.invite-btn:hover { opacity: 0.8; }
+.invite-btn-accept {
+    background: var(--green);
+    color: #fff;
+}
+.invite-btn-decline {
+    background: rgba(255,255,255,0.08);
+    color: var(--text-dim);
 }
 
 .invite-modal {
