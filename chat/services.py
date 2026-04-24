@@ -229,12 +229,12 @@ class ChatService:
         participants = ChatParticipant.query.filter_by(user_id=user_id).options(
             joinedload(ChatParticipant.chat).joinedload(Chat.participants).joinedload(ChatParticipant.user)
         ).all()
-        
+
         if not participants:
             return {}
 
         chat_ids = [p.chat_id for p in participants]
-        
+
         last_msgs_sub = db.session.query(
             Message.chat_id,
             func.max(Message.id).label('max_id')
@@ -283,7 +283,7 @@ class ChatService:
             is_typing = False
             typing_users = []
             other_participants = [op for op in chat.participants if op.user_id != user_id]
-            
+
             for op in other_participants:
                 if op.last_typing and (now - op.last_typing).total_seconds() < 6:
                     is_typing = True
@@ -323,7 +323,9 @@ class ChatService:
                     "premium": "",
                     "target_user_id": "",
                     "typing": is_typing,
-                    "typing_list": typing_users
+                    "typing_list": typing_users,
+                    "chat_type": getattr(chat, 'chat_type', 'group') or 'group',
+                    "owner_id": chat.owner_id
                 }
 
         return chats_data
@@ -357,51 +359,51 @@ class ChatService:
         for msg in messages:
             avatar = msg.author.avatar if getattr(msg.author, 'avatar', None) else f"https://ui-avatars.com/api/?name={msg.author.login}&background=random&color=fff&rounded=true&bold=true"
             is_online = msg.author.last_seen and (now - msg.author.last_seen).total_seconds() < 120
+
+            reply_preview = None
+            if getattr(msg, 'reply_to_id', None) and msg.reply_to:
+                rt = msg.reply_to
+                if rt.is_deleted:
+                    reply_preview = {"id": rt.id, "login": rt.author.login, "text": "Сообщение удалено", "file_url": None, "msg_type": "text"}
+                else:
+                    rt_text = self.crypto.decrypt_for_user(rt.content, curr_user.private_key, (rt.user_id != user_id))
+                    reply_preview = {"id": rt.id, "login": rt.author.login, "text": rt_text[:80], "file_url": rt.file_url, "msg_type": getattr(rt, 'msg_type', 'text') or 'text'}
+
             if msg.is_deleted:
                 result.append({
-                    "id": msg.id,
-                    "user_id": msg.user_id,
-                    "login": msg.author.login,
-                    "avatar": avatar,
-                    "content": "",
-                    "timestamp": msg.timestamp.strftime("%H:%M"),
-                    "is_read": getattr(msg, 'is_read', False),
-                    "is_edited": False,
-                    "is_deleted": True,
-                    "file_url": None,
-                    "file_name": None,
-                    "file_type": None,
-                    "file_size": None,
-                    "online": is_online
+                    "id": msg.id, "user_id": msg.user_id, "login": msg.author.login, "avatar": avatar,
+                    "content": "", "timestamp": msg.timestamp.strftime("%H:%M"),
+                    "is_read": getattr(msg, 'is_read', False), "is_edited": False, "is_deleted": True,
+                    "file_url": None, "file_name": None, "file_type": None, "file_size": None,
+                    "online": is_online, "reply": None, "msg_type": "text"
                 })
             else:
                 result.append({
-                    "id": msg.id,
-                    "user_id": msg.user_id,
-                    "login": msg.author.login,
-                    "avatar": avatar,
+                    "id": msg.id, "user_id": msg.user_id, "login": msg.author.login, "avatar": avatar,
                     "content": self.crypto.decrypt_for_user(msg.content, curr_user.private_key, (msg.user_id != user_id)),
                     "timestamp": msg.timestamp.strftime("%H:%M"),
-                    "is_read": getattr(msg, 'is_read', False),
-                    "is_edited": msg.is_edited or False,
-                    "is_deleted": False,
-                    "file_url": msg.file_url,
-                    "file_name": msg.file_name,
-                    "file_type": msg.file_type,
-                    "file_size": msg.file_size,
-                    "online": is_online
+                    "is_read": getattr(msg, 'is_read', False), "is_edited": msg.is_edited or False, "is_deleted": False,
+                    "file_url": msg.file_url, "file_name": msg.file_name, "file_type": msg.file_type, "file_size": msg.file_size,
+                    "online": is_online, "reply": reply_preview, "msg_type": getattr(msg, 'msg_type', 'text') or 'text'
                 })
         return result
 
-    def post_message(self, user_id, chat_id, content, file_data=None):
+    def post_message(self, user_id, chat_id, content, file_data=None, reply_to_id=None, msg_type='text'):
         if not chat_id: return {"error": "Empty"}
         if not content and not file_data: return {"error": "Empty"}
 
         if not flood_control.check(user_id):
             return {"error": "Слишком быстро. Подождите немного."}
 
-        if not ChatParticipant.query.filter_by(user_id=user_id, chat_id=chat_id).first():
+        participant = ChatParticipant.query.filter_by(user_id=user_id, chat_id=chat_id).first()
+        if not participant:
             return {"error": "Denied"}
+
+        chat = db.session.get(Chat, chat_id)
+        if chat and getattr(chat, 'chat_type', 'group') == 'channel' and chat.owner_id != user_id:
+            is_admin = participant.role in ('owner', 'admin')
+            if not is_admin:
+                return {"error": "Только администраторы канала могут отправлять сообщения"}
 
         parts = ChatParticipant.query.filter_by(chat_id=chat_id).all()
         pub_pems = [p.user.public_key for p in parts if p.user.public_key]
@@ -417,6 +419,9 @@ class ChatService:
             safe_chunk = escape(chunk)
             encrypted = self.crypto.encrypt_for_multiple(safe_chunk, pub_pems)
             new_msg = Message(user_id=user_id, chat_id=chat_id, content=encrypted)
+            new_msg.msg_type = msg_type or 'text'
+            if reply_to_id and idx == 0:
+                new_msg.reply_to_id = reply_to_id
             if idx == 0 and file_data:
                 new_msg.file_url = file_data.get("url")
                 new_msg.file_name = file_data.get("name")
@@ -518,11 +523,11 @@ class ChatService:
         db.session.commit()
         return {"chat_id": new_chat.id, "is_new": True}
 
-    def create_group_chat(self, owner_id, name, participant_ids):
+    def create_group_chat(self, owner_id, name, participant_ids, chat_type='group'):
         if not name:
             return {"error": "Invalid data"}
 
-        new_chat = Chat(personal=False, name=name, owner_id=owner_id)
+        new_chat = Chat(personal=False, name=name, owner_id=owner_id, chat_type=chat_type if chat_type in ('group', 'channel') else 'group')
         db.session.add(new_chat)
         db.session.flush()
 
@@ -576,6 +581,7 @@ class ChatService:
             "participants": participants,
             "is_personal": chat.personal,
             "owner_id": chat.owner_id,
+            "chat_type": getattr(chat, 'chat_type', 'group') or 'group',
             "success": True
         }
 
@@ -614,7 +620,7 @@ class AgoraService:
         expiration_time_in_seconds = 3600
         current_timestamp = int(time.time())
         privilege_expired_ts = current_timestamp + expiration_time_in_seconds
-        
+
         cert = self.secondary_cert if use_secondary else self.primary_cert
 
         token = RtcTokenBuilder.buildTokenWithUid(

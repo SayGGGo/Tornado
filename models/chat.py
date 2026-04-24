@@ -7,6 +7,7 @@ class Chat(db.Model):
     name = db.Column(db.String(150), nullable=True)
     owner_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=True)
     protected = db.Column(db.Boolean, default=False)
+    chat_type = db.Column(db.String(20), default='group')
 
     participants = db.relationship("ChatParticipant", back_populates="chat", cascade="all, delete-orphan")
     messages = db.relationship("Message", back_populates="chat", cascade="all, delete-orphan")

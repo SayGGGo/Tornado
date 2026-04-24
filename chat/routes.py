@@ -104,7 +104,7 @@ def register_chat(app):
         chat_id = request.json.get("chat_id")
         if not chat_id:
             return jsonify({"ok": False}), 400
-        
+
         part = ChatParticipant.query.filter_by(user_id=session["user_id"], chat_id=chat_id).first()
         if part:
             part.last_typing = datetime.utcnow()
@@ -157,7 +157,9 @@ def register_chat(app):
             chat_data = chat_service.get_or_create_personal_chat(session["user_id"], target_user_id)
             chat_id = chat_data["chat_id"]
         sender = db.session.get(User, session["user_id"])
-        result = chat_service.post_message(session["user_id"], chat_id, data.get("content"))
+        reply_to_id = data.get("reply_to_id")
+        msg_type = data.get("msg_type", "text")
+        result = chat_service.post_message(session["user_id"], chat_id, data.get("content"), reply_to_id=reply_to_id, msg_type=msg_type)
         if "success" in result:
             result["chat_id"] = chat_id
             if sender:
@@ -233,6 +235,8 @@ def register_chat(app):
         chat_id = request.form.get("chat_id")
         target_user_id = request.form.get("target_user_id")
         caption = request.form.get("caption", "")
+        upload_reply_to_id = request.form.get("reply_to_id")
+        upload_msg_type = request.form.get("msg_type", "text")
 
         if not chat_id and target_user_id:
             chat_data = chat_service.get_or_create_personal_chat(session["user_id"], int(target_user_id))
@@ -251,7 +255,9 @@ def register_chat(app):
             if not file_data:
                 continue
             cap = caption if i == 0 else ""
-            result = chat_service.post_message(session["user_id"], int(chat_id), cap, file_data=file_data)
+            result = chat_service.post_message(session["user_id"], int(chat_id), cap, file_data=file_data,
+                                               reply_to_id=int(upload_reply_to_id) if upload_reply_to_id else None,
+                                               msg_type=upload_msg_type if i == 0 else 'text')
             if "success" in result:
                 result["chat_id"] = int(chat_id)
                 result["file"] = file_data
@@ -335,7 +341,7 @@ def register_chat(app):
         call_url = f"/call?channel={channel_name}"
         if use_secondary:
             call_url += "&secondary=true"
-            
+
         invite_message = f"__CALL_INVITE__{channel_name}|{caller.login}|{caller_avatar}"
 
         result = chat_service.post_message(session["user_id"], int(chat_id), invite_message)
@@ -365,11 +371,12 @@ def register_chat(app):
         data = request.json or {}
         name = data.get("name")
         participants = data.get("participants", [])
+        chat_type = data.get("chat_type", "group")
 
         if not name or not str(name).strip():
             return jsonify({"error": "Необходимо имя"}), 400
 
-        result = chat_service.create_group_chat(session["user_id"], str(name).strip(), participants)
+        result = chat_service.create_group_chat(session["user_id"], str(name).strip(), participants, chat_type=chat_type)
         return jsonify(result), 200 if "success" in result else 400
 
     @app.route("/api/chats/invite", methods=["POST"])

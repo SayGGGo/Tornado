@@ -102,6 +102,19 @@
                 </div>
             </div>
 
+            <div id="reply-bar" class="edit-bar" style="display:none;">
+                <div class="edit-bar-inner">
+                    <span class="material-symbols-outlined" style="color:#8774e1;">reply</span>
+                    <div class="edit-bar-text">
+                        <span class="edit-bar-label" id="reply-bar-author">Ответ</span>
+                        <span id="reply-bar-content" class="edit-bar-content"></span>
+                    </div>
+                    <button id="reply-bar-close" class="icon-btn">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+            </div>
+
             <div id="file-preview-bar" class="file-preview-bar" style="display:none;">
                 <div class="file-preview-inner">
                     <img id="file-preview-img" src="" style="display:none;">
@@ -121,7 +134,19 @@
             </div>
 
             <div class="chat-input-wrapper" id="chat-input-wrapper-el">
-                <div class="chat-input-glass liquid-glass-fallback">
+                <div id="voice-record-bar" class="voice-record-bar" style="display:none;">
+                    <div class="voice-record-inner">
+                        <div class="voice-record-waveform" id="voice-waveform">
+                            <span></span><span></span><span></span><span></span><span></span>
+                            <span></span><span></span><span></span><span></span><span></span>
+                        </div>
+                        <span class="voice-record-time" id="voice-record-time">0:00</span>
+                        <button class="icon-btn voice-record-cancel" id="voice-record-cancel">
+                            <span class="material-symbols-outlined">delete</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="chat-input-glass liquid-glass-fallback" id="chat-input-glass">
                     <button class="icon-btn smile-btn" id="emoji-toggle-btn">
                         <span class="material-symbols-outlined">mood</span>
                     </button>
@@ -130,11 +155,30 @@
                     <button class="icon-btn attach-btn" id="attach-btn">
                         <span class="material-symbols-outlined">attach_file</span>
                     </button>
+                    <button class="icon-btn circle-btn" id="circle-btn" title="Видеокружок" style="display:none;">
+                        <span class="material-symbols-outlined">radio_button_checked</span>
+                    </button>
                 </div>
                 <button id="send-btn" class="send-btn liquid-glass-fallback">
                     <span class="material-symbols-outlined mic-icon">mic</span>
                     <span class="material-symbols-outlined send-icon" style="display:none;">send</span>
                 </button>
+            </div>
+
+            <div id="circle-record-overlay" class="circle-record-overlay" style="display:none;">
+                <div class="circle-record-container">
+                    <video id="circle-preview-video" autoplay muted playsinline class="circle-preview"></video>
+                    <div class="circle-record-ring" id="circle-record-ring"></div>
+                    <div class="circle-record-controls">
+                        <button class="circle-ctrl-btn circle-ctrl-cancel" id="circle-cancel-btn">
+                            <span class="material-symbols-outlined">close</span>
+                        </button>
+                        <button class="circle-ctrl-btn circle-ctrl-send" id="circle-send-btn">
+                            <span class="material-symbols-outlined">check</span>
+                        </button>
+                    </div>
+                    <div class="circle-record-timer" id="circle-record-timer">0:00</div>
+                </div>
             </div>
         </div>
 
@@ -225,7 +269,7 @@
                 <span>Мой профиль</span>
             </div>
             <div class="profile-content" style="flex:1; overflow-y:auto;">
-                 
+
                  <div class="profile-header">
                     <div class="profile-avatar-container" style="position:relative; width:120px; height:120px;" onclick="document.getElementById('avatar-upload-input').click()">
                         {% set pav = current_user.avatar or 'https://ui-avatars.com/api/?name=' ~ (current_user.login or 'U') ~ '&background=random&color=fff&rounded=true' %}
@@ -334,7 +378,7 @@
                 <span>Дизайн</span>
             </div>
             <div class="design-content" style="padding:20px;">
-                 
+
                  <div class="design-section">
                     <div class="section-title">Акцентный цвет</div>
                     <div class="accent-colors">
