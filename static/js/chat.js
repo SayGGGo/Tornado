@@ -568,7 +568,9 @@ function createFileContent(msg) {
 function openImageOverlay(src) {
     const overlay = document.createElement('div');
     overlay.className = 'image-overlay';
-    overlay.innerHTML = `<img src="${escHtml(src)}">`;
+    const img = document.createElement('img');
+    img.src = src || '';
+    overlay.appendChild(img);
     overlay.addEventListener('click', () => overlay.remove());
     document.addEventListener('keydown', function esc(e) { if (e.key === 'Escape') { overlay.remove(); document.removeEventListener('keydown', esc); } });
     document.body.appendChild(overlay);
