@@ -568,7 +568,9 @@ function createFileContent(msg) {
 function openImageOverlay(src) {
     const overlay = document.createElement('div');
     overlay.className = 'image-overlay';
-    overlay.innerHTML = `<img src="${escHtml(src)}">`;
+    const img = document.createElement('img');
+    img.src = src || '';
+    overlay.appendChild(img);
     overlay.addEventListener('click', () => overlay.remove());
     document.addEventListener('keydown', function esc(e) { if (e.key === 'Escape') { overlay.remove(); document.removeEventListener('keydown', esc); } });
     document.body.appendChild(overlay);
@@ -1245,7 +1247,7 @@ async function updateSidebar(showSkeletons = false) {
             const typingClass = chat.typing ? 'msg-text-typing' : '';
             const localTime = formatLocalTime(chat.last_time);
             const channelBadge = chat.chat_type === 'channel' ? `<span class="channel-badge" title="Канал"><span class="material-symbols-outlined" style="font-size:13px;vertical-align:middle;">campaign</span></span>` : '';
-            const infoHtml = `<div class="chat-info"><div class="chat-header"><div class="chat-name">${channelBadge}${escHtml(chat.name)}${chat.premium ? `<div class="premium-icon" style="-webkit-mask-image: url('/static/premium/${escHtml(chat.premium)}.svg'); mask-image: url('/static/premium/${escHtml(chat.premium)}.svg');"></div>` : ''}</div><div class="chat-meta"><span class="chat-time">${localTime ? `${readIcon}${readIcon ? ' ' : ''}${localTime}` : ''}</span></div></div><div class="chat-message-row"><span class="msg-text ${typingClass}">${escHtml(previewText)}</span><div class="chat-meta">${chat.unread > 0 ? `<span class="unread-badge">${escHtml(String(chat.unread))}</span>` : ''}</div></div></div>`;
+            const infoHtml = `<div class="chat-info"><div class="chat-header"><div class="chat-name">${channelBadge}${escHtml(chat.name)}${chat.premium ? `<div class="premium-icon" style="-webkit-mask-image: url('/static/premium/${escAttr(chat.premium)}.svg'); mask-image: url('/static/premium/${escAttr(chat.premium)}.svg');"></div>` : ''}</div><div class="chat-meta"><span class="chat-time">${localTime ? `${readIcon}${readIcon ? ' ' : ''}${localTime}` : ''}</span></div></div><div class="chat-message-row"><span class="msg-text ${typingClass}">${escHtml(previewText)}</span><div class="chat-meta">${chat.unread > 0 ? `<span class="unread-badge">${escHtml(String(chat.unread))}</span>` : ''}</div></div></div>`;
 
             let chatItem = chatList.querySelector(`.chat-item[data-chat-id="${chatId}"]`);
             if (!chatItem) {
@@ -1889,7 +1891,7 @@ function saveKeybinds() {
     setCookie('keybinds', JSON.stringify(keybinds), 365);
 }
 function formatKey(code) {
-    return code.replace(/^Key/, '').replace(/^Digit/, '').replace(/^Arrow/, '↑↓←→'['UDLR'.indexOf(code.slice(5))]).replace('AltLeft','Alt').replace('AltRight','Alt⊞').replace('ShiftLeft','⇧').replace('ShiftRight','⇧').replace('ControlLeft','Ctrl').replace('ControlRight','Ctrl⊞').replace('Space','Space');
+    return code.replace(/^Key/, '').replace(/^Digit/, '').replace(/^Arrow/, '↑↓←→'['UDLR'.indexOf(code.slice(5))]).replace('AltLeft','Alt').replace('AltRight','Alt⊞').replace('ShiftLeft','⇧').replace('ShiftRight','⇧').replace('ControlLeft','Ctrl').replace('ControlRight','Ctrl⊞');
 }
 document.addEventListener('mousedown', function(e) {
     if (e.button !== 1) return;
