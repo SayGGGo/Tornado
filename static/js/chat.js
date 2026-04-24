@@ -1889,7 +1889,7 @@ function saveKeybinds() {
     setCookie('keybinds', JSON.stringify(keybinds), 365);
 }
 function formatKey(code) {
-    return code.replace(/^Key/, '').replace(/^Digit/, '').replace(/^Arrow/, '↑↓←→'['UDLR'.indexOf(code.slice(5))]).replace('AltLeft','Alt').replace('AltRight','Alt⊞').replace('ShiftLeft','⇧').replace('ShiftRight','⇧').replace('ControlLeft','Ctrl').replace('ControlRight','Ctrl⊞').replace('Space','Space');
+    return code.replace(/^Key/, '').replace(/^Digit/, '').replace(/^Arrow/, '↑↓←→'['UDLR'.indexOf(code.slice(5))]).replace('AltLeft','Alt').replace('AltRight','Alt⊞').replace('ShiftLeft','⇧').replace('ShiftRight','⇧').replace('ControlLeft','Ctrl').replace('ControlRight','Ctrl⊞');
 }
 document.addEventListener('mousedown', function(e) {
     if (e.button !== 1) return;
