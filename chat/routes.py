@@ -193,7 +193,10 @@ def register_chat(app):
         safe = os.path.basename(filename)
         if not re.match(r'^[0-9a-f]{32}\.[a-z0-9]{1,10}$', safe):
             abort(400)
-        fpath = os.path.join(FileService.UPLOAD_DIR, safe)
+        upload_root = os.path.realpath(FileService.UPLOAD_DIR)
+        fpath = os.path.realpath(os.path.join(upload_root, safe))
+        if os.path.commonpath([upload_root, fpath]) != upload_root:
+            abort(400)
         if not os.path.isfile(fpath):
             abort(404)
         resp = send_from_directory(FileService.UPLOAD_DIR, safe)
