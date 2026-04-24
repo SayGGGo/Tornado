@@ -2133,14 +2133,38 @@ if (menuBtn && sideDrawer && drawerOverlay) {
                     const entry = document.createElement('div');
                     entry.className = 'drawer-item';
                     entry.style.padding = '12px 0';
-                    entry.innerHTML = `
-                        <img src="${avatar}" style="width:40px;height:40px;border-radius:50%;margin-right:12px;">
-                        <div style="flex:1;">
-                            <div style="font-weight:600;">${name}</div>
-                            <div style="font-size:12px;color:var(--text-muted);">Исходящий звонок</div>
-                        </div>
-                        <span class="material-symbols-outlined" style="color:var(--green);cursor:pointer;" onclick="startCall('${id}')">call</span>
-                    `;
+
+                    const img = document.createElement('img');
+                    img.style.width = '40px';
+                    img.style.height = '40px';
+                    img.style.borderRadius = '50%';
+                    img.style.marginRight = '12px';
+                    img.src = avatar || '';
+
+                    const content = document.createElement('div');
+                    content.style.flex = '1';
+
+                    const title = document.createElement('div');
+                    title.style.fontWeight = '600';
+                    title.textContent = name || '';
+
+                    const subtitle = document.createElement('div');
+                    subtitle.style.fontSize = '12px';
+                    subtitle.style.color = 'var(--text-muted)';
+                    subtitle.textContent = 'Исходящий звонок';
+
+                    const callBtn = document.createElement('span');
+                    callBtn.className = 'material-symbols-outlined';
+                    callBtn.style.color = 'var(--green)';
+                    callBtn.style.cursor = 'pointer';
+                    callBtn.textContent = 'call';
+                    callBtn.addEventListener('click', () => startCall(id));
+
+                    content.appendChild(title);
+                    content.appendChild(subtitle);
+                    entry.appendChild(img);
+                    entry.appendChild(content);
+                    entry.appendChild(callBtn);
                     list.appendChild(entry);
                 });
             }
