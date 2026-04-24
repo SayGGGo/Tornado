@@ -1306,11 +1306,13 @@ function decodeHtmlEntities(text) { const t = document.createElement('textarea')
 function escHtml(v) { if (v == null) return ''; return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 function formatMessageContent(text) {
     if (!text) return text;
-    let formatted = text.replace(/```([a-zA-Z0-9+#-]*)\n?([\s\S]*?)```/g, (match, lang, code) => {
+    const safeText = escHtml(String(text));
+    let formatted = safeText.replace(/```([a-zA-Z0-9+#-]*)\n?([\s\S]*?)```/g, (match, lang, code) => {
         code = decodeHtmlEntities(code.trim());
+        const safeLang = escAttr(lang || '');
         let highlighted = '';
         try { if (lang && hljs.getLanguage(lang)) highlighted = hljs.highlight(code, { language: lang }).value; else highlighted = hljs.highlightAuto(code).value; } catch (e) { highlighted = code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
-        return `<div class="code-wrapper"><button class="copy-code-btn" onclick="copyCodeBlock(this, '${encodeURIComponent(code)}')"><span class="material-symbols-outlined" style="font-size:16px;">content_copy</span></button><pre><code class="hljs ${lang}">${highlighted}</code></pre></div>`;
+        return `<div class="code-wrapper"><button class="copy-code-btn" onclick="copyCodeBlock(this, '${encodeURIComponent(code)}')"><span class="material-symbols-outlined" style="font-size:16px;">content_copy</span></button><pre><code class="hljs ${safeLang}">${highlighted}</code></pre></div>`;
     });
     formatted = formatted.replace(/__AEMOJI__([^\/]+)\/\/\/(.+?)__/g, (match, cat, name) => {
         const safeName = name.replace(/"/g, '&quot;');
