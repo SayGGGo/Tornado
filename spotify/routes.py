@@ -166,7 +166,8 @@ def register_spotify(app):
             
             return jsonify({"ok": True})
         except Exception as e:
-            return jsonify({"ok": False, "error": str(e)})
+            logger.exception("Spotify control failed for user_id=%s action=%s", user_id, action)
+            return jsonify({"ok": False, "error": "Failed to control Spotify playback"}), 500
 
     @app.route("/api/spotify/toggle", methods=["POST"])
     def spotify_toggle():
