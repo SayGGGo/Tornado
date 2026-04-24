@@ -139,7 +139,8 @@ def register_spotify(app):
                 "next_track": next_track
             })
         except Exception as e:
-            return jsonify({"ok": False, "error": str(e)})
+            logger.exception("Error while fetching Spotify status for user_id=%s", user_id)
+            return jsonify({"ok": False, "error": "Internal server error"})
 
     @app.route("/api/spotify/control", methods=["POST"])
     def spotify_control():
@@ -166,7 +167,8 @@ def register_spotify(app):
             
             return jsonify({"ok": True})
         except Exception as e:
-            return jsonify({"ok": False, "error": str(e)})
+            logger.exception("Error while executing Spotify control action for user_id=%s", user_id)
+            return jsonify({"ok": False, "error": "Internal server error"})
 
     @app.route("/api/spotify/toggle", methods=["POST"])
     def spotify_toggle():
