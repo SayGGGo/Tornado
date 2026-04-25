@@ -84,7 +84,11 @@ def register_chat(app):
         folders = [{"name": "Все", "count": 0, "active": True}]
         msg_data = chat_service.get_user_chats(user.id)
 
-        return render_template("chat.html", current_user=user, msg_data=msg_data, folders=folders)
+        from models.server import Settings
+        srv_settings = Settings.query.first()
+        premium_only = srv_settings.premium_only_messaging if srv_settings else False
+
+        return render_template("chat.html", current_user=user, msg_data=msg_data, folders=folders, premium_only_messaging=premium_only)
 
     @app.route("/api/user/update_status", methods=["POST"])
     def update_status():
@@ -150,6 +154,12 @@ def register_chat(app):
     def send_message():
         if "user_id" not in session:
             return jsonify({"error": "Unauthorized"}), 401
+        from models.server import Settings
+        settings = Settings.query.first()
+        if settings and settings.premium_only_messaging:
+            sender_user = db.session.get(User, session["user_id"])
+            if not (sender_user and getattr(sender_user, 'premium', False)):
+                return jsonify({"error": "premium_required"}), 403
         data = request.json or {}
         chat_id = data.get("chat_id")
         target_user_id = data.get("target_user_id")
@@ -160,6 +170,8 @@ def register_chat(app):
         reply_to_id = data.get("reply_to_id")
         msg_type = data.get("msg_type", "text")
         result = chat_service.post_message(session["user_id"], chat_id, data.get("content"), reply_to_id=reply_to_id, msg_type=msg_type)
+        if result.get("error") == "blocked":
+            return jsonify(result), 403
         if "success" in result:
             result["chat_id"] = chat_id
             if sender:
@@ -234,6 +246,12 @@ def register_chat(app):
     def upload_file():
         if "user_id" not in session:
             return jsonify({"error": "Unauthorized"}), 401
+        from models.server import Settings
+        settings = Settings.query.first()
+        if settings and settings.premium_only_messaging:
+            uploader = db.session.get(User, session["user_id"])
+            if not (uploader and getattr(uploader, 'premium', False)):
+                return jsonify({"error": "premium_required"}), 403
 
         chat_id = request.form.get("chat_id")
         target_user_id = request.form.get("target_user_id")
@@ -320,6 +338,20 @@ def register_chat(app):
             "uid": session["user_id"]
         })
 
+    @app.route("/api/chats/<int:chat_id>/block/<int:target_user_id>", methods=["POST"])
+    def block_user_in_chat(chat_id, target_user_id):
+        if "user_id" not in session:
+            return jsonify({"error": "Unauthorized"}), 401
+        result = chat_service.block_user(chat_id, session["user_id"], target_user_id)
+        return jsonify(result), 200 if "success" in result else 403
+
+    @app.route("/api/chats/<int:chat_id>/unblock/<int:target_user_id>", methods=["POST"])
+    def unblock_user_in_chat(chat_id, target_user_id):
+        if "user_id" not in session:
+            return jsonify({"error": "Unauthorized"}), 401
+        result = chat_service.unblock_user(chat_id, session["user_id"], target_user_id)
+        return jsonify(result), 200 if "success" in result else 403
+
     @app.route("/api/call/start", methods=["POST"])
     def start_call():
         if "user_id" not in session:
@@ -332,6 +364,10 @@ def register_chat(app):
 
         if not target_user_id or not chat_id:
             return jsonify({"error": "Missing fields"}), 400
+
+        caller_participant = ChatParticipant.query.filter_by(user_id=session["user_id"], chat_id=int(chat_id)).first()
+        if caller_participant and caller_participant.blocked:
+            return jsonify({"error": "blocked"}), 403
 
         caller = db.session.get(User, session["user_id"])
         agora_service = AgoraService()
@@ -394,6 +430,10 @@ def register_chat(app):
         if not chat_id or not participants:
             return jsonify({"error": "Missing data"}), 400
 
+        inviter_participant = ChatParticipant.query.filter_by(user_id=session["user_id"], chat_id=int(chat_id)).first()
+        if inviter_participant and inviter_participant.blocked:
+            return jsonify({"error": "blocked"}), 403
+
         result = chat_service.invite_to_chat(chat_id, session["user_id"], participants)
         return jsonify(result), 200 if "success" in result else 400
 
@@ -403,6 +443,8 @@ def register_chat(app):
             return jsonify({"error": "Unauthorized"}), 401
 
         result = chat_service.get_chat_info(chat_id)
+        if "success" in result:
+            result["current_user_id"] = session["user_id"]
         return jsonify(result), 200 if "success" in result else 404
 
     @app.route("/api/chats/join", methods=["POST"])
@@ -485,6 +527,28 @@ def register_chat(app):
             db.session.add(sub)
         db.session.commit()
         return jsonify({"ok": True})
+
+    @app.route("/api/user/premium-inbox", methods=["POST"])
+    def toggle_premium_inbox():
+        if "user_id" not in session:
+            return jsonify({"error": "Unauthorized"}), 401
+        user = db.session.get(User, session["user_id"])
+        if not user:
+            return jsonify({"error": "Not found"}), 404
+        if not getattr(user, 'premium', False):
+            return jsonify({"error": "Требуется Premium"}), 403
+        data = request.json or {}
+        user.premium_only_inbox = bool(data.get("enabled", False))
+        db.session.commit()
+        return jsonify({"success": True, "premium_only_inbox": user.premium_only_inbox})
+
+    @app.route("/api/server/settings", methods=["GET"])
+    def get_server_settings():
+        if "user_id" not in session:
+            return jsonify({"error": "Unauthorized"}), 401
+        from models.server import Settings
+        s = Settings.query.first()
+        return jsonify({"premium_only_messaging": s.premium_only_messaging if s else False})
 
     @app.route("/api/push/unsubscribe", methods=["POST"])
     def push_unsubscribe():

@@ -7,6 +7,8 @@
     <meta name="current-user-id" content="{{ current_user.id }}">
     <meta name="is-premium" content="{{ current_user.premium }}">
     <meta name="current-user-premium" content="{{ current_user.premium or '' }}">
+    <meta name="premium-only-messaging" content="{{ 'true' if premium_only_messaging else '' }}">
+    <meta name="premium-only-inbox" content="{{ 'true' if current_user.premium_only_inbox else '' }}">
     <title>TORNADO</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/chat.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile.css') }}">
@@ -133,6 +135,15 @@
                 <div class="emoji-grid" id="emoji-grid"></div>
             </div>
 
+            <div class="chat-input-restricted" id="chat-input-premium-lock" style="display:none;">
+                <span class="material-symbols-outlined" style="font-size:20px; color:#8774e1;">stars</span>
+                <span>Отправка сообщений доступна только пользователям с Premium</span>
+            </div>
+            <div class="chat-input-restricted" id="chat-input-blocked" style="display:none;">
+                <span class="material-symbols-outlined" style="font-size:20px; color:#e05c5c;">block</span>
+                <span>Вы заблокированы в этом чате</span>
+            </div>
+
             <div class="chat-input-wrapper" id="chat-input-wrapper-el">
                 <div id="voice-record-bar" class="voice-record-bar" style="display:none;">
                     <div class="voice-record-inner">
@@ -213,7 +224,7 @@
                     <span>Мой профиль</span>
                     <span class="material-symbols-outlined settings-chevron">chevron_right</span>
                 </div>
-                <div class="settings-item" onclick="alert('Premium пока недоступен')">
+                <div class="settings-item" onclick="document.getElementById('premium-modal-overlay').classList.add('visible')">
                     <span class="material-symbols-outlined">stars</span>
                     <span>Tornado Premium</span>
                     <span class="material-symbols-outlined settings-chevron">chevron_right</span>
@@ -536,6 +547,43 @@
         </div>
     </div>
 
+    <div id="premium-modal-overlay" class="modal-overlay">
+        <div class="invite-modal liquid-glass-fallback" style="max-width: 380px;">
+            <div class="modal-top">
+                <div class="modal-title">Tornado Premium</div>
+                <button class="modal-close" onclick="document.getElementById('premium-modal-overlay').classList.remove('visible')">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div style="text-align: center; padding: 20px 0 24px;">
+                <div style="width: 72px; height: 72px; border-radius: 50%; background: linear-gradient(135deg, #8774e1, #a855f7); display: flex; align-items: center; justify-content: center; margin: 0 auto 14px;">
+                    <span class="material-symbols-outlined" style="font-size: 36px; color: #fff;">stars</span>
+                </div>
+                {% if current_user.premium %}
+                <div style="font-size: 16px; font-weight: 700; color: #e8e8ea; margin-bottom: 6px;">У вас есть Premium</div>
+                <div style="font-size: 13px; color: rgba(255,255,255,0.4);">Вы пользуетесь расширенными возможностями</div>
+                {% else %}
+                <div style="font-size: 16px; font-weight: 700; color: #e8e8ea; margin-bottom: 6px;">Tornado Premium</div>
+                <div style="font-size: 13px; color: rgba(255,255,255,0.4);">У вас нет подписки Premium</div>
+                {% endif %}
+            </div>
+            {% if current_user.premium %}
+            <div style="border-top: 1px solid rgba(255,255,255,0.07); padding-top: 20px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: 4px 0;">
+                    <div>
+                        <div style="font-size: 14px; font-weight: 500; color: #e8e8ea;">Только Premium могут писать мне</div>
+                        <div style="font-size: 12px; color: rgba(255,255,255,0.35); margin-top: 3px;">Пользователи без Premium не смогут начать диалог</div>
+                    </div>
+                    <label class="premium-toggle-switch">
+                        <input type="checkbox" id="premium-inbox-toggle" {% if current_user.premium_only_inbox %}checked{% endif %}>
+                        <span class="premium-toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
     <div id="chat-settings-overlay" class="modal-overlay">
         <div class="invite-modal liquid-glass-fallback">
             <div class="modal-top">
@@ -555,7 +603,7 @@
                     Пригласить
                 </button>
             </div>
-            <div class="modal-contacts" id="settings-participants-list" style="max-height: 200px;"></div>
+            <div class="modal-contacts" id="settings-participants-list" style="max-height: 300px;"></div>
         </div>
     </div>
 
@@ -566,6 +614,9 @@
     </div>
 
     <div id="msg-context-menu" class="context-menu">
+        <div class="context-menu-item" id="ctx-reply-msg">
+            <span class="material-symbols-outlined">reply</span> Ответить
+        </div>
         <div class="context-menu-item" id="ctx-edit-msg">
             <span class="material-symbols-outlined">edit</span> Редактировать
         </div>

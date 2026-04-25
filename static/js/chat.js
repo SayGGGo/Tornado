@@ -94,6 +94,8 @@ let circleRecordSeconds = 0;
 let circleStream = null;
 let currentChatType = 'group';
 let currentChatOwnerId = null;
+let currentChatBlocked = false;
+const premiumOnlyMessaging = document.querySelector('meta[name="premium-only-messaging"]')?.content === 'true';
 const chatCache = {};
 let selectedForGroup = new Set();
 let selectedForInvite = new Set();
@@ -390,7 +392,7 @@ function onChatClick(e) {
     currentChatIsPersonal = !!(targetId && targetId !== 'null' && targetId !== '');
     currentChatType = item.getAttribute('data-chat-type') || 'group';
     currentChatOwnerId = item.getAttribute('data-owner-id') || null;
-    updateChannelInputState();
+    currentChatBlocked = item.getAttribute('data-blocked') === 'true';
     const moreBtn = document.querySelector('.more-options-btn');
     if (moreBtn) {
         if (currentChatType === 'channel') {
@@ -430,7 +432,7 @@ function onChatClick(e) {
     if (!targetId || targetId === 'null' || targetId === '') { if (inviteToChatBtn) inviteToChatBtn.style.display = 'flex'; } else { if (inviteToChatBtn) inviteToChatBtn.style.display = 'none'; }
     noChatState.style.display = 'none';
     activeChatLayout.style.display = 'flex';
-    if (chatInputWrapper) chatInputWrapper.style.display = 'flex';
+    updateChannelInputState();
     cancelEdit();
     clearFilePreview();
     closeEmojiPicker();
@@ -1104,11 +1106,14 @@ async function sendMessage() {
     if (!currentChatId || currentChatId === 'null') {
         if (!chatCache['null']) chatCache['null'] = { messages: [], lastMessageId: 0, firstMessageId: 0, hasMoreHistory: false, scrollPos: 0 };
     }
+    const pendingReplyId = replyingToId;
+    cancelReply();
     addPendingMessage(content);
     try {
         const reqBody = { content };
         if (currentChatId && currentChatId !== 'null') reqBody.chat_id = currentChatId;
         else reqBody.target_user_id = currentTargetId;
+        if (pendingReplyId) reqBody.reply_to_id = pendingReplyId;
         const response = await fetch('/api/messages', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(reqBody) });
         const data = await response.json();
         if (data.error) { const pendingEl = messagesContainer.querySelector('[data-msg-id^="-"]'); if (pendingEl) pendingEl.remove(); return; }
@@ -1278,7 +1283,12 @@ async function updateSidebar(showSkeletons = false) {
             chatItem.setAttribute('data-target-id', chat.target_user_id || '');
             chatItem.setAttribute('data-chat-type', chat.chat_type || 'group');
             if (chat.owner_id) chatItem.setAttribute('data-owner-id', chat.owner_id);
+            chatItem.setAttribute('data-blocked', chat.blocked ? 'true' : 'false');
             chatItem.classList.toggle('active', currentChatId == chatId);
+            if (currentChatId == chatId && chat.blocked !== currentChatBlocked) {
+                currentChatBlocked = chat.blocked;
+                updateChannelInputState();
+            }
 
             const refNode = chatList.children[index];
             if (refNode !== chatItem) chatList.insertBefore(chatItem, refNode || null);
@@ -1502,18 +1512,60 @@ moreOptionsBtn.addEventListener('click', async () => {
         if (res.ok) {
             const data = await res.json();
             settingsParticipantsList.innerHTML = '';
+            const isOwnerOfChat = data.is_personal
+                ? true
+                : data.owner_id == window._currentUserId;
+            if (openInviteFromSettingsBtn) {
+                openInviteFromSettingsBtn.style.display = data.is_personal ? 'none' : '';
+            }
             if (data.participants?.length > 0) {
                 data.participants.forEach(p => {
                     const row = document.createElement('div');
                     row.className = 'contact-row';
-                    if (p.id != window._currentUserId) {
+                    row.style.alignItems = 'center';
+                    const roleLabel = p.role === 'owner' ? 'Создатель' : (p.blocked ? 'Заблокирован' : 'Участник');
+                    const roleColor = p.blocked ? '#e05c5c' : '';
+                    row.innerHTML = `${renderAvatar(p.avatar || null, 'avatar contact-avatar')}<div class="contact-info" style="flex:1;"><div class="contact-name">${escHtml(p.login)}</div><div class="contact-login" style="${roleColor ? 'color:' + roleColor : ''}">${roleLabel}</div></div>`;
+                    if (isOwnerOfChat && p.id != window._currentUserId) {
+                        const blockBtn = document.createElement('button');
+                        blockBtn.className = 'participant-block-btn ' + (p.blocked ? 'unblock' : 'block');
+                        blockBtn.innerHTML = p.blocked
+                            ? '<span class="material-symbols-outlined" style="font-size:14px;">lock_open</span> Разблокировать'
+                            : '<span class="material-symbols-outlined" style="font-size:14px;">block</span> Заблокировать';
+                        blockBtn.addEventListener('click', async (e) => {
+                            e.stopPropagation();
+                            const endpoint = p.blocked
+                                ? `/api/chats/${currentChatId}/unblock/${p.id}`
+                                : `/api/chats/${currentChatId}/block/${p.id}`;
+                            try {
+                                const r = await fetch(endpoint, { method: 'POST' });
+                                const rd = await r.json();
+                                if (rd.success) {
+                                    p.blocked = !p.blocked;
+                                    blockBtn.className = 'participant-block-btn ' + (p.blocked ? 'unblock' : 'block');
+                                    blockBtn.innerHTML = p.blocked
+                                        ? '<span class="material-symbols-outlined" style="font-size:14px;">lock_open</span> Разблокировать'
+                                        : '<span class="material-symbols-outlined" style="font-size:14px;">block</span> Заблокировать';
+                                    const roleEl = row.querySelector('.contact-login');
+                                    if (roleEl) {
+                                        roleEl.textContent = p.blocked ? 'Заблокирован' : 'Участник';
+                                        roleEl.style.color = p.blocked ? '#e05c5c' : '';
+                                    }
+                                    const activeItem = document.querySelector(`.chat-item[data-chat-id="${currentChatId}"]`);
+                                    if (activeItem) activeItem.setAttribute('data-blocked', p.blocked ? 'true' : 'false');
+                                    currentChatBlocked = false;
+                                    updateChannelInputState();
+                                }
+                            } catch(e){}
+                        });
+                        row.appendChild(blockBtn);
+                    } else if (p.id != window._currentUserId) {
                         row.style.cursor = 'pointer';
                         row.onclick = () => {
                             chatSettingsOverlay.classList.remove('visible');
                             window.openOtherProfile(p.id);
                         };
                     }
-                    row.innerHTML = `${renderAvatar(p.avatar || null, 'avatar contact-avatar')}<div class="contact-info"><div class="contact-name">${escHtml(p.login)}</div><div class="contact-login">${p.role === 'owner' ? 'Создатель' : 'Участник'}</div></div>`;
                     settingsParticipantsList.appendChild(row);
                 });
             } else {
@@ -2119,7 +2171,8 @@ if (menuBtn && sideDrawer && drawerOverlay) {
         document.getElementById('profile-modal-overlay').classList.add('visible');
     });
     document.getElementById('drawer-premium')?.addEventListener('click', () => {
-        alert('Tornado Premium пока что не работает.');
+        closeDrawer();
+        document.getElementById('premium-modal-overlay').classList.add('visible');
     });
     document.getElementById('drawer-calls')?.addEventListener('click', () => {
         closeDrawer();
@@ -2694,13 +2747,48 @@ document.getElementById('circle-cancel-btn')?.addEventListener('click', () => st
 document.getElementById('circle-send-btn')?.addEventListener('click', () => stopCircleRecord(true));
 function updateChannelInputState() {
     const inputWrapper = document.getElementById('chat-input-wrapper-el');
+    const premiumLock = document.getElementById('chat-input-premium-lock');
+    const blockedNotice = document.getElementById('chat-input-blocked');
     if (!inputWrapper) return;
+
     const isChannel = currentChatType === 'channel';
     const isOwner = currentChatOwnerId && String(currentChatOwnerId) === String(window._currentUserId);
-    if (isChannel && !isOwner) {
+    const isChannelRestricted = isChannel && !isOwner;
+
+    if (blockedNotice) blockedNotice.style.display = 'none';
+    if (premiumLock) premiumLock.style.display = 'none';
+    inputWrapper.style.display = 'flex';
+
+    if (isChannelRestricted) {
         inputWrapper.style.display = 'none';
-    } else {
-        inputWrapper.style.display = 'flex';
+        return;
+    }
+    if (currentChatBlocked) {
+        inputWrapper.style.display = 'none';
+        if (blockedNotice) blockedNotice.style.display = 'flex';
+        return;
+    }
+    if (premiumOnlyMessaging && !currentUserPremium) {
+        inputWrapper.style.display = 'none';
+        if (premiumLock) premiumLock.style.display = 'flex';
+        return;
     }
 }
 window.updateNotifPermUI();
+
+(function() {
+    const toggle = document.getElementById('premium-inbox-toggle');
+    if (!toggle) return;
+    toggle.addEventListener('change', async function() {
+        const enabled = this.checked;
+        try {
+            const res = await fetch('/api/user/premium-inbox', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ enabled })
+            });
+            const data = await res.json();
+            if (!data.success) this.checked = !enabled;
+        } catch { this.checked = !enabled; }
+    });
+})();

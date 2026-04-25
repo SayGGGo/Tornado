@@ -20,6 +20,7 @@ class ChatParticipant(db.Model):
     role = db.Column(db.String(20), default="member")
     joined_at = db.Column(db.DateTime, default=datetime.utcnow)
     last_typing = db.Column(db.DateTime, nullable=True)
+    blocked = db.Column(db.Boolean, default=False)
 
     user = db.relationship("User", back_populates="chat_memberships")
     chat = db.relationship("Chat", back_populates="participants")

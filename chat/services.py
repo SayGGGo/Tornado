@@ -289,6 +289,9 @@ class ChatService:
                     is_typing = True
                     typing_users.append(op.user.login)
 
+            my_participant = next((p for p in chat.participants if p.user_id == user_id), None)
+            is_blocked = my_participant.blocked if my_participant else False
+
             if chat.personal:
                 other_check = other_participants[0] if other_participants else None
                 if other_check:
@@ -307,7 +310,8 @@ class ChatService:
                         "premium": "1" if getattr(user, 'premium', False) else "",
                         "target_user_id": user.id,
                         "online": is_online,
-                        "typing": is_typing
+                        "typing": is_typing,
+                        "blocked": is_blocked
                     }
             else:
                 chats_data[str(chat.id)] = {
@@ -325,7 +329,8 @@ class ChatService:
                     "typing": is_typing,
                     "typing_list": typing_users,
                     "chat_type": getattr(chat, 'chat_type', 'group') or 'group',
-                    "owner_id": chat.owner_id
+                    "owner_id": chat.owner_id,
+                    "blocked": is_blocked
                 }
 
         return chats_data
@@ -395,11 +400,29 @@ class ChatService:
         if not flood_control.check(user_id):
             return {"error": "Слишком быстро. Подождите немного."}
 
+        from models.server import Settings
+        settings = Settings.query.first()
+        if settings and settings.premium_only_messaging:
+            sender_user = db.session.get(User, user_id)
+            if not (sender_user and getattr(sender_user, 'premium', False)):
+                return {"error": "premium_required"}
+
         participant = ChatParticipant.query.filter_by(user_id=user_id, chat_id=chat_id).first()
         if not participant:
             return {"error": "Denied"}
 
+        if participant.blocked:
+            return {"error": "blocked"}
+
         chat = db.session.get(Chat, chat_id)
+        if chat and chat.personal:
+            sender_user = db.session.get(User, user_id)
+            other_participant = next((p for p in chat.participants if p.user_id != user_id), None)
+            if other_participant:
+                recipient = db.session.get(User, other_participant.user_id)
+                if recipient and getattr(recipient, 'premium_only_inbox', False):
+                    if not (sender_user and getattr(sender_user, 'premium', False)):
+                        return {"error": "premium_required"}
         if chat and getattr(chat, 'chat_type', 'group') == 'channel' and chat.owner_id != user_id:
             is_admin = participant.role in ('owner', 'admin')
             if not is_admin:
@@ -440,6 +463,9 @@ class ChatService:
             return {"error": "Not found"}
         if msg.user_id != user_id:
             return {"error": "Denied"}
+        participant = ChatParticipant.query.filter_by(user_id=user_id, chat_id=msg.chat_id).first()
+        if participant and participant.blocked:
+            return {"error": "blocked"}
         if msg.is_deleted:
             return {"error": "Deleted"}
         if not new_content or not new_content.strip():
@@ -469,6 +495,8 @@ class ChatService:
         participant = ChatParticipant.query.filter_by(user_id=user_id, chat_id=msg.chat_id).first()
         if not participant:
             return {"error": "Denied"}
+        if participant.blocked:
+            return {"error": "blocked"}
 
         is_own = msg.user_id == user_id
         is_personal = chat.personal if chat else False
@@ -574,7 +602,8 @@ class ChatService:
                 "id": user.id,
                 "login": user.login,
                 "avatar": avatar,
-                "role": p.role
+                "role": p.role,
+                "blocked": p.blocked
             })
 
         return {
@@ -584,6 +613,42 @@ class ChatService:
             "chat_type": getattr(chat, 'chat_type', 'group') or 'group',
             "success": True
         }
+
+    def _can_block_in_chat(self, chat, requester_id):
+        if chat.personal:
+            return ChatParticipant.query.filter_by(user_id=requester_id, chat_id=chat.id).first() is not None
+        return chat.owner_id == requester_id
+
+    def block_user(self, chat_id, requester_id, target_user_id):
+        chat = db.session.get(Chat, chat_id)
+        if not chat:
+            return {"error": "Not found"}
+        if target_user_id == requester_id:
+            return {"error": "Denied"}
+        if not self._can_block_in_chat(chat, requester_id):
+            return {"error": "Denied"}
+        requester_part = ChatParticipant.query.filter_by(user_id=requester_id, chat_id=chat_id).first()
+        if not requester_part:
+            return {"error": "Denied"}
+        participant = ChatParticipant.query.filter_by(user_id=target_user_id, chat_id=chat_id).first()
+        if not participant:
+            return {"error": "Not found"}
+        participant.blocked = True
+        db.session.commit()
+        return {"success": True}
+
+    def unblock_user(self, chat_id, requester_id, target_user_id):
+        chat = db.session.get(Chat, chat_id)
+        if not chat:
+            return {"error": "Not found"}
+        if not self._can_block_in_chat(chat, requester_id):
+            return {"error": "Denied"}
+        participant = ChatParticipant.query.filter_by(user_id=target_user_id, chat_id=chat_id).first()
+        if not participant:
+            return {"error": "Not found"}
+        participant.blocked = False
+        db.session.commit()
+        return {"success": True}
 
     def delete_chat(self, chat_id, user_id):
         chat = db.session.get(Chat, chat_id)

@@ -28,6 +28,11 @@ app.config['SECRET_KEY'] = Config.SECRET_KEY
 
 init_models(app)
 
+with app.app_context():
+    from models.server import Settings as _Settings
+    if not _Settings.query.first():
+        db.session.add(_Settings())
+        db.session.commit()
 register_bot_api(app)
 register_auth(app)
 register_system(app)

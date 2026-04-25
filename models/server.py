@@ -39,3 +39,6 @@ class Settings(db.Model):
 
     # admin
     admin_session_ind = db.Column(db.String(255), default="0")
+
+    # features
+    premium_only_messaging = db.Column(db.Boolean, default=False)

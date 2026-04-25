@@ -69,5 +69,21 @@ def register_admin(app):
     @app.route(f"/{Config.ADMIN_SESSION_IND}/dashboard")
     @admin_required
     def admin_dashboard():
+        from models.server import Settings
         admin = db.session.get(Admin, session["admin_id"])
-        return render_template("admin/dashboard.html", active_tab="dashboard", admin=admin)
+        settings = Settings.query.first()
+        return render_template("admin/dashboard.html", active_tab="dashboard", admin=admin, settings=settings)
+
+    @app.route(f"/{Config.ADMIN_SESSION_IND}/api/settings/premium-only", methods=["POST"])
+    @admin_required
+    def admin_toggle_premium_only():
+        from models.server import Settings
+        data = request.json or {}
+        enabled = bool(data.get("enabled", False))
+        settings = Settings.query.first()
+        if not settings:
+            settings = Settings()
+            db.session.add(settings)
+        settings.premium_only_messaging = enabled
+        db.session.commit()
+        return jsonify({"success": True, "premium_only_messaging": settings.premium_only_messaging})

@@ -16,6 +16,7 @@ class User(db.Model):
 
     premium = db.Column(db.Boolean, default=False)
     premium_emoji = db.Column(db.Integer, default=0)
+    premium_only_inbox = db.Column(db.Boolean, default=False)
 
     chat_memberships = db.relationship("ChatParticipant", back_populates="user", cascade="all, delete-orphan")
     messages = db.relationship("Message", back_populates="author", lazy="dynamic")
