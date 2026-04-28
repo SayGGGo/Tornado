@@ -3461,3 +3461,35 @@ video.profile-big-avatar {
 .premium-toggle-slider::before { content: ''; position: absolute; width: 20px; height: 20px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: transform 0.2s; }
 .premium-toggle-switch input:checked + .premium-toggle-slider { background: #8774e1; }
 .premium-toggle-switch input:checked + .premium-toggle-slider::before { transform: translateX(20px); }
+
+@keyframes msgSlideIn {
+  from { opacity: 0; transform: translateY(14px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
+}
+@keyframes msgSlideOut {
+  from { opacity: 1; transform: translateY(0) scale(1);    max-height: 300px; padding-block: inherit; margin-bottom: 0; }
+  to   { opacity: 0; transform: translateY(-6px) scale(0.97); max-height: 0;   padding-block: 0;      margin-bottom: 0; }
+}
+.message-box.msg-enter { animation: msgSlideIn 0.26s cubic-bezier(0.2,0,0,1) forwards; }
+.message-box.msg-exit  {
+  animation: msgSlideOut 0.22s cubic-bezier(0.3,0,0.8,0.15) forwards;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+@keyframes chatItemIn {
+  from { opacity: 0; transform: translateX(-10px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.chat-item.chat-item-enter { animation: chatItemIn 0.22s cubic-bezier(0.2,0,0,1) forwards; }
+
+.drag-scrolling { cursor: grabbing !important; user-select: none !important; }
+.drag-scrolling * { pointer-events: none !important; }
+
+.chat-messages, .chat-list {
+  will-change: transform;
+}
+
+.scroll-blur-fast   { filter: blur(1.5px); transition: filter 0.06s linear; }
+.scroll-blur-medium { filter: blur(0.8px); transition: filter 0.06s linear; }
+.scroll-clear       { filter: none;        transition: filter 0.12s ease; }

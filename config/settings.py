@@ -38,6 +38,8 @@ class Config:
     USE_SSL = os.getenv("USE_SSL") == "True"
 
     ADMIN_SESSION_IND = os.getenv("ADMIN_PAGE", "0")
+    ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
+    GITHUB_REPO = os.getenv("GITHUB_REPO", "SayGGGo/TORNADO")
 
     AGORA_APP_ID = os.getenv("AGORA_APP_ID", "0")
     AGORA_APP_CERTIFICATE = os.getenv("AGORA_APP_CERTIFICATE", "0")

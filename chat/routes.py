@@ -82,7 +82,7 @@ def register_chat(app):
         db.session.commit()
 
         folders = [{"name": "Все", "count": 0, "active": True}]
-        msg_data = chat_service.get_user_chats(user.id)
+        msg_data = {}
 
         from models.server import Settings
         srv_settings = Settings.query.first()

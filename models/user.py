@@ -33,3 +33,4 @@ class User(db.Model):
     spotify_enabled = db.Column(db.Boolean, default=False)
 
     last_seen = db.Column(db.DateTime, default=datetime.utcnow)
+    is_banned = db.Column(db.Boolean, default=False)

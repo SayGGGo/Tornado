@@ -246,6 +246,13 @@ class ChatService:
         ).all()
         last_msg_map = {m.chat_id: m for m in last_messages}
 
+        sender_ids = {m.user_id for m in last_messages if m and not m.is_deleted and not m.file_name and m.user_id}
+        sender_map = {}
+        if sender_ids:
+            from models import User as _U
+            for u in _U.query.filter(_U.id.in_(sender_ids)).with_entities(_U.id, _U.login).all():
+                sender_map[u.id] = u.login
+
         unread_counts = db.session.query(
             Message.chat_id,
             func.count(Message.id)
@@ -268,11 +275,11 @@ class ChatService:
             if last_msg:
                 if last_msg.is_deleted:
                     msg_preview = "Сообщение удалено"
+                elif last_msg.file_name:
+                    msg_preview = f"📎 {last_msg.file_name}"
                 else:
-                    is_recip = (last_msg.user_id != user_id)
-                    msg_preview = self.crypto.decrypt_for_user(last_msg.content, curr_user.private_key, is_recip)
-                    if last_msg.file_name:
-                        msg_preview = f"📎 {last_msg.file_name}"
+                    sender_name = sender_map.get(last_msg.user_id, '')
+                    msg_preview = f"{sender_name}: 🔒" if sender_name else "🔒 Сообщение"
 
             unread_count = unread_map.get(chat.id, 0)
             if last_msg and last_msg.user_id == user_id:

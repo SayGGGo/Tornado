@@ -33,6 +33,31 @@ with app.app_context():
     if not _Settings.query.first():
         db.session.add(_Settings())
         db.session.commit()
+
+    try:
+        from models.admin import Admin as _Admin
+        from werkzeug.security import generate_password_hash as _gph
+        import secrets as _secrets, string as _string
+        _existing = _Admin.query.filter_by(username='admin').first()
+        if _existing:
+            _changed = False
+            if _existing.role != 'root':
+                _existing.role = 'root'
+                _changed = True
+            if Config.ADMIN_PASSWORD and not __import__('werkzeug.security', fromlist=['check_password_hash']).check_password_hash(_existing.password_hash, Config.ADMIN_PASSWORD):
+                _existing.password_hash = _gph(Config.ADMIN_PASSWORD)
+                _changed = True
+            if _changed:
+                db.session.commit()
+        else:
+            _pw = Config.ADMIN_PASSWORD
+            if not _pw:
+                _pw = ''.join(_secrets.choice(_string.ascii_letters + _string.digits) for _ in range(16))
+                print(f"\n[TORNADO] Учетка админа создана логин: admin; пароль: {_pw}\n", flush=True)
+            db.session.add(_Admin(username='admin', password_hash=_gph(_pw), role='root', is_active=True))
+            db.session.commit()
+    except Exception as _e:
+        print(f"[TORNADO] Admin seed error: {_e}", flush=True)
 register_bot_api(app)
 register_auth(app)
 register_system(app)

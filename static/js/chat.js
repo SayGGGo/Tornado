@@ -584,7 +584,7 @@ function createMessageElement(msg, animate = false) {
     const msgDiv = document.createElement('div');
     msgDiv.className = `message-box ${isOwn ? 'msg-own' : 'msg-other'}`;
     if (isPending) msgDiv.classList.add('msg-pending');
-    if (animate && !isPending) msgDiv.classList.add('msg-animate');
+    if (animate && !isPending) msgDiv.classList.add('msg-enter');
     msgDiv.setAttribute('data-msg-id', msg.id);
     msgDiv.setAttribute('data-user-id', msg.user_id);
     if (isAnimatedEmojiMsg(msg.content) && !msg.file_url) {
@@ -758,10 +758,11 @@ async function thanosSnap(element) {
     if (!element) return;
     const rect = element.getBoundingClientRect();
     if (rect.width === 0 || rect.height === 0) { element.remove(); return; }
-    if (typeof html2canvas === 'undefined') {
-        element.remove();
-        return;
-    }
+    element.classList.add('msg-exit');
+    element.addEventListener('animationend', () => element.remove(), { once: true });
+    setTimeout(() => { if (element.parentNode) element.remove(); }, 400);
+    if (typeof html2canvas === 'undefined') return;
+    if (false) {
     try {
         const canvas = await html2canvas(element, { backgroundColor: null, scale: 2, logging: false, useCORS: true });
         const ctx = canvas.getContext('2d');
@@ -843,8 +844,7 @@ async function thanosSnap(element) {
             }
         }
         requestAnimationFrame(animate);
-    } catch (e) {
-        element.remove();
+    } catch (e) {}
     }
 }
 attachBtn.addEventListener('click', () => fileInput.click());
@@ -1841,8 +1841,13 @@ window.setGlassLiteMode = function(enabled) {
 };
 window.setMaterialMode = function(enabled) {
     if (enabled) {
+        const wasLight = document.documentElement.classList.contains('light-theme');
         document.documentElement.classList.add('material-theme');
         setCookie('material-theme', '1', 365);
+        if (wasLight) {
+            setCookie('material-light', '1', 365);
+            document.querySelectorAll('[id^="material-light-checkbox"]').forEach(c => { c.checked = true; });
+        }
     } else {
         document.documentElement.classList.remove('material-theme');
         setCookie('material-theme', '0', 365);
@@ -2792,3 +2797,128 @@ window.updateNotifPermUI();
         } catch { this.checked = !enabled; }
     });
 })();
+
+(function initPhysicsUX() {
+    const DRAG_THRESHOLD = 6;
+
+    function addScrollPhysics(el) {
+        if (!el || el._physBound) return;
+        el._physBound = true;
+
+        let pointerDown = false;
+        let dragging    = false;
+        let startX, startY, startTop;
+        let lastY, lastT;
+        let velY = 0;
+        let overY = 0;
+        let coastRaf, snapRaf;
+
+        function getMax() { return Math.max(0, el.scrollHeight - el.clientHeight); }
+
+        el.addEventListener('pointerdown', function(e) {
+            if (e.button !== 0) return;
+            cancelAnimationFrame(coastRaf);
+            cancelAnimationFrame(snapRaf);
+            el.style.transition = '';
+            pointerDown = true;
+            dragging    = false;
+            startX   = e.clientX;
+            startY   = e.clientY;
+            startTop = el.scrollTop;
+            lastY    = e.clientY;
+            lastT    = performance.now();
+            velY     = 0;
+            overY    = 0;
+        }, { passive: true });
+
+        el.addEventListener('pointermove', function(e) {
+            if (!pointerDown) return;
+            const dy = startY - e.clientY;
+
+            if (!dragging) {
+                if (Math.abs(dy) < DRAG_THRESHOLD && Math.abs(startX - e.clientX) < DRAG_THRESHOLD) return;
+                dragging = true;
+                el.classList.add('drag-scrolling');
+                el.setPointerCapture(e.pointerId);
+            }
+
+            const now = performance.now();
+            const dt  = Math.max(now - lastT, 1);
+            velY = (lastY - e.clientY) / dt * 16;
+            lastY = e.clientY;
+            lastT = now;
+
+            const target = startTop + dy;
+            const max    = getMax();
+
+            if (target < 0) {
+                el.scrollTop = 0;
+                overY = target;
+                el.style.transform = `translateY(${Math.round(-overY * 0.28)}px)`;
+            } else if (target > max) {
+                el.scrollTop = max;
+                overY = target - max;
+                el.style.transform = `translateY(${Math.round(-overY * 0.28)}px)`;
+            } else {
+                overY = 0;
+                el.scrollTop = target;
+                el.style.transform = '';
+            }
+        }, { passive: true });
+
+        function release() {
+            if (!pointerDown) return;
+            pointerDown = false;
+            el.classList.remove('drag-scrolling');
+
+            if (overY !== 0) {
+                el.style.transition = 'transform 0.42s cubic-bezier(0.2,0,0,1)';
+                el.style.transform = '';
+                setTimeout(() => { el.style.transition = ''; }, 450);
+            }
+            overY = 0;
+
+            if (!dragging) return;
+            dragging = false;
+
+            let v = velY;
+            function coast() {
+                if (Math.abs(v) < 0.4) return;
+                el.scrollTop += v;
+                v *= 0.90;
+                coastRaf = requestAnimationFrame(coast);
+            }
+            coast();
+        }
+
+        el.addEventListener('pointerup',     release, { passive: true });
+        el.addEventListener('pointercancel', release, { passive: true });
+    }
+
+    function addMotionBlur(el) {
+        if (!el || el._blurBound) return;
+        el._blurBound = true;
+        let lastTop = el.scrollTop, tid;
+        el.addEventListener('scroll', function() {
+            const delta = Math.abs(el.scrollTop - lastTop);
+            lastTop = el.scrollTop;
+            if (delta > 40)      { el.classList.add('scroll-blur-fast');   el.classList.remove('scroll-blur-medium'); }
+            else if (delta > 16) { el.classList.add('scroll-blur-medium'); el.classList.remove('scroll-blur-fast'); }
+            clearTimeout(tid);
+            tid = setTimeout(function() {
+                el.classList.remove('scroll-blur-fast', 'scroll-blur-medium');
+            }, 80);
+        }, { passive: true });
+    }
+
+    function initAll() {
+        const msgEl  = document.getElementById('chat-messages');
+        const listEl = document.querySelector('.chat-list');
+        if (msgEl)  { addScrollPhysics(msgEl);  addMotionBlur(msgEl); }
+        if (listEl) { addScrollPhysics(listEl); addMotionBlur(listEl); }
+    }
+
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initAll);
+    else initAll();
+})();
+
