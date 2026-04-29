@@ -1269,12 +1269,13 @@ async function updateSidebar(showSkeletons = false) {
         }
         if (!res.ok) return;
         _chatsEtag = res.headers.get('ETag') || null;
-        const chatsData = await res.json();
+        const payload = await res.json();
+        const chatsData = payload.items || payload;
         _cachedChatsData = chatsData;
-        await _renderSidebarFromData(chatsData);
+        await _renderSidebarFromData(chatsData, true);
     } catch(e) {}
 }
-async function loadContactsForModals() { try { const data = _cachedChatsData || await fetch('/api/chats').then(r => r.json()); allAvailableContacts = Object.values(data).filter(c => c.target_user_id); } catch (e) {} }
+async function loadContactsForModals() { try { const data = _cachedChatsData || await fetch('/api/chats').then(r => r.json()).then(p => p.items || p); allAvailableContacts = Object.values(data).filter(c => c.target_user_id); } catch (e) {} }
 function renderContactsList(container, selectedSet, filterQuery = '') {
     container.innerHTML = '';
     allAvailableContacts.filter(c => c.name.toLowerCase().includes(filterQuery.toLowerCase())).forEach(c => {
@@ -1436,9 +1437,12 @@ async function longPollChats() {
             const body = await res.json();
             _pollSeq = body.seq;
             if (body.changed && body.data) {
-                _cachedChatsData = body.data;
+                const items = body.data.items || body.data;
+                _cachedChatsData = items;
                 _chatsEtag = res.headers.get('ETag') || null;
-                await _renderSidebarFromData(body.data);
+                _chatsOffset = 0;
+                _chatsHasMore = body.data.has_more !== false;
+                await _renderSidebarFromData(items, true);
             }
         } catch (e) {
             await new Promise(r => setTimeout(r, 5000));
@@ -1446,55 +1450,69 @@ async function longPollChats() {
     }
 }
 
-async function _renderSidebarFromData(chatsData) {
+let _chatsOffset = 0;
+let _chatsHasMore = true;
+let _chatsLoadingMore = false;
+
+function _buildChatItem(chatId, chat) {
+    const readIcon = chat.last_status === true
+        ? `<span class="material-symbols-outlined" style="font-size:14px; color:#4CAF50;">done_all</span>`
+        : chat.last_status === false
+            ? `<span class="material-symbols-outlined" style="font-size:14px; opacity:0.5;">done_all</span>`
+            : '';
+    let previewText = chat.last_msg || '';
+    if (previewText.startsWith('__CALL_INVITE__')) previewText = '📞 Входящий видеозвонок';
+    else if (previewText.startsWith('__CHATLINK__')) previewText = '📩 Приглашение в чат';
+    else previewText = previewText.replace(/__AEMOJI__([^\/]+)\/\/\/(.+?)__/g, '⭐ $2');
+    const onlineDot = chat.online ? `<div class="online-status-dot"></div>` : '';
+    const typingClass = chat.typing ? 'msg-text-typing' : '';
+    const localTime = formatLocalTime(chat.last_time);
+    const channelBadge = chat.chat_type === 'channel' ? `<span class="channel-badge"><span class="material-symbols-outlined" style="font-size:13px;vertical-align:middle;">campaign</span></span>` : '';
+    const infoHtml = `<div class="chat-info"><div class="chat-header"><div class="chat-name">${channelBadge}${escHtml(chat.name)}${chat.premium ? `<div class="premium-icon" style="-webkit-mask-image:url('/static/premium/${escAttr(chat.premium)}.svg');mask-image:url('/static/premium/${escAttr(chat.premium)}.svg');"></div>` : ''}</div><div class="chat-meta"><span class="chat-time">${localTime ? `${readIcon}${readIcon ? ' ' : ''}${localTime}` : ''}</span></div></div><div class="chat-message-row"><span class="msg-text ${typingClass}">${escHtml(previewText)}</span><div class="chat-meta">${chat.unread > 0 ? `<span class="unread-badge">${escHtml(String(chat.unread))}</span>` : ''}</div></div></div>`;
+    return { infoHtml, onlineDot };
+}
+
+async function _renderSidebarFromData(chatsData, reset = false) {
     const chatList = document.querySelector('.chat-list');
     if (!chatList) return;
     chatList.querySelectorAll('.skeleton-chat').forEach(el => el.remove());
-    const sortedChats = Object.entries(chatsData).sort((a, b) => {
-        const timeA = new Date(a[1].last_time || 0).getTime();
-        const timeB = new Date(b[1].last_time || 0).getTime();
-        return timeB - timeA;
-    });
-    const existingIds = new Set(Array.from(chatList.querySelectorAll('.chat-item[data-chat-id]')).map(el => el.getAttribute('data-chat-id')));
-    const newIds = new Set(sortedChats.map(([id]) => String(id)));
-    existingIds.forEach(id => { if (!newIds.has(id)) chatList.querySelector(`.chat-item[data-chat-id="${id}"]`)?.remove(); });
-    sortedChats.forEach(([chatId, chat], index) => {
-        const readIcon = chat.last_status === true
-            ? `<span class="material-symbols-outlined" style="font-size:14px; color:#4CAF50;">done_all</span>`
-            : chat.last_status === false
-                ? `<span class="material-symbols-outlined" style="font-size:14px; opacity:0.5;">done_all</span>`
-                : '';
-        let previewText = chat.last_msg || '';
-        if (previewText.startsWith('__CALL_INVITE__')) previewText = '📞 Входящий видеозвонок';
-        else if (previewText.startsWith('__CHATLINK__')) previewText = '📩 Приглашение в чат';
-        else { previewText = previewText.replace(/__AEMOJI__([^\/]+)\/\/\/(.+?)__/g, '⭐ $2'); }
-        const onlineDot = chat.online ? `<div class="online-status-dot"></div>` : '';
-        const typingClass = chat.typing ? 'msg-text-typing' : '';
-        const localTime = formatLocalTime(chat.last_time);
-        const channelBadge = chat.chat_type === 'channel' ? `<span class="channel-badge" title="Канал"><span class="material-symbols-outlined" style="font-size:13px;vertical-align:middle;">campaign</span></span>` : '';
-        const infoHtml = `<div class="chat-info"><div class="chat-header"><div class="chat-name">${channelBadge}${escHtml(chat.name)}${chat.premium ? `<div class="premium-icon" style="-webkit-mask-image: url('/static/premium/${escAttr(chat.premium)}.svg'); mask-image: url('/static/premium/${escAttr(chat.premium)}.svg');"></div>` : ''}</div><div class="chat-meta"><span class="chat-time">${localTime ? `${readIcon}${readIcon ? ' ' : ''}${localTime}` : ''}</span></div></div><div class="chat-message-row"><span class="msg-text ${typingClass}">${escHtml(previewText)}</span><div class="chat-meta">${chat.unread > 0 ? `<span class="unread-badge">${escHtml(String(chat.unread))}</span>` : ''}</div></div></div>`;
+
+    if (reset) {
+        chatList.querySelectorAll('.chat-item:not([data-chat-id])').forEach(el => el.remove());
+        const newIds = new Set(Object.keys(chatsData).map(String));
+        chatList.querySelectorAll('.chat-item[data-chat-id]').forEach(el => {
+            if (!newIds.has(el.getAttribute('data-chat-id'))) el.remove();
+        });
+    }
+
+    let insertIndex = reset ? 0 : chatList.querySelectorAll('.chat-item[data-chat-id]').length;
+
+    Object.entries(chatsData).forEach(([chatId, chat], i) => {
+        const { infoHtml, onlineDot } = _buildChatItem(chatId, chat);
         let chatItem = chatList.querySelector(`.chat-item[data-chat-id="${chatId}"]`);
         if (!chatItem) {
             chatItem = document.createElement('div');
             chatItem.className = 'chat-item';
             chatItem.setAttribute('data-chat-id', chatId);
-            const avatarHtml = `<div class="avatar-wrapper">${renderAvatar(chat.avatar, 'avatar')}${onlineDot}</div>`;
-            chatItem.innerHTML = avatarHtml + ' ' + infoHtml;
-            chatList.appendChild(chatItem);
+            chatItem.innerHTML = `<div class="avatar-wrapper">${renderAvatar(chat.avatar, 'avatar')}${onlineDot}</div> ${infoHtml}`;
+            const refNode = reset ? chatList.children[insertIndex + i] : null;
+            chatList.insertBefore(chatItem, refNode || null);
         } else {
-            const avatarWrapper = chatItem.querySelector('.avatar-wrapper');
-            if (avatarWrapper) {
-                const existingAvatar = avatarWrapper.querySelector('img, video');
-                const currentSrc = existingAvatar?.src || existingAvatar?.getAttribute('src') || '';
-                const newSrc = chat.avatar && chat.avatar !== 'null' && chat.avatar !== 'None' ? chat.avatar : '';
-                if (existingAvatar && newSrc && !currentSrc.includes(newSrc)) existingAvatar.src = newSrc;
-                const dot = avatarWrapper.querySelector('.online-status-dot');
-                if (chat.online && !dot) avatarWrapper.insertAdjacentHTML('beforeend', '<div class="online-status-dot"></div>');
+            const aw = chatItem.querySelector('.avatar-wrapper');
+            if (aw) {
+                const ex = aw.querySelector('img, video');
+                const newSrc = chat.avatar && chat.avatar !== 'null' ? chat.avatar : '';
+                if (ex && newSrc && !(ex.src || '').includes(newSrc)) ex.src = newSrc;
+                const dot = aw.querySelector('.online-status-dot');
+                if (chat.online && !dot) aw.insertAdjacentHTML('beforeend', '<div class="online-status-dot"></div>');
                 else if (!chat.online && dot) dot.remove();
             }
-            const existingInfo = chatItem.querySelector('.chat-info');
-            if (existingInfo) existingInfo.outerHTML = infoHtml;
-            else chatItem.insertAdjacentHTML('beforeend', infoHtml);
+            const ei = chatItem.querySelector('.chat-info');
+            if (ei) ei.outerHTML = infoHtml; else chatItem.insertAdjacentHTML('beforeend', infoHtml);
+            if (reset) {
+                const refNode = chatList.children[insertIndex + i];
+                if (refNode !== chatItem) chatList.insertBefore(chatItem, refNode || null);
+            }
         }
         chatItem.setAttribute('data-target-id', chat.target_user_id || '');
         chatItem.setAttribute('data-chat-type', chat.chat_type || 'group');
@@ -1505,15 +1523,31 @@ async function _renderSidebarFromData(chatsData) {
             currentChatBlocked = chat.blocked;
             updateChannelInputState();
         }
-        const refNode = chatList.children[index];
-        if (refNode !== chatItem) chatList.insertBefore(chatItem, refNode || null);
-        const prevUnread = lastUnreadCounts[chatId] !== undefined ? lastUnreadCounts[chatId] : chat.unread;
+        const prevUnread = lastUnreadCounts[chatId] ?? chat.unread;
         if (chat.unread > prevUnread && String(chatId) !== String(currentChatId)) {
             showPushNotification(chat.name, chat.last_msg || '', chat.avatar, chatId);
         }
         lastUnreadCounts[chatId] = chat.unread;
     });
     bindChatClickEvents();
+}
+
+async function loadMoreChats() {
+    if (_chatsLoadingMore || !_chatsHasMore) return;
+    _chatsLoadingMore = true;
+    try {
+        _chatsOffset += 25;
+        const res = await fetch(`/api/chats?limit=25&offset=${_chatsOffset}`);
+        if (!res.ok) return;
+        const payload = await res.json();
+        const items = payload.items || payload;
+        _chatsHasMore = payload.has_more === true;
+        if (Object.keys(items).length > 0) {
+            Object.assign(_cachedChatsData, items);
+            await _renderSidebarFromData(items, false);
+        }
+    } catch(e) {}
+    finally { _chatsLoadingMore = false; }
 }
 
 longPollChats();
@@ -1540,6 +1574,18 @@ searchInput.addEventListener('input', async (e) => {
     } catch (err) {}
 });
 document.addEventListener('click', (e) => { if (searchInput && searchResultsBox && !searchInput.contains(e.target) && !searchResultsBox.contains(e.target)) searchResultsBox.style.display = 'none'; });
+
+(function initSidebarInfiniteScroll() {
+    const sidebar = document.getElementById('sidebar');
+    if (!sidebar) return;
+    const chatListEl = sidebar.querySelector('.chat-list');
+    if (!chatListEl) return;
+    chatListEl.addEventListener('scroll', () => {
+        if (chatListEl.scrollHeight - chatListEl.scrollTop - chatListEl.clientHeight < 120) {
+            loadMoreChats();
+        }
+    });
+})();
 const startCallBtn2 = document.getElementById('start-call-btn');
 if (startCallBtn2) {
     startCallBtn2.addEventListener('click', async () => {
@@ -2985,5 +3031,24 @@ window.updateNotifPermUI();
 
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initAll);
     else initAll();
+})();
+
+(function initLogout() {
+    function setup() {
+        const btn = document.getElementById('logout-btn');
+        const overlay = document.getElementById('logout-modal-overlay');
+        const cancelBtn = document.getElementById('logout-cancel-btn');
+        const confirmBtn = document.getElementById('logout-confirm-btn');
+        if (!btn || !overlay) return;
+
+        btn.addEventListener('click', () => overlay.classList.add('visible'));
+        const drawerBtn = document.getElementById('drawer-logout-btn');
+        if (drawerBtn) drawerBtn.addEventListener('click', () => overlay.classList.add('visible'));
+        cancelBtn.addEventListener('click', () => overlay.classList.remove('visible'));
+        overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.classList.remove('visible'); });
+        confirmBtn.addEventListener('click', () => { window.location.href = '/logout'; });
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', setup);
+    else setup();
 })();
 

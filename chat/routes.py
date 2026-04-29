@@ -370,6 +370,8 @@ def register_chat(app):
         if "user_id" not in session:
             return jsonify({})
         uid = session["user_id"]
+        limit = request.args.get("limit", 25, type=int)
+        offset = request.args.get("offset", 0, type=int)
         from sqlalchemy import func
         from models import Message as _Msg
         chat_ids_q = [p.chat_id for p in ChatParticipant.query.filter_by(user_id=uid).with_entities(ChatParticipant.chat_id).all()]
@@ -378,14 +380,15 @@ def register_chat(app):
             unread_total = db.session.query(func.count(_Msg.id)).filter(
                 _Msg.chat_id.in_(chat_ids_q), _Msg.is_read == False, _Msg.user_id != uid
             ).scalar() or 0
-            etag = f'"{max_msg_id}-{unread_total}"'
+            etag = f'"{max_msg_id}-{unread_total}-{offset}"'
         else:
             etag = '"empty"'
-        if request.headers.get('If-None-Match') == etag:
+        if offset == 0 and request.headers.get('If-None-Match') == etag:
             return '', 304
-        data = chat_service.get_user_chats(uid)
+        data = chat_service.get_user_chats(uid, limit=limit, offset=offset)
         resp = make_response(jsonify(data))
-        resp.headers['ETag'] = etag
+        if offset == 0:
+            resp.headers['ETag'] = etag
         resp.headers['Cache-Control'] = 'no-cache'
         return resp
 
@@ -421,7 +424,7 @@ def register_chat(app):
             ).scalar() or 0
             etag_val = f'"{max_msg_id}-{unread_total}"'
 
-        data = chat_service.get_user_chats(uid)
+        data = chat_service.get_user_chats(uid, limit=25, offset=0)
         resp = make_response(jsonify({"seq": current_seq, "changed": True, "data": data}))
         resp.headers['ETag'] = etag_val
         resp.headers['Cache-Control'] = 'no-cache'

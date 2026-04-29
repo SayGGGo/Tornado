@@ -263,10 +263,10 @@
                     <span class="material-symbols-outlined settings-chevron">chevron_right</span>
                 </a>
                 <div class="settings-divider"></div>
-                <a href="/logout/" class="settings-item settings-item--danger">
+                <div class="settings-item settings-item--danger" id="logout-btn" style="cursor:pointer;">
                     <span class="material-symbols-outlined">logout</span>
                     <span>Выйти из аккаунта</span>
-                </a>
+                </div>
             </div>
         </div>
 
@@ -509,6 +509,20 @@
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="logout-modal-overlay" class="modal-overlay">
+        <div class="invite-modal logout-modal">
+            <div class="logout-modal-icon">
+                <span class="material-symbols-outlined">logout</span>
+            </div>
+            <div class="logout-modal-title">Выйти из аккаунта?</div>
+            <div class="logout-modal-sub">Вы будете перенаправлены на страницу входа</div>
+            <div class="logout-modal-actions">
+                <button id="logout-cancel-btn" class="logout-btn-cancel">Отмена</button>
+                <button id="logout-confirm-btn" class="logout-btn-confirm">Выйти</button>
             </div>
         </div>
     </div>

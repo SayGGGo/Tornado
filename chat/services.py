@@ -222,130 +222,137 @@ class ChatService:
     def __init__(self):
         self.crypto = EncryptionService()
 
-    def get_user_chats(self, user_id):
+    def get_user_chats(self, user_id, limit=25, offset=0):
         from sqlalchemy.orm import joinedload
-        from sqlalchemy import func, and_
+        from sqlalchemy import func, and_, desc
+
+        last_msg_sub = db.session.query(
+            Message.chat_id,
+            func.max(Message.id).label('max_id'),
+            func.max(Message.timestamp).label('last_ts')
+        ).join(ChatParticipant, and_(
+            ChatParticipant.chat_id == Message.chat_id,
+            ChatParticipant.user_id == user_id
+        )).group_by(Message.chat_id).subquery()
+
+        no_msg_parts = (ChatParticipant.query
+                        .filter_by(user_id=user_id)
+                        .options(joinedload(ChatParticipant.chat))
+                        .all())
+        chats_with_no_msg = {p.chat_id: p for p in no_msg_parts}
+
+        sorted_ids_q = (db.session.query(ChatParticipant.chat_id)
+                        .filter_by(user_id=user_id)
+                        .outerjoin(last_msg_sub, last_msg_sub.c.chat_id == ChatParticipant.chat_id)
+                        .order_by(desc(last_msg_sub.c.last_ts))
+                        .limit(limit).offset(offset)
+                        .all())
+        paged_chat_ids = [r.chat_id for r in sorted_ids_q]
+
+        if not paged_chat_ids:
+            return {"items": {}, "has_more": False}
 
         my_parts = (ChatParticipant.query
-                    .filter_by(user_id=user_id)
+                    .filter(ChatParticipant.user_id == user_id,
+                            ChatParticipant.chat_id.in_(paged_chat_ids))
                     .options(joinedload(ChatParticipant.chat))
                     .all())
-
-        if not my_parts:
-            return {}
-
-        chat_ids = [p.chat_id for p in my_parts]
         my_part_map = {p.chat_id: p for p in my_parts}
         chat_map = {p.chat_id: p.chat for p in my_parts}
 
-        personal_chat_ids = [cid for cid, c in chat_map.items() if c.personal]
+        personal_ids = [cid for cid, c in chat_map.items() if c.personal]
         partner_part_map = {}
-        if personal_chat_ids:
-            other_parts = (ChatParticipant.query
-                           .filter(
-                               ChatParticipant.chat_id.in_(personal_chat_ids),
-                               ChatParticipant.user_id != user_id
-                           )
-                           .options(joinedload(ChatParticipant.user))
-                           .all())
-            for p in other_parts:
+        if personal_ids:
+            for p in (ChatParticipant.query
+                      .filter(ChatParticipant.chat_id.in_(personal_ids),
+                              ChatParticipant.user_id != user_id)
+                      .options(joinedload(ChatParticipant.user))
+                      .all()):
                 partner_part_map[p.chat_id] = p
 
-        last_msgs_sub = db.session.query(
+        last_msgs_sub2 = db.session.query(
             Message.chat_id,
             func.max(Message.id).label('max_id')
-        ).filter(Message.chat_id.in_(chat_ids)).group_by(Message.chat_id).subquery()
+        ).filter(Message.chat_id.in_(paged_chat_ids)).group_by(Message.chat_id).subquery()
 
         last_messages = Message.query.join(
-            last_msgs_sub,
-            and_(Message.chat_id == last_msgs_sub.c.chat_id, Message.id == last_msgs_sub.c.max_id)
+            last_msgs_sub2,
+            and_(Message.chat_id == last_msgs_sub2.c.chat_id, Message.id == last_msgs_sub2.c.max_id)
         ).all()
         last_msg_map = {m.chat_id: m for m in last_messages}
 
-        sender_ids = {m.user_id for m in last_messages if m and not m.is_deleted and not m.file_name and m.user_id}
+        sender_ids = {m.user_id for m in last_messages if not m.is_deleted and not m.file_name}
         sender_map = {}
         if sender_ids:
             for u in User.query.filter(User.id.in_(sender_ids)).with_entities(User.id, User.login).all():
                 sender_map[u.id] = u.login
 
-        unread_counts = db.session.query(
-            Message.chat_id,
-            func.count(Message.id)
-        ).filter(
-            Message.chat_id.in_(chat_ids),
+        unread_map = dict(db.session.query(Message.chat_id, func.count(Message.id)).filter(
+            Message.chat_id.in_(paged_chat_ids),
             Message.is_read == False,
             Message.user_id != user_id
-        ).group_by(Message.chat_id).all()
-        unread_map = dict(unread_counts)
+        ).group_by(Message.chat_id).all())
 
         now = datetime.utcnow()
         chats_data = {}
 
-        for chat_id_key, chat in chat_map.items():
-            my_part = my_part_map[chat_id_key]
+        for chat_id_key in paged_chat_ids:
+            chat = chat_map.get(chat_id_key)
+            if not chat:
+                continue
+            my_part = my_part_map.get(chat_id_key)
             last_msg = last_msg_map.get(chat_id_key)
-            msg_preview = "Нет сообщений"
 
-            if last_msg:
-                if last_msg.is_deleted:
-                    msg_preview = "Сообщение удалено"
-                elif last_msg.file_name:
-                    msg_preview = f"📎 {last_msg.file_name}"
-                else:
-                    sender_name = sender_map.get(last_msg.user_id, '')
-                    msg_preview = f"{sender_name}: 🔒" if sender_name else "🔒 Сообщение"
+            if last_msg and last_msg.is_deleted:
+                msg_preview = "Сообщение удалено"
+            elif last_msg and last_msg.file_name:
+                msg_preview = f"📎 {last_msg.file_name}"
+            elif last_msg:
+                sn = sender_map.get(last_msg.user_id, '')
+                msg_preview = f"{sn}: 🔒" if sn else "🔒 Сообщение"
+            else:
+                msg_preview = "Нет сообщений"
 
             unread_count = unread_map.get(chat_id_key, 0)
             last_status = None
             if last_msg and last_msg.user_id == user_id:
-                last_status = True if getattr(last_msg, 'is_read', False) else False
+                last_status = bool(getattr(last_msg, 'is_read', False))
 
             is_blocked = my_part.blocked if my_part else False
 
             if chat.personal:
-                partner_part = partner_part_map.get(chat_id_key)
-                if not partner_part:
+                pp = partner_part_map.get(chat_id_key)
+                if not pp:
                     continue
-                partner_user = partner_part.user
-                is_online = partner_user.last_seen and (now - partner_user.last_seen).total_seconds() < 120
-                is_typing = bool(partner_part.last_typing and (now - partner_part.last_typing).total_seconds() < 6)
+                pu = pp.user
+                is_online = bool(pu.last_seen and (now - pu.last_seen).total_seconds() < 120)
+                is_typing = bool(pp.last_typing and (now - pp.last_typing).total_seconds() < 6)
                 chats_data[str(chat_id_key)] = {
-                    "name": partner_user.login,
-                    "avatar": partner_user.avatar if getattr(partner_user, 'avatar', None) else f"https://ui-avatars.com/api/?name={partner_user.login}&background=random&color=fff&rounded=true&bold=true&uppercase=true",
-                    "active": False,
-                    "last_msg": "печатает..." if is_typing else msg_preview,
+                    "name": pu.login,
+                    "avatar": pu.avatar or f"https://ui-avatars.com/api/?name={pu.login}&background=random&color=fff&rounded=true&bold=true",
+                    "active": False, "last_msg": "печатает..." if is_typing else msg_preview,
                     "last_time": last_msg.timestamp.strftime("%H:%M") if last_msg else "",
-                    "last_status": last_status,
-                    "unread": unread_count,
-                    "pinned": False,
-                    "muted": False,
-                    "premium": "1" if getattr(partner_user, 'premium', False) else "",
-                    "target_user_id": partner_user.id,
-                    "online": is_online,
-                    "typing": is_typing,
-                    "blocked": is_blocked
+                    "last_status": last_status, "unread": unread_count,
+                    "pinned": False, "muted": False,
+                    "premium": "1" if getattr(pu, 'premium', False) else "",
+                    "target_user_id": pu.id, "online": is_online, "typing": is_typing, "blocked": is_blocked
                 }
             else:
                 chats_data[str(chat_id_key)] = {
                     "name": chat.name,
-                    "avatar": f"https://ui-avatars.com/api/?name={chat.name}&background=random&color=fff&rounded=true&bold=true&uppercase=true",
-                    "active": False,
-                    "last_msg": msg_preview,
+                    "avatar": f"https://ui-avatars.com/api/?name={chat.name}&background=random&color=fff&rounded=true&bold=true",
+                    "active": False, "last_msg": msg_preview,
                     "last_time": last_msg.timestamp.strftime("%H:%M") if last_msg else "",
-                    "last_status": last_status,
-                    "unread": unread_count,
-                    "pinned": False,
-                    "muted": False,
-                    "premium": "",
-                    "target_user_id": "",
-                    "typing": False,
-                    "typing_list": [],
+                    "last_status": last_status, "unread": unread_count,
+                    "pinned": False, "muted": False, "premium": "",
+                    "target_user_id": "", "typing": False, "typing_list": [],
                     "chat_type": getattr(chat, 'chat_type', 'group') or 'group',
-                    "owner_id": chat.owner_id,
-                    "blocked": is_blocked
+                    "owner_id": chat.owner_id, "blocked": is_blocked
                 }
 
-        return chats_data
+        total_count = ChatParticipant.query.filter_by(user_id=user_id).count()
+        has_more = (offset + limit) < total_count
+        return {"items": chats_data, "has_more": has_more}
 
     def get_recent_messages(self, user_id, chat_id, last_id=0, first_id=0):
         if not ChatParticipant.query.filter_by(user_id=user_id, chat_id=chat_id).first():
