@@ -105,6 +105,28 @@ def register_chat(app):
             db.session.commit()
 
         user.last_seen = datetime.utcnow()
+
+        if user.avatar and (user.avatar.startswith("data:image/") or user.avatar.startswith("data:video/")):
+            try:
+                import base64 as _b64
+                header, b64body = user.avatar.split(",", 1)
+                mime = header.split(":")[1].split(";")[0]
+                ext_map = {
+                    "image/jpeg": "jpg", "image/png": "png", "image/gif": "gif",
+                    "image/webp": "webp", "video/mp4": "mp4", "video/webm": "webm"
+                }
+                ext = ext_map.get(mime, "jpg")
+                raw = _b64.b64decode(b64body)
+                safe_name = f"{uuid.uuid4().hex}.{ext}"
+                os.makedirs(FileService.UPLOAD_DIR, exist_ok=True)
+                fpath = os.path.join(FileService.UPLOAD_DIR, safe_name)
+                with open(fpath, "wb") as fout:
+                    fout.write(raw)
+                sig = FileService.sign_filename(safe_name)
+                user.avatar = f"/api/files/{safe_name}?sig={sig}"
+            except Exception:
+                user.avatar = None
+
         db.session.commit()
 
         folders = [{"name": "Все", "count": 0, "active": True}]
@@ -114,7 +136,9 @@ def register_chat(app):
         srv_settings = Settings.query.first()
         premium_only = srv_settings.premium_only_messaging if srv_settings else False
 
-        return render_template("chat.html", current_user=user, msg_data=msg_data, folders=folders, premium_only_messaging=premium_only)
+        resp = make_response(render_template("chat.html", current_user=user, msg_data=msg_data, folders=folders, premium_only_messaging=premium_only))
+        resp.headers['Cache-Control'] = 'no-store'
+        return resp
 
     @app.route("/api/user/update_status", methods=["POST"])
     def update_status():
@@ -239,7 +263,7 @@ def register_chat(app):
         if not os.path.isfile(fpath):
             abort(404)
         resp = send_from_directory(FileService.UPLOAD_DIR, safe)
-        resp.headers['Cache-Control'] = 'private, max-age=86400'
+        resp.headers['Cache-Control'] = 'private, max-age=31536000, immutable'
         resp.headers['X-Content-Type-Options'] = 'nosniff'
         return resp
 
@@ -569,9 +593,37 @@ def register_chat(app):
             avatar_data = data["avatar"]
             if avatar_data and isinstance(avatar_data, str):
                 if avatar_data.startswith("data:image/") or avatar_data.startswith("data:video/"):
-                    user.avatar = avatar_data
-                    changed = True
-                elif avatar_data.startswith("http"):
+                    try:
+                        import base64 as _b64
+                        header, b64body = avatar_data.split(",", 1)
+                        mime = header.split(":")[1].split(";")[0]
+                        ext_map = {
+                            "image/jpeg": "jpg", "image/png": "png", "image/gif": "gif",
+                            "image/webp": "webp", "video/mp4": "mp4", "video/webm": "webm"
+                        }
+                        ext = ext_map.get(mime, "jpg")
+                        raw = _b64.b64decode(b64body)
+                        if len(raw) <= 10 * 1024 * 1024:
+                            safe_name = f"{uuid.uuid4().hex}.{ext}"
+                            os.makedirs(FileService.UPLOAD_DIR, exist_ok=True)
+                            fpath = os.path.join(FileService.UPLOAD_DIR, safe_name)
+                            with open(fpath, "wb") as fout:
+                                fout.write(raw)
+                            sig = FileService.sign_filename(safe_name)
+                            if user.avatar and user.avatar.startswith("/api/files/"):
+                                try:
+                                    old_fname = user.avatar.split("/api/files/")[1].split("?")[0]
+                                    old_path = os.path.join(FileService.UPLOAD_DIR, old_fname)
+                                    if os.path.isfile(old_path):
+                                        os.remove(old_path)
+                                except Exception:
+                                    pass
+                            user.avatar = f"/api/files/{safe_name}?sig={sig}"
+                            changed = True
+                    except Exception:
+                        user.avatar = avatar_data
+                        changed = True
+                elif avatar_data.startswith("http") or avatar_data.startswith("/"):
                     user.avatar = avatar_data
                     changed = True
 

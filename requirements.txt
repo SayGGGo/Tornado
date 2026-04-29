@@ -19,3 +19,4 @@ flask_sqlalchemy
 openpyxl
 gunicorn
 eventlet
+flask-compress

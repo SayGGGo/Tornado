@@ -9,6 +9,9 @@
     <meta name="current-user-premium" content="{{ current_user.premium or '' }}">
     <meta name="premium-only-messaging" content="{{ 'true' if premium_only_messaging else '' }}">
     <meta name="premium-only-inbox" content="{{ 'true' if current_user.premium_only_inbox else '' }}">
+    {% set _av_url = current_user.avatar if current_user.avatar and not current_user.avatar.startswith('data:') else ('https://ui-avatars.com/api/?name=' ~ (current_user.login or 'U') ~ '&background=random&color=fff&rounded=true') %}
+    <meta name="current-user-avatar" content="{{ _av_url }}"
+          data-is-video="{{ 'true' if _av_url.endswith('.mp4') or _av_url.endswith('.webm') else 'false' }}">
     <title>TORNADO</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/chat.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile.css') }}">
@@ -207,12 +210,7 @@
 
         <div id="view-settings" class="mobile-view" style="display:none;">
             <div class="settings-profile-block" id="mobile-profile-direct">
-                {% set sa_av = current_user.avatar or 'https://ui-avatars.com/api/?name=' ~ (current_user.login or 'U') ~ '&background=random&color=fff&rounded=true' %}
-                {% if sa_av.endswith('.mp4') or sa_av.endswith('.webm') %}
-                <video class="settings-big-avatar" id="settingsAvatar" src="{{ sa_av }}" autoplay loop muted playsinline style="object-fit:cover;"></video>
-                {% else %}
-                <img class="settings-big-avatar" id="settingsAvatar" src="{{ sa_av }}" alt="" onerror="this.src='https://ui-avatars.com/api/?name={{ (current_user.login or 'U')|urlencode }}&background=random&color=fff&rounded=true'">
-                {% endif %}
+                <img class="settings-big-avatar" id="settingsAvatar" src="" alt="">
                 <div class="settings-profile-info">
                     <div class="settings-user-name" id="settingsName">{{ current_user.login }}</div>
                     <div class="settings-user-sub">@{{ current_user.login }}</div>
@@ -283,12 +281,7 @@
 
                  <div class="profile-header">
                     <div class="profile-avatar-container" style="position:relative; width:120px; height:120px;" onclick="document.getElementById('avatar-upload-input').click()">
-                        {% set pav = current_user.avatar or 'https://ui-avatars.com/api/?name=' ~ (current_user.login or 'U') ~ '&background=random&color=fff&rounded=true' %}
-                        {% if pav.endswith('.mp4') or pav.endswith('.webm') %}
-                        <video src="{{ pav }}" class="profile-big-avatar" style="width:120px; height:120px; object-fit:cover; border-radius:50%;" autoplay loop muted playsinline></video>
-                        {% else %}
-                        <img src="{{ pav }}" class="profile-big-avatar" style="width:120px; height:120px;" alt="">
-                        {% endif %}
+                        <img src="" class="profile-big-avatar" id="view-profile-avatar" style="width:120px; height:120px;" alt="">
                         <div class="avatar-edit-overlay"><span class="material-symbols-outlined">photo_camera</span></div>
                     </div>
                     <div class="profile-info" style="margin-top:16px;">
@@ -636,12 +629,7 @@
             <div class="profile-content">
                 <div class="profile-header">
                     <div id="profile-avatar-container" class="profile-avatar-container" style="position:relative; cursor:pointer;" onclick="document.getElementById('avatar-upload-input').click()">
-                        {% set mpav = current_user.avatar or 'https://ui-avatars.com/api/?name=' ~ (current_user.login or 'U') ~ '&background=random&color=fff&rounded=true' %}
-                        {% if mpav.endswith('.mp4') or mpav.endswith('.webm') %}
-                        <video id="my-profile-avatar" src="{{ mpav }}" class="profile-big-avatar" autoplay loop muted playsinline style="object-fit:cover; border-radius:50%;"></video>
-                        {% else %}
-                        <img id="my-profile-avatar" src="{{ mpav }}" class="profile-big-avatar" alt="">
-                        {% endif %}
+                        <img id="my-profile-avatar" src="" class="profile-big-avatar" alt="">
                         <div class="avatar-edit-overlay">
                             <span class="material-symbols-outlined">photo_camera</span>
                         </div>
@@ -959,12 +947,12 @@
 
     <div id="liquid-glass-root"></div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" integrity="sha512-BNaRQnYJYiPSqHHDb58B0yaPfCu+Wgds8Gp/gU33kqBtgNS4tSPHuGibyoeqMV/TJlSKda6FXzoEyYGjTe+vXA==" crossorigin="anonymous"></script>
-    <script src="{{ url_for('static', filename='js/chat.js') }}"></script>
-    <script src="{{ url_for('static', filename='dist/glass-bundle.js') }}"></script>
-    <script>if(window.innerWidth>768){var _s=document.createElement('script');_s.src='{{ url_for("static", filename="js/bg.js") }}';document.head.appendChild(_s);}</script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" integrity="sha512-D9gUyxqja7hBtkWpPWGt9wfbfaMGVt9gnyCvYa+jojwwPHLCzUm5i8rpk7vD7wNee9bA35eYIjobYPaQuKS1MQ==" crossorigin="anonymous"></script>
-    <script type="module" src="{{ url_for('static', filename='js/i/island.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/chat.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='dist/glass-bundle.js') }}" defer></script>
+    <script defer>if(window.innerWidth>768){var _s=document.createElement('script');_s.src='{{ url_for("static", filename="js/bg.js") }}';document.head.appendChild(_s);}</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" integrity="sha512-D9gUyxqja7hBtkWpPWGt9wfbfaMGVt9gnyCvYa+jojwwPHLCzUm5i8rpk7vD7wNee9bA35eYIjobYPaQuKS1MQ==" crossorigin="anonymous" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" integrity="sha512-BNaRQnYJYiPSqHHDb58B0yaPfCu+Wgds8Gp/gU33kqBtgNS4tSPHuGibyoeqMV/TJlSKda6FXzoEyYGjTe+vXA==" crossorigin="anonymous" defer></script>
+    <script type="module" src="{{ url_for('static', filename='js/i/island.js') }}" defer></script>
 
     <script>
     (function () {

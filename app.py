@@ -25,6 +25,14 @@ from spotify import register_spotify
 app = Flask(__name__)
 app.config.from_object(Config)
 app.config['SECRET_KEY'] = Config.SECRET_KEY
+app.config['COMPRESS_ALGORITHM'] = 'gzip'
+app.config['COMPRESS_MIN_SIZE'] = 1024
+
+try:
+    from flask_compress import Compress
+    Compress(app)
+except ImportError:
+    pass
 
 init_models(app)
 
@@ -79,6 +87,8 @@ def set_security_headers(response):
     response.headers['X-Frame-Options'] = 'SAMEORIGIN'
     response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
     response.headers['Permissions-Policy'] = 'geolocation=(), payment=()'
+    if request.path.startswith('/static/'):
+        response.headers['Cache-Control'] = 'public, max-age=86400'
     return response
 
 @app.before_request

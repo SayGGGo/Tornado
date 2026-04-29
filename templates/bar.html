@@ -4,23 +4,13 @@
             <span class="material-symbols-outlined">menu</span>
         </button>
         <div class="mobile-profile-btn mobile-only" id="mobile-profile-btn">
-            {% set mp_av = current_user.avatar or 'https://ui-avatars.com/api/?name=' ~ (current_user.login or 'U') ~ '&background=random&color=fff&rounded=true' %}
-            {% if mp_av.endswith('.mp4') or mp_av.endswith('.webm') %}
-            <video src="{{ mp_av }}" class="avatar" autoplay loop muted playsinline style="object-fit:cover;"></video>
-            {% else %}
-            <img src="{{ mp_av }}" class="avatar" alt="" onerror="this.src='https://ui-avatars.com/api/?name={{ (current_user.login or 'U')|urlencode }}&background=random&color=fff&rounded=true'">
-            {% endif %}
+            <img src="" class="avatar" id="mobile-profile-avatar" alt="">
         </div>
 
         <div id="drawer-overlay" class="drawer-overlay"></div>
         <div id="side-drawer" class="side-drawer">
             <div class="drawer-header">
-                {% set da = current_user.avatar or 'https://ui-avatars.com/api/?name=' ~ (current_user.login or 'U') ~ '&background=random&color=fff&rounded=true&bold=true' %}
-                {% if da.endswith('.mp4') or da.endswith('.webm') %}
-                <video src="{{ da }}" class="drawer-avatar" id="drawer-user-avatar" autoplay loop muted playsinline style="object-fit:cover;"></video>
-                {% else %}
-                <img src="{{ da }}" class="drawer-avatar" id="drawer-user-avatar" onerror="this.src='https://ui-avatars.com/api/?name={{ (current_user.login or 'U')|urlencode }}&background=random&color=fff&rounded=true'">
-                {% endif %}
+                <img src="" class="drawer-avatar" id="drawer-user-avatar" alt="">
                 <div class="drawer-user-info">
                     <div class="drawer-user-name" id="drawer-user-name">Пользователь</div>
                     <div class="drawer-user-status">Сменить эмодзи-статус</div>

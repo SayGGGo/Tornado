@@ -30,6 +30,40 @@ const searchInput = document.querySelector('.search-bar');
 const headerContainer = document.querySelector('.header');
 const currentUserMeta = document.querySelector('meta[name="current-user"]');
 const currentUser = currentUserMeta ? currentUserMeta.content : '';
+
+(function initMyAvatar() {
+    const avatarMeta = document.querySelector('meta[name="current-user-avatar"]');
+    if (!avatarMeta) return;
+    const src = avatarMeta.content;
+    const isVideo = avatarMeta.dataset.isVideo === 'true';
+    const fallback = `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser || 'U')}&background=random&color=fff&rounded=true`;
+    const targets = [
+        { id: 'mobile-profile-avatar', cls: 'avatar' },
+        { id: 'drawer-user-avatar', cls: 'drawer-avatar' },
+        { id: 'settingsAvatar', cls: 'settings-big-avatar' },
+        { id: 'view-profile-avatar', cls: 'profile-big-avatar' },
+        { id: 'my-profile-avatar', cls: 'profile-big-avatar' },
+    ];
+    targets.forEach(({ id }) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (isVideo && el.tagName !== 'VIDEO') {
+            const vid = document.createElement('video');
+            vid.id = id;
+            vid.className = el.className;
+            vid.autoplay = true;
+            vid.loop = true;
+            vid.muted = true;
+            vid.playsInline = true;
+            vid.style.cssText = el.style.cssText + ';object-fit:cover;';
+            vid.src = src || fallback;
+            el.parentNode.replaceChild(vid, el);
+        } else {
+            el.src = src || fallback;
+            if (!isVideo) el.onerror = () => { el.src = fallback; };
+        }
+    });
+})();
 const chatPreloader = document.getElementById('chat-preloader');
 const chatInputWrapper = document.getElementById('chat-input-wrapper-el');
 const currentUserPremium = document.querySelector('meta[name="current-user-premium"]')?.content || '';
@@ -340,7 +374,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     };
     initEmojiPicker();
-    updateSidebar(true);
+    showChatSkeletons();
     const spotifyToggle = document.getElementById('spotify-toggle');
     if (spotifyToggle) {
         spotifyToggle.addEventListener('change', function() {
