@@ -113,4 +113,4 @@ if __name__ == "__main__":
         else:
             ssl_ctx = "adhoc"
 
-    app.run(host=Config.FLASK_HOST,  port=Config.FLASK_PORT, ssl_context=ssl_ctx)
+    app.run(host=Config.FLASK_HOST, port=Config.FLASK_PORT, ssl_context=ssl_ctx, threaded=True)

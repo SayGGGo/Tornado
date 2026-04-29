@@ -223,17 +223,33 @@ class ChatService:
         self.crypto = EncryptionService()
 
     def get_user_chats(self, user_id):
-        from sqlalchemy.orm import joinedload, aliased
-        from sqlalchemy import func
+        from sqlalchemy.orm import joinedload
+        from sqlalchemy import func, and_
 
-        participants = ChatParticipant.query.filter_by(user_id=user_id).options(
-            joinedload(ChatParticipant.chat).joinedload(Chat.participants).joinedload(ChatParticipant.user)
-        ).all()
+        my_parts = (ChatParticipant.query
+                    .filter_by(user_id=user_id)
+                    .options(joinedload(ChatParticipant.chat))
+                    .all())
 
-        if not participants:
+        if not my_parts:
             return {}
 
-        chat_ids = [p.chat_id for p in participants]
+        chat_ids = [p.chat_id for p in my_parts]
+        my_part_map = {p.chat_id: p for p in my_parts}
+        chat_map = {p.chat_id: p.chat for p in my_parts}
+
+        personal_chat_ids = [cid for cid, c in chat_map.items() if c.personal]
+        partner_part_map = {}
+        if personal_chat_ids:
+            other_parts = (ChatParticipant.query
+                           .filter(
+                               ChatParticipant.chat_id.in_(personal_chat_ids),
+                               ChatParticipant.user_id != user_id
+                           )
+                           .options(joinedload(ChatParticipant.user))
+                           .all())
+            for p in other_parts:
+                partner_part_map[p.chat_id] = p
 
         last_msgs_sub = db.session.query(
             Message.chat_id,
@@ -242,15 +258,14 @@ class ChatService:
 
         last_messages = Message.query.join(
             last_msgs_sub,
-            (Message.chat_id == last_msgs_sub.c.chat_id) & (Message.id == last_msgs_sub.c.max_id)
+            and_(Message.chat_id == last_msgs_sub.c.chat_id, Message.id == last_msgs_sub.c.max_id)
         ).all()
         last_msg_map = {m.chat_id: m for m in last_messages}
 
         sender_ids = {m.user_id for m in last_messages if m and not m.is_deleted and not m.file_name and m.user_id}
         sender_map = {}
         if sender_ids:
-            from models import User as _U
-            for u in _U.query.filter(_U.id.in_(sender_ids)).with_entities(_U.id, _U.login).all():
+            for u in User.query.filter(User.id.in_(sender_ids)).with_entities(User.id, User.login).all():
                 sender_map[u.id] = u.login
 
         unread_counts = db.session.query(
@@ -263,13 +278,12 @@ class ChatService:
         ).group_by(Message.chat_id).all()
         unread_map = dict(unread_counts)
 
-        chats_data = {}
-        curr_user = db.session.get(User, user_id)
         now = datetime.utcnow()
+        chats_data = {}
 
-        for p in participants:
-            chat = p.chat
-            last_msg = last_msg_map.get(chat.id)
+        for chat_id_key, chat in chat_map.items():
+            my_part = my_part_map[chat_id_key]
+            last_msg = last_msg_map.get(chat_id_key)
             msg_preview = "Нет сообщений"
 
             if last_msg:
@@ -281,51 +295,42 @@ class ChatService:
                     sender_name = sender_map.get(last_msg.user_id, '')
                     msg_preview = f"{sender_name}: 🔒" if sender_name else "🔒 Сообщение"
 
-            unread_count = unread_map.get(chat.id, 0)
+            unread_count = unread_map.get(chat_id_key, 0)
+            last_status = None
             if last_msg and last_msg.user_id == user_id:
                 last_status = True if getattr(last_msg, 'is_read', False) else False
-            else:
-                last_status = None
 
-            is_typing = False
-            typing_users = []
-            other_participants = [op for op in chat.participants if op.user_id != user_id]
-
-            for op in other_participants:
-                if op.last_typing and (now - op.last_typing).total_seconds() < 6:
-                    is_typing = True
-                    typing_users.append(op.user.login)
-
-            my_participant = next((p for p in chat.participants if p.user_id == user_id), None)
-            is_blocked = my_participant.blocked if my_participant else False
+            is_blocked = my_part.blocked if my_part else False
 
             if chat.personal:
-                other_check = other_participants[0] if other_participants else None
-                if other_check:
-                    user = other_check.user
-                    is_online = user.last_seen and (now - user.last_seen).total_seconds() < 120
-                    chats_data[str(chat.id)] = {
-                        "name": user.login,
-                        "avatar": user.avatar if getattr(user, 'avatar', None) else f"https://ui-avatars.com/api/?name={user.fio}&background=random&color=fff&rounded=true&bold=true&uppercase=true",
-                        "active": False,
-                        "last_msg": "печатает..." if is_typing else msg_preview,
-                        "last_time": last_msg.timestamp.strftime("%H:%M") if last_msg else "",
-                        "last_status": last_status,
-                        "unread": unread_count,
-                        "pinned": False,
-                        "muted": False,
-                        "premium": "1" if getattr(user, 'premium', False) else "",
-                        "target_user_id": user.id,
-                        "online": is_online,
-                        "typing": is_typing,
-                        "blocked": is_blocked
-                    }
+                partner_part = partner_part_map.get(chat_id_key)
+                if not partner_part:
+                    continue
+                partner_user = partner_part.user
+                is_online = partner_user.last_seen and (now - partner_user.last_seen).total_seconds() < 120
+                is_typing = bool(partner_part.last_typing and (now - partner_part.last_typing).total_seconds() < 6)
+                chats_data[str(chat_id_key)] = {
+                    "name": partner_user.login,
+                    "avatar": partner_user.avatar if getattr(partner_user, 'avatar', None) else f"https://ui-avatars.com/api/?name={partner_user.login}&background=random&color=fff&rounded=true&bold=true&uppercase=true",
+                    "active": False,
+                    "last_msg": "печатает..." if is_typing else msg_preview,
+                    "last_time": last_msg.timestamp.strftime("%H:%M") if last_msg else "",
+                    "last_status": last_status,
+                    "unread": unread_count,
+                    "pinned": False,
+                    "muted": False,
+                    "premium": "1" if getattr(partner_user, 'premium', False) else "",
+                    "target_user_id": partner_user.id,
+                    "online": is_online,
+                    "typing": is_typing,
+                    "blocked": is_blocked
+                }
             else:
-                chats_data[str(chat.id)] = {
+                chats_data[str(chat_id_key)] = {
                     "name": chat.name,
                     "avatar": f"https://ui-avatars.com/api/?name={chat.name}&background=random&color=fff&rounded=true&bold=true&uppercase=true",
                     "active": False,
-                    "last_msg": f"{', '.join(typing_users)} печатает..." if is_typing else msg_preview,
+                    "last_msg": msg_preview,
                     "last_time": last_msg.timestamp.strftime("%H:%M") if last_msg else "",
                     "last_status": last_status,
                     "unread": unread_count,
@@ -333,8 +338,8 @@ class ChatService:
                     "muted": False,
                     "premium": "",
                     "target_user_id": "",
-                    "typing": is_typing,
-                    "typing_list": typing_users,
+                    "typing": False,
+                    "typing_list": [],
                     "chat_type": getattr(chat, 'chat_type', 'group') or 'group',
                     "owner_id": chat.owner_id,
                     "blocked": is_blocked

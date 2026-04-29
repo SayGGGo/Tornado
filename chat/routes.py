@@ -2,12 +2,38 @@ import os
 import re
 import json
 import threading
+from collections import defaultdict
 from datetime import datetime, timedelta
-from flask import render_template, jsonify, session, request, redirect, url_for, send_from_directory, abort
+from flask import render_template, jsonify, session, request, redirect, url_for, send_from_directory, abort, make_response
 from models import db, User, ChatParticipant
 from .services import ChatService, AgoraService, FileService, EncryptionService, flood_control
 from config import Config
 import uuid
+
+_notify_lock = threading.Lock()
+_notify_conds = {}
+_notify_seq = defaultdict(int)
+
+
+def _get_cond(user_id):
+    with _notify_lock:
+        if user_id not in _notify_conds:
+            _notify_conds[user_id] = threading.Condition(threading.Lock())
+        return _notify_conds[user_id]
+
+
+def notify_chat_users(chat_id):
+    try:
+        parts = ChatParticipant.query.filter_by(chat_id=chat_id).with_entities(ChatParticipant.user_id).all()
+    except Exception:
+        return
+    for row in parts:
+        uid = row.user_id
+        with _notify_lock:
+            _notify_seq[uid] += 1
+        cond = _get_cond(uid)
+        with cond:
+            cond.notify_all()
 
 try:
     from pywebpush import webpush, WebPushException
@@ -177,6 +203,7 @@ def register_chat(app):
             if sender:
                 avatar = sender.avatar or f"https://ui-avatars.com/api/?name={sender.login}&background=random&color=fff&rounded=true&bold=true"
                 send_push_to_chat_members(chat_id, session["user_id"], sender.login, data.get("content", ""), avatar)
+            notify_chat_users(chat_id)
         return jsonify(result), 200 if "success" in result else 429 if "Слишком" in result.get("error", "") else 400
 
     @app.route("/api/messages/<int:message_id>", methods=["PUT"])
@@ -289,6 +316,7 @@ def register_chat(app):
             if sender:
                 avatar = sender.avatar or f"https://ui-avatars.com/api/?name={sender.login}&background=random&color=fff&rounded=true&bold=true"
                 send_push_to_chat_members(int(chat_id), session["user_id"], sender.login, "📎 Файл", avatar)
+            notify_chat_users(int(chat_id))
             return jsonify(last_result), 200
 
         return jsonify({"error": "Неверный формат файла или превышен лимит 50 МБ"}), 400
@@ -317,7 +345,63 @@ def register_chat(app):
     def get_chats_api():
         if "user_id" not in session:
             return jsonify({})
-        return jsonify(chat_service.get_user_chats(session["user_id"]))
+        uid = session["user_id"]
+        from sqlalchemy import func
+        from models import Message as _Msg
+        chat_ids_q = [p.chat_id for p in ChatParticipant.query.filter_by(user_id=uid).with_entities(ChatParticipant.chat_id).all()]
+        if chat_ids_q:
+            max_msg_id = db.session.query(func.max(_Msg.id)).filter(_Msg.chat_id.in_(chat_ids_q)).scalar() or 0
+            unread_total = db.session.query(func.count(_Msg.id)).filter(
+                _Msg.chat_id.in_(chat_ids_q), _Msg.is_read == False, _Msg.user_id != uid
+            ).scalar() or 0
+            etag = f'"{max_msg_id}-{unread_total}"'
+        else:
+            etag = '"empty"'
+        if request.headers.get('If-None-Match') == etag:
+            return '', 304
+        data = chat_service.get_user_chats(uid)
+        resp = make_response(jsonify(data))
+        resp.headers['ETag'] = etag
+        resp.headers['Cache-Control'] = 'no-cache'
+        return resp
+
+    @app.route("/api/chats/poll")
+    def poll_chats():
+        if "user_id" not in session:
+            return jsonify({"seq": 0, "changed": False}), 401
+        uid = session["user_id"]
+        client_seq = request.args.get("seq", -1, type=int)
+
+        with _notify_lock:
+            current_seq = _notify_seq[uid]
+
+        if client_seq == current_seq:
+            cond = _get_cond(uid)
+            with cond:
+                cond.wait(timeout=25)
+            with _notify_lock:
+                current_seq = _notify_seq[uid]
+
+        changed = client_seq != current_seq
+        if not changed:
+            return jsonify({"seq": current_seq, "changed": False})
+
+        from sqlalchemy import func
+        from models import Message as _Msg
+        chat_ids_q = [p.chat_id for p in ChatParticipant.query.filter_by(user_id=uid).with_entities(ChatParticipant.chat_id).all()]
+        etag_val = '"empty"'
+        if chat_ids_q:
+            max_msg_id = db.session.query(func.max(_Msg.id)).filter(_Msg.chat_id.in_(chat_ids_q)).scalar() or 0
+            unread_total = db.session.query(func.count(_Msg.id)).filter(
+                _Msg.chat_id.in_(chat_ids_q), _Msg.is_read == False, _Msg.user_id != uid
+            ).scalar() or 0
+            etag_val = f'"{max_msg_id}-{unread_total}"'
+
+        data = chat_service.get_user_chats(uid)
+        resp = make_response(jsonify({"seq": current_seq, "changed": True, "data": data}))
+        resp.headers['ETag'] = etag_val
+        resp.headers['Cache-Control'] = 'no-cache'
+        return resp
 
     @app.route("/api/agora/token")
     def get_agora_token():
