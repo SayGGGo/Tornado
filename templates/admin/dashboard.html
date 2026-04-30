@@ -96,6 +96,40 @@
   .bar-row      { grid-template-columns: 1fr; }
   .charts-row   { grid-template-columns: 1fr; }
 }
+.rep-card { border: 1px solid var(--border); border-radius: 14px; padding: 16px 18px; margin-bottom: 12px; background: rgba(255,255,255,.025); transition: border-color .18s; }
+.rep-card:hover { border-color: rgba(255,255,255,.1); }
+.rep-card:last-child { margin-bottom: 0; }
+.rep-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+.rep-avatar { width: 34px; height: 34px; border-radius: 10px; object-fit: cover; flex-shrink: 0; }
+.rep-name { font-size: 13px; font-weight: 700; color: var(--text); cursor: pointer; }
+.rep-name:hover { text-decoration: underline dotted; }
+.rep-meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.rep-reason { font-size: 12.5px; color: var(--text-dim); margin-bottom: 12px; background: rgba(0,0,0,.25); border-radius: 10px; padding: 9px 13px; border-left: 3px solid rgba(255,255,255,.12); line-height: 1.5; }
+.rep-ctx { background: rgba(0,0,0,.2); border-radius: 10px; padding: 10px 13px; margin-bottom: 12px; border: 1px solid rgba(255,255,255,.04); }
+.rep-ctx-header { font-size: 9.5px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; font-weight: 700; margin-bottom: 8px; }
+.rep-ctx-msg { font-size: 11.5px; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,.04); display: flex; gap: 6px; }
+.rep-ctx-msg:last-child { border-bottom: none; }
+.rep-ctx-login { font-weight: 600; color: var(--text); white-space: nowrap; flex-shrink: 0; }
+.rep-ctx-ts { font-size: 10px; color: var(--text-muted); flex-shrink: 0; align-self: center; }
+.rep-ctx-text { color: rgba(255,255,255,.55); word-break: break-word; }
+.rep-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 4px; }
+.threat-badge { font-size: 9px; font-weight: 700; letter-spacing: .5px; padding: 2px 8px; border-radius: 5px; }
+.threat-1 { background: rgba(255,214,10,.12); color: var(--amber); border: 1px solid rgba(255,214,10,.25); }
+.threat-2 { background: rgba(255,120,10,.12); color: #ff8c2e; border: 1px solid rgba(255,120,10,.25); }
+.threat-3 { background: rgba(255,69,58,.12); color: var(--red); border: 1px solid rgba(255,69,58,.25); }
+.auto-badge { background: rgba(10,132,255,.12); color: var(--blue); border: 1px solid rgba(10,132,255,.25); }
+.rep-filter-btn.active-filter { border-color: var(--green-border); color: var(--green); }
+
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.65); z-index: 1000; display: flex; align-items: center; justify-content: center; }
+.modal-box { background: var(--surface-0); border: 1px solid var(--border); border-radius: 16px; padding: 24px; min-width: 340px; max-width: 480px; width: 90%; }
+.modal-title { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; }
+.modal-close { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 20px; line-height: 1; padding: 0; }
+.modal-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px solid rgba(255,255,255,.04); font-size: 12px; }
+.modal-row:last-child { border-bottom: none; }
+.modal-label { color: var(--text-muted); }
+.modal-val { color: var(--text); font-weight: 500; }
+.modal-actions { display: flex; gap: 8px; margin-top: 16px; }
+
 @media (max-width: 800px) {
   :root { --sidebar-w: 62px; }
   .brand-logo, .nav-item .label, .user-info, .brand-badge, .nav-label { display: none; }
@@ -144,6 +178,13 @@
           <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
         </div>
         <span class="label">Аналитика</span>
+      </a>
+      <a href="#" class="nav-item" data-section="reports">
+        <div class="nav-icon" style="position:relative;">
+          <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <span id="report-badge" style="display:none;position:absolute;top:-4px;right:-4px;width:8px;height:8px;border-radius:50%;background:var(--red);"></span>
+        </div>
+        <span class="label">Репорты</span>
       </a>
       <a href="#" class="nav-item" data-section="settings">
         <div class="nav-icon">
@@ -302,6 +343,26 @@
       </div>
     </div>
 
+    <div class="section" id="section-reports">
+      <div class="glass-card">
+        <div class="table-toolbar">
+          <div style="display:flex;gap:8px;">
+            <button class="pager-btn rep-filter-btn active-filter" data-status="pending">Ожидают</button>
+            <button class="pager-btn rep-filter-btn" data-status="reviewed">Разобраны</button>
+            <button class="pager-btn rep-filter-btn" data-status="dismissed">Отклонены</button>
+            <button class="pager-btn rep-filter-btn" data-status="all">Все</button>
+          </div>
+          <span class="page-info" id="rep-page-info" style="margin-left:auto;"></span>
+          <div class="pager">
+            <button class="pager-btn" id="rep-prev" disabled>‹</button>
+            <button class="pager-btn" id="rep-next" disabled>›</button>
+          </div>
+        </div>
+        <div id="reports-list" style="padding:0 20px 16px;"></div>
+        <div class="empty-msg" id="rep-empty" style="display:none;">Репортов нет</div>
+      </div>
+    </div>
+
     <div class="section" id="section-settings">
 
       <div class="glass-card">
@@ -317,6 +378,19 @@
             </div>
             <div class="sys-right">
               <label class="toggle-switch"><input type="checkbox" id="toggle-premium-only"><div class="toggle-track"></div></label>
+            </div>
+          </div>
+          <div class="section-sep"></div>
+          <div class="sys-row">
+            <div class="sys-left">
+              <div class="sys-icon-wrap"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg></div>
+              <div>
+                <div class="sys-name">Anti-67</div>
+                <div class="sys-sub settings-desc">Блокировать «67», «six seven», «шесть семь» и варианты</div>
+              </div>
+            </div>
+            <div class="sys-right">
+              <label class="toggle-switch"><input type="checkbox" id="toggle-anti67"><div class="toggle-track"></div></label>
             </div>
           </div>
           <div class="section-sep"></div>
@@ -400,11 +474,33 @@
   </main>
 </div>
 
+<div id="user-modal" style="display:none;" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-title">
+      <span id="um-title">Пользователь</span>
+      <button class="modal-close" onclick="closeUserModal()">×</button>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+      <img id="um-avatar" src="" style="width:48px;height:48px;border-radius:12px;object-fit:cover;" alt="">
+      <div>
+        <div id="um-login" style="font-size:14px;font-weight:700;color:var(--text);"></div>
+        <div id="um-fio" style="font-size:12px;color:var(--text-muted);margin-top:2px;"></div>
+      </div>
+    </div>
+    <div id="um-rows"></div>
+    <div id="um-bio" style="font-size:12px;color:var(--text-dim);background:rgba(0,0,0,.2);border-radius:8px;padding:8px 10px;margin-top:10px;display:none;"></div>
+    <div class="modal-actions">
+      <button class="action-btn" id="um-ban-btn"></button>
+      <button class="action-btn" id="um-prem-btn"></button>
+    </div>
+  </div>
+</div>
+
 <script>
 const ADMIN_KEY = '{{ key }}';
 const BASE = `/${ADMIN_KEY}`;
 
-const TITLES = { overview: 'Обзор', users: 'Пользователи', analytics: 'Аналитика', settings: 'Настройки' };
+const TITLES = { overview: 'Обзор', users: 'Пользователи', analytics: 'Аналитика', settings: 'Настройки', reports: 'Репорты' };
 let currentSection = 'overview';
 
 document.querySelectorAll('.nav-item[data-section]').forEach(link => {
@@ -421,6 +517,7 @@ document.querySelectorAll('.nav-item[data-section]').forEach(link => {
     if (sec === 'users') loadUsers(1);
     if (sec === 'analytics') renderAnalytics();
     if (sec === 'settings') loadSettingsToggle();
+    if (sec === 'reports') loadReports(1);
   });
 });
 
@@ -448,30 +545,6 @@ function fmt(n) {
   if (n >= 1e6) return (n/1e6).toFixed(1)+'M';
   if (n >= 1e3) return (n/1e3).toFixed(1)+'K';
   return String(n);
-}
-
-async function loadStats() {
-  const res = await fetch(`${BASE}/api/stats`);
-  if (!res.ok) return;
-  const d = await res.json();
-  statsCache = d;
-
-  document.getElementById('s-users').textContent = fmt(d.users);
-  document.getElementById('s-messages').textContent = fmt(d.messages);
-  document.getElementById('s-chats').textContent = fmt(d.chats);
-  document.getElementById('s-online').textContent = fmt(d.online);
-  document.getElementById('s-premium').textContent = `${d.premium} premium`;
-  document.getElementById('s-chats-sub').textContent = `${d.chat_types.personal} личных · ${d.chat_types.group} групп`;
-
-  const now = new Date();
-  document.getElementById('last-updated').textContent =
-    `Обновлено в ${now.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'})}`;
-
-  buildOverviewCharts(d);
-  buildMiniUsersTable(d.recent_users);
-
-  if (currentSection === 'analytics') renderAnalytics();
-  if (currentSection === 'settings') loadSettingsToggle();
 }
 
 function lineDataset(data, color) {
@@ -574,16 +647,18 @@ async function loadUsers(page, q) {
         <span class="u-badge ${u.online ? 'online' : 'offline'}">${u.online ? 'Online' : 'Offline'}</span>
         ${u.premium ? ' <span class="u-badge premium">Premium</span>' : ''}
       </td>
-      <td>
-        <button class="action-btn ${u.premium ? 'active-prem' : ''}" data-uid="${u.id}" data-prem="${u.premium ? '1' : '0'}">
-          ${u.premium ? '★ Premium' : 'Дать Premium'}
+      <td style="display:flex;gap:6px;">
+        <button class="action-btn ${u.premium ? 'active-prem' : ''}" data-uid="${u.id}" data-action="prem">
+          ${u.premium ? '★ Premium' : 'Premium'}
         </button>
+        <button class="action-btn" data-uid="${u.id}" data-action="detail" style="border-color:rgba(10,132,255,.3);color:var(--blue);">Детали</button>
       </td>
     </tr>`).join('');
 
   tbody.querySelectorAll('.action-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
       const uid = btn.dataset.uid;
+      if (btn.dataset.action === 'detail') { openUserModal(uid); return; }
       const res = await fetch(`${BASE}/api/users/${uid}/toggle-premium`, { method: 'POST' });
       if (res.ok) loadUsers(usersPage, usersQuery);
     });
@@ -668,6 +743,7 @@ function loadSettingsToggle() {
     });
   }
   toggle.checked = !!statsCache.premium_only;
+  initAnti67Toggle(statsCache.anti67);
   loadVersion();
   initEnvEditor();
   initAdminManagement();
@@ -809,9 +885,184 @@ document.getElementById('refresh-btn').addEventListener('click', () => {
   loadStats().finally(() => { btn.style.opacity = ''; });
 });
 
+async function loadStats() {
+  const res = await fetch(`${BASE}/api/stats`);
+  if (!res.ok) return;
+  const d = await res.json();
+  statsCache = d;
+
+  document.getElementById('s-users').textContent = fmt(d.users);
+  document.getElementById('s-messages').textContent = fmt(d.messages);
+  document.getElementById('s-chats').textContent = fmt(d.chats);
+  document.getElementById('s-online').textContent = fmt(d.online);
+  document.getElementById('s-premium').textContent = `${d.premium} premium`;
+  document.getElementById('s-chats-sub').textContent = `${d.chat_types.personal} личных · ${d.chat_types.group} групп`;
+
+  const badge = document.getElementById('report-badge');
+  if (badge) badge.style.display = d.pending_reports > 0 ? '' : 'none';
+
+  const now = new Date();
+  document.getElementById('last-updated').textContent =
+    `Обновлено в ${now.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'})}`;
+
+  buildOverviewCharts(d);
+  buildMiniUsersTable(d.recent_users);
+
+  if (currentSection === 'analytics') renderAnalytics();
+  if (currentSection === 'settings') loadSettingsToggle();
+}
+
 function escH(s) {
   if (!s) return '';
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+async function openUserModal(uid) {
+  try {
+    const r = await fetch(`${BASE}/api/users/${uid}/detail`);
+    if (!r.ok) return;
+    const d = await r.json();
+    document.getElementById('um-avatar').src = d.avatar;
+    document.getElementById('um-login').textContent = d.login;
+    document.getElementById('um-fio').textContent = d.fio !== d.login ? d.fio : '';
+    document.getElementById('um-title').textContent = `Пользователь #${d.id}`;
+
+    const rows = [
+      ['ID', `#${d.id}`],
+      ['Группа', d.group_id || '—'],
+      ['Форма обучения', d.study_type || '—'],
+      ['Онлайн', d.online ? '🟢 Да' : `⚫ ${d.last_seen}`],
+      ['Premium', d.premium ? '★ Да' : 'Нет'],
+      ['Забанен', d.is_banned ? '🚫 Да' : 'Нет'],
+      ['Сообщений', d.msg_count],
+      ['Репортов (всего)', d.report_count],
+      ['Открытых репортов', d.open_reports],
+      ['IDE', d.ide_connected ? 'Подключён' : '—'],
+      ['Spotify', d.spotify_enabled ? 'Активен' : '—'],
+    ];
+    document.getElementById('um-rows').innerHTML = rows.map(([l, v]) =>
+      `<div class="modal-row"><span class="modal-label">${escH(l)}</span><span class="modal-val">${escH(String(v))}</span></div>`
+    ).join('');
+
+    const bioEl = document.getElementById('um-bio');
+    if (d.bio) { bioEl.style.display = ''; bioEl.textContent = d.bio; }
+    else { bioEl.style.display = 'none'; }
+
+    const banBtn = document.getElementById('um-ban-btn');
+    banBtn.textContent = d.is_banned ? 'Разбанить' : 'Забанить';
+    banBtn.style.color = d.is_banned ? 'var(--green)' : '#ff453a';
+    banBtn.style.borderColor = d.is_banned ? 'var(--green-border)' : 'rgba(255,69,58,.3)';
+    banBtn.onclick = async () => {
+      await fetch(`${BASE}/api/users/${uid}/ban`, { method: 'POST' });
+      closeUserModal();
+      loadUsers(usersPage, usersQuery);
+    };
+
+    const premBtn = document.getElementById('um-prem-btn');
+    premBtn.textContent = d.premium ? '★ Убрать Premium' : 'Дать Premium';
+    premBtn.onclick = async () => {
+      await fetch(`${BASE}/api/users/${uid}/toggle-premium`, { method: 'POST' });
+      closeUserModal();
+      loadUsers(usersPage, usersQuery);
+    };
+
+    document.getElementById('user-modal').style.display = 'flex';
+  } catch {}
+}
+
+function closeUserModal() {
+  document.getElementById('user-modal').style.display = 'none';
+}
+
+document.getElementById('user-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('user-modal')) closeUserModal();
+});
+
+let repPage = 1, repStatus = 'pending', repPages = 1;
+
+async function loadReports(page, status) {
+  if (status !== undefined) repStatus = status;
+  repPage = page;
+  const r = await fetch(`${BASE}/api/reports?page=${repPage}&status=${repStatus}`);
+  if (!r.ok) return;
+  const d = await r.json();
+  repPages = d.pages;
+  document.getElementById('rep-page-info').textContent = `${d.total} · стр. ${d.page}/${d.pages}`;
+  document.getElementById('rep-prev').disabled = repPage <= 1;
+  document.getElementById('rep-next').disabled = repPage >= repPages;
+
+  const list = document.getElementById('reports-list');
+  const empty = document.getElementById('rep-empty');
+  if (!d.reports.length) { list.innerHTML = ''; empty.style.display = ''; return; }
+  empty.style.display = 'none';
+
+  const threatLabels = { 0: '', 1: '<span class="u-badge threat-badge threat-1">Уровень 1</span>', 2: '<span class="u-badge threat-badge threat-2">Уровень 2</span>', 3: '<span class="u-badge threat-badge threat-3">Уровень 3</span>' };
+
+  list.innerHTML = d.reports.map(rp => {
+    const ctx = (rp.context || []).map(m =>
+      `<div class="rep-ctx-msg"><span class="rep-ctx-login">${escH(m.login)}</span><span class="rep-ctx-ts">${escH(m.ts)}</span><span class="rep-ctx-text">${escH(m.text)}</span></div>`
+    ).join('');
+    const word = rp.trigger_word ? ` — слово: <b style="color:var(--red)">${escH(rp.trigger_word)}</b>` : '';
+    const statusMap = { pending: '⏳ Ожидает', reviewed: '✓ Разобрано', dismissed: '✗ Отклонено' };
+    return `<div class="rep-card">
+      <div class="rep-header">
+        <img class="rep-avatar" src="${escH(rp.reported_avatar)}" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(rp.reported)}&background=random&color=fff&rounded=true'" alt="">
+        <div style="flex:1;min-width:0;">
+          <div class="rep-name" onclick="openUserModal(${rp.reported_id})">${escH(rp.reported)}</div>
+          <div class="rep-meta">от: ${escH(rp.reporter)} · ${escH(rp.created_at)}</div>
+        </div>
+        ${rp.threat_level ? (threatLabels[rp.threat_level] || '') : ''}
+        ${rp.is_auto ? '<span class="u-badge threat-badge auto-badge">Авто</span>' : ''}
+        <span style="font-size:10px;color:var(--text-muted);white-space:nowrap;">${statusMap[rp.status] || rp.status}</span>
+      </div>
+      <div class="rep-reason">${escH(rp.reason)}${word}</div>
+      ${ctx ? `<div class="rep-ctx"><div class="rep-ctx-header">История — 5 сообщений</div>${ctx}</div>` : ''}
+      <div class="rep-actions">
+        ${rp.status !== 'reviewed' ? `<button class="action-btn" style="color:var(--green);border-color:var(--green-border);" onclick="setRepStatus(${rp.id},'reviewed')">✓ Разобрано</button>` : '<span style="font-size:11px;color:var(--green);">✓ Разобрано</span>'}
+        ${rp.status !== 'dismissed' ? `<button class="action-btn" onclick="setRepStatus(${rp.id},'dismissed')">Отклонить</button>` : ''}
+        <button class="action-btn" style="color:var(--blue);border-color:rgba(10,132,255,.3);" onclick="openUserModal(${rp.reported_id})">Профиль</button>
+        <button class="action-btn" style="color:#ff453a;border-color:rgba(255,69,58,.3);" onclick="banFromReport(${rp.reported_id})">Забанить</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+window.banFromReport = async (uid) => {
+  if (!confirm('Забанить пользователя?')) return;
+  const r = await fetch(`${BASE}/api/users/${uid}/ban`, { method: 'POST' });
+  if (r.ok) { const d = await r.json(); if (d.is_banned) loadReports(repPage); }
+};
+
+window.setRepStatus = async (id, status) => {
+  await fetch(`${BASE}/api/reports/${id}/status`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({status}) });
+  loadReports(repPage);
+};
+
+document.querySelectorAll('.rep-filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.rep-filter-btn').forEach(b => b.classList.remove('active-filter'));
+    btn.classList.add('active-filter');
+    loadReports(1, btn.dataset.status);
+  });
+});
+document.getElementById('rep-prev').addEventListener('click', () => loadReports(repPage - 1));
+document.getElementById('rep-next').addEventListener('click', () => loadReports(repPage + 1));
+
+function initAnti67Toggle(anti67) {
+  const toggle = document.getElementById('toggle-anti67');
+  if (!toggle) return;
+  toggle.checked = !!anti67;
+  if (!toggle._bound) {
+    toggle._bound = true;
+    toggle.addEventListener('change', async () => {
+      try {
+        await fetch(`${BASE}/api/settings/anti67`, {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({enabled: toggle.checked})
+        });
+      } catch { toggle.checked = !toggle.checked; }
+    });
+  }
 }
 
 loadStats();

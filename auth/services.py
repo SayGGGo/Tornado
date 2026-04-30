@@ -43,6 +43,14 @@ class AuthService:
         raw_fio = str(data["fio"]).strip()
         clean_fio = _re.sub(r'<[^>]*>', '', raw_fio)[:120]
 
+        try:
+            from utils.profanity import check_profanity
+            hit = check_profanity(clean_fio)
+            if hit and hit["level"] >= 2:
+                return {"success": False, "message": "ФИО содержит недопустимые слова"}
+        except Exception:
+            pass
+
         new_user = User(
             fio=clean_fio,
             login=str(data["login"]).strip(),

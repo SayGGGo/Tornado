@@ -155,53 +155,7 @@ def register_admin(app):
     @app.route(f"/{Config.ADMIN_SESSION_IND}/api/stats")
     @admin_required
     def admin_stats():
-        from models import User, Chat, Message
-        from models.server import Settings
-        from datetime import timedelta
-        from sqlalchemy import func
-
-        now = datetime.utcnow()
-        user_count = User.query.count()
-        chat_count = Chat.query.count()
-        msg_count = Message.query.count()
-        online_count = User.query.filter(User.last_seen >= now - timedelta(minutes=2)).count()
-        premium_count = User.query.filter(User.premium == True).count()
-
-        msg_days = []
-        for i in range(13, -1, -1):
-            d = now - timedelta(days=i)
-            ds = d.replace(hour=0, minute=0, second=0, microsecond=0)
-            de = d.replace(hour=23, minute=59, second=59, microsecond=999999)
-            cnt = Message.query.filter(Message.timestamp >= ds, Message.timestamp <= de).count()
-            msg_days.append({"date": d.strftime("%d.%m"), "count": cnt})
-
-        active_days = []
-        for i in range(6, -1, -1):
-            d = now - timedelta(days=i)
-            ds = d.replace(hour=0, minute=0, second=0, microsecond=0)
-            de = d.replace(hour=23, minute=59, second=59, microsecond=999999)
-            cnt = User.query.filter(User.last_seen >= ds, User.last_seen <= de).count()
-            active_days.append({"date": d.strftime("%d.%m"), "count": cnt})
-
-        personal_count = Chat.query.filter_by(personal=True).count()
-        group_count = Chat.query.filter_by(personal=False).count()
-
-        recent_users = User.query.order_by(User.id.desc()).limit(10).all()
-        recent_data = []
-        for u in recent_users:
-            avatar = u.avatar if getattr(u, 'avatar', None) else f"https://ui-avatars.com/api/?name={u.login}&background=random&color=fff&rounded=true&bold=true"
-            recent_data.append({"login": u.login, "fio": u.fio or u.login, "premium": bool(getattr(u, 'premium', False)), "avatar": avatar})
-
-        srv_settings = Settings.query.first()
-        premium_only = srv_settings.premium_only_messaging if srv_settings else False
-
-        return jsonify({
-            "users": user_count, "chats": chat_count, "messages": msg_count,
-            "online": online_count, "premium": premium_count,
-            "messages_chart": msg_days, "active_users_chart": active_days,
-            "chat_types": {"personal": personal_count, "group": group_count},
-            "recent_users": recent_data, "premium_only": premium_only,
-        })
+        return admin_stats_with_reports()
 
     @app.route(f"/{Config.ADMIN_SESSION_IND}/api/settings/premium-only", methods=["POST"])
     @admin_required
@@ -319,3 +273,171 @@ def register_admin(app):
         a.is_active = not a.is_active
         db.session.commit()
         return jsonify({"success": True, "is_active": a.is_active})
+
+    @app.route(f"/{Config.ADMIN_SESSION_IND}/api/users/<int:user_id>/detail")
+    @admin_required
+    def admin_user_detail(user_id):
+        from models import User, Message
+        from models.report import UserReport
+        from datetime import timedelta
+        u = db.session.get(User, user_id)
+        if not u:
+            return jsonify({"error": "Not found"}), 404
+        now = datetime.utcnow()
+        online = bool(u.last_seen and (now - u.last_seen).total_seconds() < 120)
+        avatar = u.avatar if getattr(u, 'avatar', None) else f"https://ui-avatars.com/api/?name={u.login}&background=random&color=fff&rounded=true"
+        msg_count = Message.query.filter_by(user_id=u.id, is_deleted=False).count()
+        report_count = UserReport.query.filter_by(reported_user_id=u.id).count()
+        open_reports = UserReport.query.filter_by(reported_user_id=u.id, status='pending').count()
+        return jsonify({
+            "id": u.id, "login": u.login, "fio": u.fio or u.login,
+            "bio": u.bio or "", "avatar": avatar,
+            "online": online,
+            "last_seen": u.last_seen.strftime("%d.%m.%Y %H:%M") if u.last_seen else "никогда",
+            "premium": bool(getattr(u, 'premium', False)),
+            "is_banned": bool(getattr(u, 'is_banned', False)),
+            "ide_connected": bool(getattr(u, 'ide_connected', False)),
+            "spotify_enabled": bool(getattr(u, 'spotify_enabled', False)),
+            "group_id": u.group_id or "",
+            "study_type": u.study_type or "",
+            "msg_count": msg_count,
+            "report_count": report_count,
+            "open_reports": open_reports,
+            "platforms": u.platforms or "",
+            "projects": u.projects or "",
+        })
+
+    @app.route(f"/{Config.ADMIN_SESSION_IND}/api/users/<int:user_id>/ban", methods=["POST"])
+    @admin_required
+    def admin_ban_user(user_id):
+        from models import User
+        u = db.session.get(User, user_id)
+        if not u:
+            return jsonify({"error": "Not found"}), 404
+        u.is_banned = not bool(getattr(u, 'is_banned', False))
+        db.session.commit()
+        return jsonify({"success": True, "is_banned": u.is_banned})
+
+    @app.route(f"/{Config.ADMIN_SESSION_IND}/api/reports")
+    @admin_required
+    def admin_reports():
+        from models.report import UserReport
+        from models import User
+        page = request.args.get('page', 1, type=int)
+        status = request.args.get('status', 'pending')
+        per_page = 20
+        query = UserReport.query
+        if status != 'all':
+            query = query.filter_by(status=status)
+        total = query.count()
+        reports = query.order_by(UserReport.id.desc()).offset((page - 1) * per_page).limit(per_page).all()
+        result = []
+        for r in reports:
+            reported = db.session.get(User, r.reported_user_id)
+            reporter = db.session.get(User, r.reporter_id) if r.reporter_id else None
+            result.append({
+                "id": r.id,
+                "reporter": reporter.login if reporter else "авто",
+                "reporter_id": r.reporter_id,
+                "reported": reported.login if reported else f"#{r.reported_user_id}",
+                "reported_id": r.reported_user_id,
+                "reported_avatar": (reported.avatar if reported and reported.avatar else f"https://ui-avatars.com/api/?name={reported.login if reported else 'U'}&background=random&color=fff&rounded=true") if reported else "",
+                "reason": r.reason,
+                "threat_level": r.threat_level,
+                "is_auto": r.is_auto,
+                "trigger_word": r.trigger_word or "",
+                "status": r.status,
+                "created_at": r.created_at.strftime("%d.%m.%Y %H:%M"),
+                "context": r.get_context(),
+                "chat_id": r.chat_id,
+            })
+        return jsonify({
+            "reports": result, "total": total, "page": page,
+            "pages": max(1, (total + per_page - 1) // per_page)
+        })
+
+    @app.route(f"/{Config.ADMIN_SESSION_IND}/api/reports/<int:report_id>/status", methods=["POST"])
+    @admin_required
+    def admin_update_report(report_id):
+        from models.report import UserReport
+        r = db.session.get(UserReport, report_id)
+        if not r:
+            return jsonify({"error": "Not found"}), 404
+        data = request.json or {}
+        new_status = data.get("status")
+        if new_status not in ('pending', 'reviewed', 'dismissed'):
+            return jsonify({"error": "Invalid status"}), 400
+        r.status = new_status
+        db.session.commit()
+        return jsonify({"success": True})
+
+    @app.route(f"/{Config.ADMIN_SESSION_IND}/api/settings/anti67", methods=["POST"])
+    @admin_required
+    def admin_toggle_anti67():
+        from models.server import Settings
+        data = request.json or {}
+        enabled = bool(data.get("enabled", False))
+        settings = Settings.query.first()
+        if not settings:
+            settings = Settings()
+            db.session.add(settings)
+        settings.anti67_enabled = enabled
+        db.session.commit()
+        return jsonify({"success": True, "anti67_enabled": settings.anti67_enabled})
+
+    def admin_stats_with_reports():
+        from models import User, Chat, Message
+        from models.server import Settings
+        from models.report import UserReport
+        from datetime import timedelta
+        from sqlalchemy import func
+
+        now = datetime.utcnow()
+        user_count = User.query.count()
+        chat_count = Chat.query.count()
+        msg_count = Message.query.count()
+        online_count = User.query.filter(User.last_seen >= now - timedelta(minutes=2)).count()
+        premium_count = User.query.filter(User.premium == True).count()
+
+        msg_days = []
+        for i in range(13, -1, -1):
+            d = now - timedelta(days=i)
+            ds = d.replace(hour=0, minute=0, second=0, microsecond=0)
+            de = d.replace(hour=23, minute=59, second=59, microsecond=999999)
+            cnt = Message.query.filter(Message.timestamp >= ds, Message.timestamp <= de).count()
+            msg_days.append({"date": d.strftime("%d.%m"), "count": cnt})
+
+        active_days = []
+        for i in range(6, -1, -1):
+            d = now - timedelta(days=i)
+            ds = d.replace(hour=0, minute=0, second=0, microsecond=0)
+            de = d.replace(hour=23, minute=59, second=59, microsecond=999999)
+            cnt = User.query.filter(User.last_seen >= ds, User.last_seen <= de).count()
+            active_days.append({"date": d.strftime("%d.%m"), "count": cnt})
+
+        personal_count = Chat.query.filter_by(personal=True).count()
+        group_count = Chat.query.filter_by(personal=False).count()
+
+        recent_users = User.query.order_by(User.id.desc()).limit(10).all()
+        recent_data = []
+        for u in recent_users:
+            avatar = u.avatar if getattr(u, 'avatar', None) else f"https://ui-avatars.com/api/?name={u.login}&background=random&color=fff&rounded=true&bold=true"
+            recent_data.append({"login": u.login, "fio": u.fio or u.login, "premium": bool(getattr(u, 'premium', False)), "avatar": avatar})
+
+        srv_settings = Settings.query.first()
+        premium_only = srv_settings.premium_only_messaging if srv_settings else False
+        anti67 = srv_settings.anti67_enabled if srv_settings else False
+
+        pending_reports = UserReport.query.filter_by(status='pending').count()
+        auto_reports = UserReport.query.filter_by(is_auto=True).count()
+
+        return jsonify({
+            "users": user_count, "chats": chat_count, "messages": msg_count,
+            "online": online_count, "premium": premium_count,
+            "messages_chart": msg_days, "active_users_chart": active_days,
+            "chat_types": {"personal": personal_count, "group": group_count},
+            "recent_users": recent_data, "premium_only": premium_only,
+            "anti67": anti67,
+            "pending_reports": pending_reports,
+            "auto_reports": auto_reports,
+        })

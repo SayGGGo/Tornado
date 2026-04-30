@@ -8,6 +8,7 @@ from .message import Message
 from .server import CaptchaStats, Settings
 from .admin import Admin
 from .push import PushSubscription
+from .report import UserReport
 
 def _automigrate(engine):
     from sqlalchemy import inspect, text

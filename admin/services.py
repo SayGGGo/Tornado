@@ -8,7 +8,8 @@ class AdminAuthService:
     def authenticate(self, username, password):
         admin = Admin.query.filter_by(username=username).first()
 
-        if not admin or not admin.is_active: return {"success": False, "message": "низя"}
+        if not admin or not admin.is_active:
+            return {"success": False, "message": "низя"}
         # print(admin.password_hash, password, check_password_hash(admin.password_hash, password))
         if check_password_hash(admin.password_hash, password):
             admin.last_login = datetime.utcnow()

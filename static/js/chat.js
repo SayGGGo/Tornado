@@ -86,6 +86,9 @@ const moreOptionsBtn = document.querySelector('.more-options-btn');
 const msgContextMenu = document.getElementById('msg-context-menu');
 const ctxEditMsg = document.getElementById('ctx-edit-msg');
 const ctxDeleteMsg = document.getElementById('ctx-delete-msg');
+const ctxReportMsg = document.getElementById('ctx-report-msg');
+let contextMsgReportUserId = null;
+let contextMsgReportChatId = null;
 const editBar = document.getElementById('edit-bar');
 const editBarContent = document.getElementById('edit-bar-content');
 const editBarClose = document.getElementById('edit-bar-close');
@@ -735,6 +738,9 @@ function onMsgContextMenu(e) {
     ctxDeleteMsg.style.display = (isOwn || currentChatIsPersonal) ? 'flex' : 'none';
     const ctxReply = document.getElementById('ctx-reply-msg');
     if (ctxReply) ctxReply.style.display = isSys ? 'none' : 'flex';
+    contextMsgReportUserId = msgEl.getAttribute('data-user-id');
+    contextMsgReportChatId = currentChatId;
+    if (ctxReportMsg) ctxReportMsg.style.display = (!isOwn && !isSys) ? 'flex' : 'none';
     let x = e.clientX, y = e.clientY;
     msgContextMenu.style.display = 'flex';
     msgContextMenu.classList.add('active');
@@ -786,6 +792,69 @@ ctxDeleteMsg.addEventListener('click', () => {
     }
     fetch(`/api/messages/${msgIdToDelete}`, { method: 'DELETE' }).catch(() => {});
 });
+if (ctxReportMsg) {
+    ctxReportMsg.addEventListener('click', () => {
+        msgContextMenu.style.display = 'none';
+        msgContextMenu.classList.remove('active');
+        if (!contextMsgReportUserId || contextMsgReportUserId == window._currentUserId) return;
+        openReportModal(contextMsgReportUserId, contextMsgReportChatId);
+    });
+}
+
+function openReportModal(reportedUserId, chatId) {
+    const overlay = document.getElementById('report-modal-overlay');
+    const reasonInput = document.getElementById('report-reason-input');
+    const errorEl = document.getElementById('report-error');
+    const preview = document.getElementById('report-context-preview');
+    if (!overlay) return;
+    reasonInput.value = '';
+    errorEl.textContent = '';
+    overlay.style.display = 'flex';
+    overlay._reportedUserId = reportedUserId;
+    overlay._chatId = chatId;
+
+    if (chatId && chatCache[chatId]) {
+        const msgs = chatCache[chatId].messages || [];
+        const last5 = msgs.slice(-5);
+        if (last5.length) {
+            preview.style.display = '';
+            preview.innerHTML = last5.map(m => {
+                const login = escHtml(m.login || '');
+                const ts = m.timestamp || '';
+                const txt = escHtml((m.content_plain || m.content || '').substring(0, 120));
+                return `<div style="padding:3px 0;border-bottom:1px solid rgba(255,255,255,.05);"><span style="font-weight:600;color:#fff;">${login}</span> <span style="color:rgba(255,255,255,.35);font-size:10px;">${ts}</span> ${txt}</div>`;
+            }).join('');
+        } else {
+            preview.style.display = 'none';
+        }
+    } else {
+        preview.style.display = 'none';
+    }
+}
+
+document.getElementById('report-submit-btn')?.addEventListener('click', async () => {
+    const overlay = document.getElementById('report-modal-overlay');
+    const reasonInput = document.getElementById('report-reason-input');
+    const errorEl = document.getElementById('report-error');
+    const reason = reasonInput.value.trim();
+    if (!reason) { errorEl.textContent = 'Укажите причину'; return; }
+    const reportedUserId = overlay._reportedUserId;
+    const chatId = overlay._chatId;
+    try {
+        const r = await fetch('/api/report', {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ reported_user_id: reportedUserId, reason, chat_id: chatId })
+        });
+        const d = await r.json();
+        if (d.success) {
+            overlay.style.display = 'none';
+            showToast?.('Жалоба отправлена');
+        } else {
+            errorEl.textContent = d.error || 'Ошибка';
+        }
+    } catch { errorEl.textContent = 'Ошибка отправки'; }
+});
+
 editBarClose.addEventListener('click', cancelEdit);
 function cancelEdit() { editingMessageId = null; editBar.style.display = 'none'; editBarContent.textContent = ''; messageInput.innerHTML = ''; cancelReply(); }
 async function thanosSnap(element) {

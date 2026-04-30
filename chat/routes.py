@@ -217,18 +217,118 @@ def register_chat(app):
             chat_data = chat_service.get_or_create_personal_chat(session["user_id"], target_user_id)
             chat_id = chat_data["chat_id"]
         sender = db.session.get(User, session["user_id"])
+        content = data.get("content", "")
         reply_to_id = data.get("reply_to_id")
         msg_type = data.get("msg_type", "text")
-        result = chat_service.post_message(session["user_id"], chat_id, data.get("content"), reply_to_id=reply_to_id, msg_type=msg_type)
+
+        if settings and settings.anti67_enabled and content:
+            from utils.profanity import check_anti67
+            if check_anti67(content):
+                return jsonify({"error": "Сообщение нарушает правила сервера"}), 400
+
+        result = chat_service.post_message(session["user_id"], chat_id, content, reply_to_id=reply_to_id, msg_type=msg_type)
         if result.get("error") == "blocked":
             return jsonify(result), 403
         if "success" in result:
             result["chat_id"] = chat_id
             if sender:
                 avatar = sender.avatar or f"https://ui-avatars.com/api/?name={sender.login}&background=random&color=fff&rounded=true&bold=true"
-                send_push_to_chat_members(chat_id, session["user_id"], sender.login, data.get("content", ""), avatar)
+                send_push_to_chat_members(chat_id, session["user_id"], sender.login, content, avatar)
             notify_chat_users(chat_id)
+
+            if content and not content.startswith('__'):
+                try:
+                    from utils.profanity import check_profanity
+                    hit = check_profanity(content)
+                    if hit:
+                        _create_auto_report(session["user_id"], int(chat_id), content, hit)
+                except Exception:
+                    pass
+
         return jsonify(result), 200 if "success" in result else 429 if "Слишком" in result.get("error", "") else 400
+
+    def _create_auto_report(user_id, chat_id, content, hit):
+        from models.report import UserReport
+        from models import Message
+        from chat.services import EncryptionService
+        import json as _json
+        recent = (Message.query
+                  .filter_by(chat_id=chat_id, is_deleted=False)
+                  .order_by(Message.id.desc())
+                  .limit(5).all())
+        recent.reverse()
+        sender = db.session.get(User, user_id)
+        cs = EncryptionService()
+        context = []
+        for m in recent:
+            login = m.author.login if m.author else f"#{m.user_id}"
+            try:
+                text = cs.decrypt_for_user(m.content, sender.private_key, m.user_id != user_id) if sender else "🔒"
+            except Exception:
+                text = "🔒"
+            context.append({"login": login, "text": text[:200], "ts": m.timestamp.strftime("%H:%M")})
+        report = UserReport(
+            reporter_id=None,
+            reported_user_id=user_id,
+            reason=f"Авторепорт: обнаружено слово «{hit['word']}»",
+            context_messages=_json.dumps(context, ensure_ascii=False),
+            threat_level=hit['level'],
+            is_auto=True,
+            trigger_word=hit['word'],
+            chat_id=chat_id,
+        )
+        db.session.add(report)
+        db.session.commit()
+
+    @app.route("/api/report", methods=["POST"])
+    def send_report():
+        if "user_id" not in session:
+            return jsonify({"error": "Unauthorized"}), 401
+        data = request.json or {}
+        reported_user_id = data.get("reported_user_id")
+        reason = (data.get("reason") or "").strip()
+        chat_id = data.get("chat_id")
+        if not reported_user_id or not reason:
+            return jsonify({"error": "Укажите пользователя и причину"}), 400
+        if len(reason) > 500:
+            return jsonify({"error": "Причина слишком длинная"}), 400
+
+        from models.report import UserReport
+        from models import Message
+        import json as _json
+
+        context = []
+        if chat_id:
+            from models import ChatParticipant
+            if ChatParticipant.query.filter_by(user_id=session["user_id"], chat_id=int(chat_id)).first():
+                recent = (Message.query
+                          .filter_by(chat_id=int(chat_id), is_deleted=False)
+                          .order_by(Message.id.desc())
+                          .limit(5).all())
+                recent.reverse()
+                sender = db.session.get(User, session["user_id"])
+                for m in recent:
+                    login = m.author.login if m.author else f"#{m.user_id}"
+                    try:
+                        from chat.services import EncryptionService
+                        cs = EncryptionService()
+                        text = cs.decrypt_for_user(m.content, sender.private_key, m.user_id != session["user_id"]) if sender else "🔒"
+                    except Exception:
+                        text = "🔒"
+                    context.append({"login": login, "text": text[:200], "ts": m.timestamp.strftime("%H:%M")})
+
+        report = UserReport(
+            reporter_id=session["user_id"],
+            reported_user_id=int(reported_user_id),
+            reason=reason,
+            context_messages=_json.dumps(context, ensure_ascii=False),
+            threat_level=0,
+            is_auto=False,
+            chat_id=int(chat_id) if chat_id else None,
+        )
+        db.session.add(report)
+        db.session.commit()
+        return jsonify({"success": True})
 
     @app.route("/api/messages/<int:message_id>", methods=["PUT"])
     def edit_message(message_id):
@@ -632,6 +732,13 @@ def register_chat(app):
 
         if "bio" in data:
             bio = str(data["bio"]).strip()[:200]
+            try:
+                from utils.profanity import check_profanity
+                hit = check_profanity(bio)
+                if hit and hit["level"] >= 2:
+                    return jsonify({"error": "Биография содержит недопустимые слова"}), 400
+            except Exception:
+                pass
             user.bio = bio
             changed = True
 
