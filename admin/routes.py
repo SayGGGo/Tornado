@@ -233,8 +233,8 @@ def register_admin(app):
             with open(env_path, "r", encoding="utf-8") as f:
                 content = f.read()
             return jsonify({"content": content, "exists": True})
-        except Exception as e:
-            return jsonify({"error": str(e)}), 500
+        except Exception:
+            return jsonify({"error": "Internal server error"}), 500
 
     @app.route(f"/{Config.ADMIN_SESSION_IND}/api/env", methods=["POST"])
     @admin_required
