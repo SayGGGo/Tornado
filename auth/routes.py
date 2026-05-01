@@ -15,6 +15,12 @@ def register_auth(app):
     def index():
         if "user_id" in session:
             return redirect(url_for("chat"))
+        return render_template("landing.html", github_repo=Config.GITHUB_REPO)
+
+    @app.route("/register")
+    def register_page():
+        if "user_id" in session:
+            return redirect(url_for("chat"))
 
         provider, site_key = CaptchaManager.get_active_provider()
         return render_template(
@@ -23,6 +29,22 @@ def register_auth(app):
             captcha_provider=provider,
             site_key=site_key
         )
+
+    @app.route("/api/landing/avatars")
+    def landing_avatars():
+        users = User.query.filter(User.avatar != None, User.avatar != '').order_by(User.id.desc()).limit(14).all()
+        result = [{"login": u.login, "avatar": u.avatar} for u in users]
+        return jsonify({"avatars": result})
+
+    @app.route("/api/landing/stats")
+    def landing_stats():
+        from models.chat import Chat
+        from models.message import Message
+        return jsonify({
+            "users": User.query.count(),
+            "messages": Message.query.count(),
+            "chats": Chat.query.count(),
+        })
 
     @app.route("/api/register", methods=["POST"])
     def register():

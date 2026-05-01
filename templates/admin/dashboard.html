@@ -396,6 +396,32 @@
           <div class="section-sep"></div>
           <div class="sys-row">
             <div class="sys-left">
+              <div class="sys-icon-wrap"><svg viewBox="0 0 24 24"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg></div>
+              <div>
+                <div class="sys-name">Блокировка матов</div>
+                <div class="sys-sub settings-desc">Запрещать отправку сообщений с нецензурными словами</div>
+              </div>
+            </div>
+            <div class="sys-right">
+              <label class="toggle-switch"><input type="checkbox" id="toggle-anti-profanity"><div class="toggle-track"></div></label>
+            </div>
+          </div>
+          <div class="section-sep"></div>
+          <div class="sys-row">
+            <div class="sys-left">
+              <div class="sys-icon-wrap"><svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+              <div>
+                <div class="sys-name">Авторепорты на маты</div>
+                <div class="sys-sub settings-desc">Автоматически создавать жалобы при обнаружении мата</div>
+              </div>
+            </div>
+            <div class="sys-right">
+              <label class="toggle-switch"><input type="checkbox" id="toggle-profanity-report"><div class="toggle-track"></div></label>
+            </div>
+          </div>
+          <div class="section-sep"></div>
+          <div class="sys-row">
+            <div class="sys-left">
               <div class="sys-icon-wrap"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
               <div>
                 <div class="sys-name">Сессия администратора</div>
@@ -472,6 +498,35 @@
     </div>
 
   </main>
+</div>
+
+<div id="ban-modal" style="display:none;" class="modal-overlay">
+  <div class="modal-box" style="max-width:440px;">
+    <div class="modal-title">
+      <span>Заблокировать пользователя</span>
+      <button class="modal-close" onclick="closeBanModal()">×</button>
+    </div>
+    <div style="margin-bottom:14px;">
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;font-weight:500;">Причина бана</div>
+      <textarea id="ban-reason-input" placeholder="Укажите причину (необязательно)…" maxlength="500" style="width:100%;min-height:72px;background:var(--surface-1);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--text);font-size:13px;font-family:inherit;resize:vertical;outline:none;box-sizing:border-box;transition:border-color .18s;" onfocus="this.style.borderColor='var(--green-border)'" onblur="this.style.borderColor='var(--border)'"></textarea>
+    </div>
+    <div style="margin-bottom:18px;">
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;font-weight:500;">Срок блокировки</div>
+      <select id="ban-duration-select" style="width:100%;background:var(--surface-1);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--text);font-size:13px;font-family:inherit;outline:none;cursor:pointer;transition:border-color .18s;" onfocus="this.style.borderColor='var(--green-border)'" onblur="this.style.borderColor='var(--border)'">
+        <option value="0">Навсегда (перманентный)</option>
+        <option value="1">1 час</option>
+        <option value="6">6 часов</option>
+        <option value="24">24 часа</option>
+        <option value="72">3 дня</option>
+        <option value="168">7 дней</option>
+        <option value="720">30 дней</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="action-btn" id="ban-confirm-btn" style="color:#ff453a;border-color:rgba(255,69,58,.4);flex:1;">Заблокировать</button>
+      <button class="action-btn" onclick="closeBanModal()">Отмена</button>
+    </div>
+  </div>
 </div>
 
 <div id="user-modal" style="display:none;" class="modal-overlay">
@@ -744,6 +799,8 @@ function loadSettingsToggle() {
   }
   toggle.checked = !!statsCache.premium_only;
   initAnti67Toggle(statsCache.anti67);
+  initAntiProfanityToggle(statsCache.anti_profanity);
+  initProfanityReportToggle(statsCache.profanity_auto_report !== false);
   loadVersion();
   initEnvEditor();
   initAdminManagement();
@@ -927,13 +984,17 @@ async function openUserModal(uid) {
     document.getElementById('um-fio').textContent = d.fio !== d.login ? d.fio : '';
     document.getElementById('um-title').textContent = `Пользователь #${d.id}`;
 
+    const banInfo = d.is_banned
+      ? `🚫 Да${d.ban_expires ? ' · до ' + d.ban_expires : ' · навсегда'}`
+      : 'Нет';
     const rows = [
       ['ID', `#${d.id}`],
       ['Группа', d.group_id || '—'],
       ['Форма обучения', d.study_type || '—'],
       ['Онлайн', d.online ? '🟢 Да' : `⚫ ${d.last_seen}`],
       ['Premium', d.premium ? '★ Да' : 'Нет'],
-      ['Забанен', d.is_banned ? '🚫 Да' : 'Нет'],
+      ['Забанен', banInfo],
+      ...(d.is_banned && d.ban_reason ? [['Причина бана', d.ban_reason]] : []),
       ['Сообщений', d.msg_count],
       ['Репортов (всего)', d.report_count],
       ['Открытых репортов', d.open_reports],
@@ -952,10 +1013,14 @@ async function openUserModal(uid) {
     banBtn.textContent = d.is_banned ? 'Разбанить' : 'Забанить';
     banBtn.style.color = d.is_banned ? 'var(--green)' : '#ff453a';
     banBtn.style.borderColor = d.is_banned ? 'var(--green-border)' : 'rgba(255,69,58,.3)';
-    banBtn.onclick = async () => {
-      await fetch(`${BASE}/api/users/${uid}/ban`, { method: 'POST' });
+    banBtn.onclick = () => {
       closeUserModal();
-      loadUsers(usersPage, usersQuery);
+      if (d.is_banned) {
+        fetch(`${BASE}/api/users/${uid}/ban`, { method: 'POST' })
+          .then(() => loadUsers(usersPage, usersQuery));
+      } else {
+        openBanModal(uid);
+      }
     };
 
     const premBtn = document.getElementById('um-prem-btn');
@@ -976,6 +1041,37 @@ function closeUserModal() {
 
 document.getElementById('user-modal').addEventListener('click', e => {
   if (e.target === document.getElementById('user-modal')) closeUserModal();
+});
+
+let _banTargetUid = null;
+
+function openBanModal(uid) {
+  _banTargetUid = uid;
+  document.getElementById('ban-reason-input').value = '';
+  document.getElementById('ban-duration-select').value = '0';
+  document.getElementById('ban-modal').style.display = 'flex';
+}
+
+function closeBanModal() {
+  document.getElementById('ban-modal').style.display = 'none';
+  _banTargetUid = null;
+}
+
+document.getElementById('ban-confirm-btn').addEventListener('click', async () => {
+  if (!_banTargetUid) return;
+  const reason = document.getElementById('ban-reason-input').value.trim();
+  const duration = parseInt(document.getElementById('ban-duration-select').value, 10);
+  await fetch(`${BASE}/api/users/${_banTargetUid}/ban`, {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({reason, duration})
+  });
+  closeBanModal();
+  loadUsers(usersPage, usersQuery);
+  if (currentSection === 'reports') loadReports(repPage);
+});
+
+document.getElementById('ban-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('ban-modal')) closeBanModal();
 });
 
 let repPage = 1, repStatus = 'pending', repPages = 1;
@@ -1027,10 +1123,8 @@ async function loadReports(page, status) {
   }).join('');
 }
 
-window.banFromReport = async (uid) => {
-  if (!confirm('Забанить пользователя?')) return;
-  const r = await fetch(`${BASE}/api/users/${uid}/ban`, { method: 'POST' });
-  if (r.ok) { const d = await r.json(); if (d.is_banned) loadReports(repPage); }
+window.banFromReport = (uid) => {
+  openBanModal(uid);
 };
 
 window.setRepStatus = async (id, status) => {
@@ -1057,6 +1151,40 @@ function initAnti67Toggle(anti67) {
     toggle.addEventListener('change', async () => {
       try {
         await fetch(`${BASE}/api/settings/anti67`, {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({enabled: toggle.checked})
+        });
+      } catch { toggle.checked = !toggle.checked; }
+    });
+  }
+}
+
+function initAntiProfanityToggle(val) {
+  const toggle = document.getElementById('toggle-anti-profanity');
+  if (!toggle) return;
+  toggle.checked = !!val;
+  if (!toggle._bound) {
+    toggle._bound = true;
+    toggle.addEventListener('change', async () => {
+      try {
+        await fetch(`${BASE}/api/settings/anti-profanity`, {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({enabled: toggle.checked})
+        });
+      } catch { toggle.checked = !toggle.checked; }
+    });
+  }
+}
+
+function initProfanityReportToggle(val) {
+  const toggle = document.getElementById('toggle-profanity-report');
+  if (!toggle) return;
+  toggle.checked = !!val;
+  if (!toggle._bound) {
+    toggle._bound = true;
+    toggle.addEventListener('change', async () => {
+      try {
+        await fetch(`${BASE}/api/settings/profanity-report`, {
           method: 'POST', headers: {'Content-Type':'application/json'},
           body: JSON.stringify({enabled: toggle.checked})
         });

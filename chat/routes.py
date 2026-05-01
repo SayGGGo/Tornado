@@ -211,6 +211,17 @@ def register_chat(app):
             if not (sender_user and getattr(sender_user, 'premium', False)):
                 return jsonify({"error": "premium_required"}), 403
         data = request.json or {}
+
+        _check_user = db.session.get(User, session["user_id"])
+        if _check_user and _check_user.is_banned:
+            if _check_user.ban_expires and _check_user.ban_expires < datetime.utcnow():
+                _check_user.is_banned = False
+                _check_user.ban_reason = None
+                _check_user.ban_expires = None
+                db.session.commit()
+            else:
+                return jsonify({"error": "Вы заблокированы"}), 403
+
         chat_id = data.get("chat_id")
         target_user_id = data.get("target_user_id")
         if not chat_id and target_user_id:
@@ -226,6 +237,15 @@ def register_chat(app):
             if check_anti67(content):
                 return jsonify({"error": "Сообщение нарушает правила сервера"}), 400
 
+        if settings and getattr(settings, 'anti_profanity_enabled', False) and content and not content.startswith('__'):
+            try:
+                from utils.profanity import check_profanity
+                hit = check_profanity(content)
+                if hit and hit.get("level", 0) >= 1:
+                    return jsonify({"error": "Сообщение содержит недопустимые слова"}), 400
+            except Exception:
+                pass
+
         result = chat_service.post_message(session["user_id"], chat_id, content, reply_to_id=reply_to_id, msg_type=msg_type)
         if result.get("error") == "blocked":
             return jsonify(result), 403
@@ -240,7 +260,7 @@ def register_chat(app):
                 try:
                     from utils.profanity import check_profanity
                     hit = check_profanity(content)
-                    if hit:
+                    if hit and getattr(settings, 'profanity_auto_report', True):
                         _create_auto_report(session["user_id"], int(chat_id), content, hit)
                 except Exception:
                     pass

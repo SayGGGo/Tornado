@@ -35,4 +35,6 @@ class Settings(db.Model):
     admin_session_ind = db.Column(db.String(255), default="0")
 
     premium_only_messaging = db.Column(db.Boolean, default=False)
-    anti67_enabled = db.Column(db.Boolean, default=False) # по просьбе
+    anti67_enabled = db.Column(db.Boolean, default=False)
+    anti_profanity_enabled = db.Column(db.Boolean, default=False)
+    profanity_auto_report = db.Column(db.Boolean, default=True)

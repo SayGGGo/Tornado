@@ -34,3 +34,5 @@ class User(db.Model):
 
     last_seen = db.Column(db.DateTime, default=datetime.utcnow)
     is_banned = db.Column(db.Boolean, default=False)
+    ban_reason = db.Column(db.Text, nullable=True)
+    ban_expires = db.Column(db.DateTime, nullable=True)

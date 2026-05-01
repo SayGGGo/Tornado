@@ -296,6 +296,8 @@ def register_admin(app):
             "last_seen": u.last_seen.strftime("%d.%m.%Y %H:%M") if u.last_seen else "никогда",
             "premium": bool(getattr(u, 'premium', False)),
             "is_banned": bool(getattr(u, 'is_banned', False)),
+            "ban_reason": u.ban_reason or "",
+            "ban_expires": u.ban_expires.strftime("%d.%m.%Y %H:%M") if u.ban_expires else None,
             "ide_connected": bool(getattr(u, 'ide_connected', False)),
             "spotify_enabled": bool(getattr(u, 'spotify_enabled', False)),
             "group_id": u.group_id or "",
@@ -311,12 +313,30 @@ def register_admin(app):
     @admin_required
     def admin_ban_user(user_id):
         from models import User
+        from datetime import timedelta
         u = db.session.get(User, user_id)
         if not u:
             return jsonify({"error": "Not found"}), 404
-        u.is_banned = not bool(getattr(u, 'is_banned', False))
+        if u.is_banned:
+            u.is_banned = False
+            u.ban_reason = None
+            u.ban_expires = None
+        else:
+            data = request.json or {}
+            u.is_banned = True
+            reason = (data.get("reason") or "").strip()
+            duration = data.get("duration")
+            u.ban_reason = reason or None
+            if duration and int(duration) > 0:
+                u.ban_expires = datetime.utcnow() + timedelta(hours=int(duration))
+            else:
+                u.ban_expires = None
         db.session.commit()
-        return jsonify({"success": True, "is_banned": u.is_banned})
+        return jsonify({
+            "success": True, "is_banned": u.is_banned,
+            "ban_reason": u.ban_reason,
+            "ban_expires": u.ban_expires.strftime("%d.%m.%Y %H:%M") if u.ban_expires else None,
+        })
 
     @app.route(f"/{Config.ADMIN_SESSION_IND}/api/reports")
     @admin_required
@@ -370,6 +390,34 @@ def register_admin(app):
         r.status = new_status
         db.session.commit()
         return jsonify({"success": True})
+
+    @app.route(f"/{Config.ADMIN_SESSION_IND}/api/settings/anti-profanity", methods=["POST"])
+    @admin_required
+    def admin_toggle_anti_profanity():
+        from models.server import Settings
+        data = request.json or {}
+        enabled = bool(data.get("enabled", False))
+        settings = Settings.query.first()
+        if not settings:
+            settings = Settings()
+            db.session.add(settings)
+        settings.anti_profanity_enabled = enabled
+        db.session.commit()
+        return jsonify({"success": True, "anti_profanity_enabled": settings.anti_profanity_enabled})
+
+    @app.route(f"/{Config.ADMIN_SESSION_IND}/api/settings/profanity-report", methods=["POST"])
+    @admin_required
+    def admin_toggle_profanity_report():
+        from models.server import Settings
+        data = request.json or {}
+        enabled = bool(data.get("enabled", False))
+        settings = Settings.query.first()
+        if not settings:
+            settings = Settings()
+            db.session.add(settings)
+        settings.profanity_auto_report = enabled
+        db.session.commit()
+        return jsonify({"success": True, "profanity_auto_report": settings.profanity_auto_report})
 
     @app.route(f"/{Config.ADMIN_SESSION_IND}/api/settings/anti67", methods=["POST"])
     @admin_required
@@ -431,6 +479,9 @@ def register_admin(app):
         pending_reports = UserReport.query.filter_by(status='pending').count()
         auto_reports = UserReport.query.filter_by(is_auto=True).count()
 
+        anti_profanity = srv_settings.anti_profanity_enabled if srv_settings else False
+        profanity_auto_report = srv_settings.profanity_auto_report if srv_settings else True
+
         return jsonify({
             "users": user_count, "chats": chat_count, "messages": msg_count,
             "online": online_count, "premium": premium_count,
@@ -438,6 +489,8 @@ def register_admin(app):
             "chat_types": {"personal": personal_count, "group": group_count},
             "recent_users": recent_data, "premium_only": premium_only,
             "anti67": anti67,
+            "anti_profanity": anti_profanity,
+            "profanity_auto_report": profanity_auto_report,
             "pending_reports": pending_reports,
             "auto_reports": auto_reports,
         })

@@ -13,6 +13,7 @@ migrations/
 connect_to_server_auth.py
 dist/
 static/uploads/
+node_modules/
 
 .claudeignore
 .claude/
