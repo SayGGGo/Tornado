@@ -7,8 +7,6 @@
   </a>
 </p>
 
-> PUSH написаны ИИ
-> Термсы написаны через ИИ, позже рекод в коллабе с Семеном (если он согласится)
 ---
 
 <h3 style="display: flex; align-items: center; justify-content: center; gap: 8px;">
