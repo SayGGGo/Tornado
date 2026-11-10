@@ -1005,3 +1005,56 @@ html {
 @media (min-width: 769px) {
   .mobile-only { display: none !important; }
 }
+
+#view-design .design-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 18px 18px calc(24px + var(--sab)) !important;
+}
+
+#view-design .design-section {
+  gap: 14px;
+  padding: 0 0 22px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+#view-design .design-section:last-child { border-bottom: 0; }
+#view-design .section-title {
+  color: var(--text-main);
+  font-size: 12px;
+  font-weight: 750;
+  letter-spacing: 0.07em;
+}
+#view-design .accent-colors { flex-wrap: wrap; gap: 12px; }
+#view-design .accent-color { width: 40px; height: 40px; flex: 0 0 40px; }
+#view-design .theme-options,
+#view-design .wallpaper-options { gap: 8px; }
+#view-design .theme-btn,
+#view-design .wallpaper-btn {
+  min-height: 46px;
+  padding: 10px 8px;
+  color: var(--text-main);
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 650;
+}
+#view-design .theme-btn.active,
+#view-design .wallpaper-btn.active { color: #07130a; }
+#view-design .design-mode-row { min-height: 48px; }
+
+@media (max-width: 380px) {
+  #view-design .theme-options,
+  #view-design .wallpaper-options { flex-wrap: wrap; }
+  #view-design .theme-btn,
+  #view-design .wallpaper-btn { min-width: 44%; }
+}
+
+@media (max-width: 768px) {
+  #bot-welcome { padding: 20px 18px calc(var(--tab-total) + 30px); }
+  #bot-welcome h2 { font-size: 20px; }
+  #bot-welcome p { font-size: 14px; }
+  #bot-start-button { width: min(100%, 300px); min-height: 50px; }
+  .avatar-wrapper { flex: 0 0 52px !important; }
+  #current-chat-avatar-wrapper { flex-basis: 40px !important; }
+}

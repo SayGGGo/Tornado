@@ -13,8 +13,8 @@
     <meta name="current-user-avatar" content="{{ _av_url }}"
           data-is-video="{{ 'true' if _av_url.endswith('.mp4') or _av_url.endswith('.webm') else 'false' }}">
     <title>TORNADO</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/chat.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/chat.css', v='20261110-10') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile.css', v='20261110-4') }}">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -71,7 +71,7 @@
                                 </svg>
                             </button>
                             <div id="current-chat-avatar-wrapper" style="width:40px;height:40px;display:flex;align-items:center;justify-content:center;">
-                                <img id="current-chat-avatar" src="" class="avatar" style="width: 40px; height: 40px; min-width: 40px; margin-right: 0;">
+                                <img id="current-chat-avatar" src="{{ url_for('static', filename='icons/logo.svg') }}" alt="" class="avatar" style="width: 40px; height: 40px; min-width: 40px; margin-right: 0;">
                             </div>
                             <span id="current-chat-name">Чат</span>
                             <div id="current-chat-premium" class="premium-icon" style="display: none;"></div>
@@ -91,6 +91,16 @@
                 </div>
 
                 <div class="chat-messages" id="chat-messages"></div>
+
+                <section class="bot-welcome" id="bot-welcome" hidden aria-live="polite">
+                    <div class="bot-welcome-mark"><span class="material-symbols-outlined" aria-hidden="true">smart_toy</span></div>
+                    <h2>Начните диалог</h2>
+                    <p>Нажмите, чтобы запустить бота и открыть переписку.</p>
+                    <button class="bot-start-button" id="bot-start-button" type="button">
+                        <span class="material-symbols-outlined" aria-hidden="true">play_arrow</span>
+                        Начать
+                    </button>
+                </section>
 
             </div>
 
@@ -122,7 +132,7 @@
 
             <div id="file-preview-bar" class="file-preview-bar" style="display:none;">
                 <div class="file-preview-inner">
-                    <img id="file-preview-img" src="" style="display:none;">
+                    <img id="file-preview-img" src="{{ url_for('static', filename='icons/logo.svg') }}" alt="" style="display:none;">
                     <span class="material-symbols-outlined file-preview-icon" id="file-preview-icon" style="display:none;">description</span>
                     <span id="file-preview-name"></span>
                     <button id="file-preview-close" class="icon-btn">
@@ -147,6 +157,7 @@
                 <span>Вы заблокированы в этом чате</span>
             </div>
 
+            <div id="bot-reply-dock" class="bot-reply-dock" hidden></div>
             <div class="chat-input-wrapper" id="chat-input-wrapper-el">
                 <div id="voice-record-bar" class="voice-record-bar" style="display:none;">
                     <div class="voice-record-inner">
@@ -210,7 +221,7 @@
 
         <div id="view-settings" class="mobile-view" style="display:none;">
             <div class="settings-profile-block" id="mobile-profile-direct">
-                <img class="settings-big-avatar" id="settingsAvatar" src="" alt="">
+                <img class="settings-big-avatar" id="settingsAvatar" src="{{ url_for('static', filename='icons/logo.svg') }}" alt="">
                 <div class="settings-profile-info">
                     <div class="settings-user-name" id="settingsName">{{ current_user.login }}</div>
                     <div class="settings-user-sub">@{{ current_user.login }}</div>
@@ -281,7 +292,7 @@
 
                  <div class="profile-header">
                     <div class="profile-avatar-container" style="position:relative; width:120px; height:120px;" onclick="document.getElementById('avatar-upload-input').click()">
-                        <img src="" class="profile-big-avatar" id="view-profile-avatar" style="width:120px; height:120px;" alt="">
+                        <img src="{{ url_for('static', filename='icons/logo.svg') }}" class="profile-big-avatar" id="view-profile-avatar" style="width:120px; height:120px;" alt="">
                         <div class="avatar-edit-overlay"><span class="material-symbols-outlined">photo_camera</span></div>
                     </div>
                     <div class="profile-info" style="margin-top:16px;">
@@ -307,7 +318,7 @@
             </div>
             <div class="profile-content" style="flex:1; overflow-y:auto;">
                 <div class="profile-header">
-                    <img id="other-profile-avatar-mob" src="" class="profile-big-avatar" style="width:120px; height:120px;">
+                        <img id="other-profile-avatar-mob" src="{{ url_for('static', filename='icons/logo.svg') }}" class="profile-big-avatar" style="width:120px; height:120px;" alt="">
                     <div class="profile-info" style="margin-top:16px;">
                         <div id="other-profile-name-mob" class="profile-name" style="font-size:24px;"></div>
                         <div class="profile-status">В сети</div>
@@ -563,7 +574,7 @@
                 </button>
             </div>
             <div style="text-align: center; padding: 20px 0 24px;">
-                <div style="width: 72px; height: 72px; border-radius: 50%; background: linear-gradient(135deg, #8774e1, #a855f7); display: flex; align-items: center; justify-content: center; margin: 0 auto 14px;">
+                <div style="width: 72px; height: 72px; border-radius: 50%; background: linear-gradient(135deg, #34c759, #168a3b); display: flex; align-items: center; justify-content: center; margin: 0 auto 14px;">
                     <span class="material-symbols-outlined" style="font-size: 36px; color: #fff;">stars</span>
                 </div>
                 {% if current_user.premium %}
@@ -600,7 +611,7 @@
                 </button>
             </div>
             <div class="chat-settings-header" style="text-align: center; margin-bottom: 20px;">
-                <img id="settings-chat-avatar" src="" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; margin-bottom: 10px; border: 2px solid rgba(255,255,255,0.1);">
+                <img id="settings-chat-avatar" src="{{ url_for('static', filename='icons/logo.svg') }}" alt="" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; margin-bottom: 10px; border: 2px solid rgba(255,255,255,0.1);">
                 <h3 id="settings-chat-name" style="margin: 0; color: #fff; font-size: 18px;"></h3>
             </div>
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
@@ -635,6 +646,30 @@
         </div>
     </div>
 
+    <div id="bot-manager-overlay" class="modal-overlay">
+        <section class="invite-modal bot-manager-modal liquid-glass-fallback" role="dialog" aria-modal="true" aria-labelledby="bot-manager-title">
+            <div class="modal-top">
+                <div class="modal-title" id="bot-manager-title">Боты и токены</div>
+                <button class="modal-close" id="bot-manager-close" aria-label="Закрыть"><span class="material-symbols-outlined">close</span></button>
+            </div>
+            <p class="bot-manager-copy">Создавайте ботов организации и управляйте ключами Bot API.</p>
+            <form id="bot-create-form" class="bot-create-form">
+                <label for="bot-create-name">Имя бота</label>
+                <div class="bot-create-row">
+                    <input id="bot-create-name" name="name" maxlength="150" required placeholder="Например, Помощник школы">
+                    <button class="contact-action-btn" type="submit">Создать бота</button>
+                </div>
+                <div id="bot-create-error" class="bot-manager-error" role="status"></div>
+            </form>
+            <div id="bot-token-result" class="bot-token-result" hidden>
+                <strong>Сохраните токен. Он показан только сейчас.</strong>
+                <code id="bot-token-value"></code>
+                <button type="button" id="bot-token-copy" class="contact-action-btn">Скопировать токен</button>
+            </div>
+            <div id="bot-manager-list" class="bot-manager-list" aria-live="polite"></div>
+        </section>
+    </div>
+
     <div id="report-modal-overlay" class="modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;align-items:center;justify-content:center;">
         <div style="background:var(--surface,#1c1c1e);border:1px solid rgba(255,255,255,.1);border-radius:18px;padding:24px;width:340px;max-width:90vw;">
             <div style="font-size:16px;font-weight:700;color:var(--text-primary,#fff);margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;">
@@ -662,7 +697,7 @@
             <div class="profile-content">
                 <div class="profile-header">
                     <div id="profile-avatar-container" class="profile-avatar-container" style="position:relative; cursor:pointer;" onclick="document.getElementById('avatar-upload-input').click()">
-                        <img id="my-profile-avatar" src="" class="profile-big-avatar" alt="">
+                        <img id="my-profile-avatar" src="{{ url_for('static', filename='icons/logo.svg') }}" class="profile-big-avatar" alt="">
                         <div class="avatar-edit-overlay">
                             <span class="material-symbols-outlined">photo_camera</span>
                         </div>
@@ -703,7 +738,7 @@
             </div>
             <div class="profile-content">
                 <div class="profile-header">
-                    <img id="other-profile-avatar" src="" class="profile-big-avatar">
+                    <img id="other-profile-avatar" src="{{ url_for('static', filename='icons/logo.svg') }}" class="profile-big-avatar" alt="">
                     <div class="profile-info">
                         <div id="other-profile-name" class="profile-name"></div>
                         <div class="profile-status">В сети</div>
@@ -980,7 +1015,7 @@
 
     <div id="liquid-glass-root"></div>
 
-    <script src="{{ url_for('static', filename='js/chat.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/chat.js', v='20261110-6') }}" defer></script>
     <script src="{{ url_for('static', filename='dist/glass-bundle.js') }}" defer></script>
     <script defer>if(window.innerWidth>768){var _s=document.createElement('script');_s.src='{{ url_for("static", filename="js/bg.js") }}';document.head.appendChild(_s);}</script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" integrity="sha512-D9gUyxqja7hBtkWpPWGt9wfbfaMGVt9gnyCvYa+jojwwPHLCzUm5i8rpk7vD7wNee9bA35eYIjobYPaQuKS1MQ==" crossorigin="anonymous" defer></script>
@@ -1008,6 +1043,14 @@
         backBtn.style.pointerEvents = 'none';
 
         window.showTab = function(tab) {
+            if (chatOpen) {
+                chatOpen = false;
+                if (backBtn) {
+                    backBtn.style.opacity = '0';
+                    backBtn.style.pointerEvents = 'none';
+                }
+                if (tabBar) tabBar.classList.remove('chat-open');
+            }
             currentTab = tab;
             var tabBtn = document.querySelector('[data-tab="' + tab + '"]');
             if (tabBtn) {
@@ -1056,6 +1099,7 @@
             }
             if (tabBar) tabBar.classList.add('chat-open');
         }
+        window.openMobileChat = openChat;
 
         function closeChat() {
             chatOpen = false;

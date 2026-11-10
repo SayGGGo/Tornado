@@ -40,7 +40,7 @@ function renderAvatar(src, className = 'avatar', id = '') {
         const randomId = 'vid_' + Math.random().toString(36).substr(2, 9);
         return `<video src="${safeSrc}" class="${safeClass}"${idAttr} id="${randomId}" autoplay loop muted playsinline style="opacity:0; transition:opacity 0.4s; object-fit:cover; border-radius:50%; display:block; width:100%; height:100%;" oncanplay="this.style.opacity=1;this.classList.add('av-loaded')" onloadeddata="this.style.opacity=1;this.classList.add('av-loaded')" onerror="this.style.display='none';this.classList.add('av-loaded')" onplay="this.style.opacity=1;this.classList.add('av-loaded')"></video>`;
     }
-    return `<img src="${safeSrc}" class="${safeClass}"${idAttr} style="opacity:0; transition:opacity 0.4s; object-fit:cover; width:100%; height:100%;" onload="this.style.opacity=1;this.classList.add('av-loaded')" onerror="this.src='${fallback}'; this.style.opacity=1;this.classList.add('av-loaded')">`;
+    return `<img src="${safeSrc}" class="${safeClass}"${idAttr} alt="" loading="lazy" decoding="async" style="opacity:0; transition:opacity 0.4s; object-fit:cover; width:100%; height:100%;" onload="this.style.opacity=1;this.classList.add('av-loaded')" onerror="this.src='${fallback}'; this.style.opacity=1;this.classList.add('av-loaded')">`;
 }
 function escHtml(t) { if(!t) return ''; return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 const messagesContainer = document.getElementById('chat-messages');
@@ -134,6 +134,7 @@ let isFetchingInitial = false;
 let editingMessageId = null;
 let selectedFiles = [];
 let currentChatIsPersonal = false;
+let currentChatIsBot = false;
 let sendCooldown = false;
 let emojiPickerOpen = false;
 let replyingToId = null;
@@ -438,7 +439,10 @@ function onChatClick(e) {
     const item = e.currentTarget;
     const clickedChatId = item.getAttribute('data-chat-id');
     const targetId = item.getAttribute('data-target-id');
-    if (currentChatId === clickedChatId && clickedChatId !== 'null') return;
+    if (currentChatId === clickedChatId && clickedChatId !== 'null') {
+        if (window.innerWidth <= 768 && window.openMobileChat) window.openMobileChat();
+        return;
+    }
     if (fetchAbortController) fetchAbortController.abort();
     if (currentChatId && chatCache[currentChatId]) chatCache[currentChatId].scrollPos = messagesContainer.scrollTop;
     document.querySelectorAll('.chat-item').forEach(c => c.classList.remove('active'));
@@ -447,6 +451,7 @@ function onChatClick(e) {
     currentTargetId = targetId;
     currentChatAvatar = item.querySelector('.avatar')?.src || '';
     currentChatIsPersonal = !!(targetId && targetId !== 'null' && targetId !== '');
+    currentChatIsBot = item.getAttribute('data-is-bot') === 'true';
     currentChatType = item.getAttribute('data-chat-type') || 'group';
     currentChatOwnerId = item.getAttribute('data-owner-id') || null;
     currentChatBlocked = item.getAttribute('data-blocked') === 'true';
@@ -494,22 +499,46 @@ function onChatClick(e) {
     clearFilePreview();
     closeEmojiPicker();
     messagesContainer.innerHTML = '';
+    renderBotReplyDock();
+    updateBotWelcome(false);
     isLoadingHistory = false;
     isFetchingInitial = false;
     if (currentChatId && currentChatId !== 'null') {
         if (!chatCache[currentChatId]) chatCache[currentChatId] = { messages: [], lastMessageId: 0, firstMessageId: 0, hasMoreHistory: true, scrollPos: 0 };
         const cache = chatCache[currentChatId];
+        updateBotWelcome(currentChatIsBot && !cache.messages.some(msg => !msg.is_deleted));
         if (cache.messages.length > 0) {
             chatPreloader.style.display = 'none';
             const fragment = document.createDocumentFragment();
             cache.messages.forEach(msg => { if (!msg.is_deleted) { const el = createMessageElement(msg, false); if (el) fragment.appendChild(el); } });
             messagesContainer.appendChild(fragment);
+            renderBotReplyDock();
             setTimeout(() => {
                 messagesContainer.scrollTop = cache.scrollPos || messagesContainer.scrollHeight + 1000;
             }, 50);
             pollNewMessages();
         } else { chatPreloader.style.display = 'flex'; isFetchingInitial = true; fetchMessages(); }
     } else { chatPreloader.style.display = 'none'; }
+}
+function updateBotWelcome(show) {
+    const welcome = document.getElementById('bot-welcome');
+    const input = document.getElementById('chat-input-wrapper-el');
+    if (!welcome || !input || !messagesContainer) return;
+    welcome.hidden = !show;
+    messagesContainer.hidden = show;
+    input.hidden = show;
+}
+const botStartButton = document.getElementById('bot-start-button');
+if (botStartButton) {
+    botStartButton.addEventListener('click', async () => {
+        if (!currentChatIsBot || botStartButton.disabled) return;
+        botStartButton.disabled = true;
+        const input = document.getElementById('message-input');
+        if (input) input.textContent = '/start';
+        updateBotWelcome(false);
+        await sendMessage();
+        botStartButton.disabled = false;
+    });
 }
 function onChatContextMenu(e) {
     if (!contextMenu) return;
@@ -634,6 +663,96 @@ function openImageOverlay(src) {
     document.addEventListener('keydown', function esc(e) { if (e.key === 'Escape') { overlay.remove(); document.removeEventListener('keydown', esc); } });
     document.body.appendChild(overlay);
 }
+function appendBotKeyboard(messageElement, message) {
+    const markup = message.reply_markup;
+    if (!markup || typeof markup !== 'object') return;
+    const keyboardSets = [
+        {rows: markup.inline_keyboard, inline: true},
+        {rows: markup.keyboard, inline: false}
+    ].filter((set) => Array.isArray(set.rows) && set.rows.length);
+    if (!keyboardSets.length) return;
+    keyboardSets.forEach(({rows, inline}) => {
+      const wrap = document.createElement('div');
+      wrap.className = inline ? 'bot-keyboard bot-inline-keyboard' : 'bot-keyboard bot-reply-keyboard';
+      rows.forEach((row) => {
+        if (!Array.isArray(row)) return;
+        const rowElement = document.createElement('div');
+        rowElement.className = 'bot-keyboard-row';
+        row.forEach((item) => {
+            if (!item || typeof item.text !== 'string') return;
+            if (item.url) {
+                const link = document.createElement('a');
+                link.className = 'bot-keyboard-button';
+                link.href = item.url;
+                link.target = '_blank';
+                link.rel = 'noopener noreferrer';
+                const label = document.createElement('span');
+                label.textContent = item.text;
+                link.appendChild(label);
+                rowElement.appendChild(link);
+                return;
+            }
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'bot-keyboard-button';
+            const label = document.createElement('span');
+            label.textContent = item.text;
+            button.appendChild(label);
+            if (inline && item.callback_data != null) {
+                button.addEventListener('click', async (event) => {
+                    event.stopPropagation();
+                    button.disabled = true;
+                    try {
+                        const response = await fetch('/api/bot/callback', {
+                            method: 'POST', credentials: 'same-origin',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({chat_id: message.chat_id || currentChatId, message_id: message.id, data: item.callback_data})
+                        });
+                        const result = await response.json();
+                        if (!response.ok || !result.ok) throw new Error(result.description || 'Не удалось выполнить действие');
+                        button.classList.add('is-used');
+                    } catch (error) {
+                        button.disabled = false;
+                        alert(error.message || 'Не удалось выполнить действие');
+                    }
+                });
+            } else {
+                button.addEventListener('click', (event) => {
+                    event.stopPropagation();
+                    const input = document.getElementById('message-input');
+                    if (!input || !currentChatId) return;
+                    input.value = item.text;
+                    document.getElementById('send-btn')?.click();
+                });
+            }
+            rowElement.appendChild(button);
+        });
+        if (rowElement.childElementCount) wrap.appendChild(rowElement);
+      });
+      if (wrap.childElementCount) messageElement.appendChild(wrap);
+    });
+}
+function renderBotReplyDock() {
+    const dock = document.getElementById('bot-reply-dock');
+    if (!dock) return;
+    dock.replaceChildren();
+    const messages = chatCache[currentChatId]?.messages || [];
+    const source = currentChatIsBot ? [...messages].reverse().find(msg => !msg.is_deleted && Array.isArray(msg.reply_markup?.keyboard)) : null;
+    const rows = source?.reply_markup.keyboard;
+    dock.hidden = !rows?.length;
+    if (!rows?.length) return;
+    rows.flat().forEach(item => {
+        if (!item?.text) return;
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.textContent = item.text;
+        button.addEventListener('click', () => {
+            document.getElementById('message-input').value = item.text;
+            document.getElementById('send-btn')?.click();
+        });
+        dock.appendChild(button);
+    });
+}
 function createMessageElement(msg, animate = false) {
     if (msg.is_deleted) return null;
     const isOwn = msg.login === currentUser;
@@ -716,12 +835,14 @@ function createMessageElement(msg, animate = false) {
     if (msgType === 'circle' && msg.file_url) {
         const metaDiv = `<div class="msg-meta" style="margin-top:6px;">${editedHtml}<span class="msg-time">${escHtml(msg.timestamp)}</span><span class="msg-ticks">${ticksHtml}</span></div>`;
         msgDiv.innerHTML = `${authorHtml}<div class="msg-content msg-content-circle">${replyHtml}<video src="${escAttr(msg.file_url)}" class="msg-circle-video" playsinline controls loop></video>${metaDiv}</div>`;
+        appendBotKeyboard(msgDiv, msg);
         msgDiv.addEventListener('contextmenu', onMsgContextMenu);
         return msgDiv;
     }
     if (msgType === 'voice' && msg.file_url) {
         const metaDiv = `<div class="msg-meta">${editedHtml}<span class="msg-time">${escHtml(msg.timestamp)}</span><span class="msg-ticks">${ticksHtml}</span></div>`;
         msgDiv.innerHTML = `${authorHtml}<div class="msg-content">${replyHtml}<div class="msg-voice-player"><span class="material-symbols-outlined" style="color:var(--green);font-size:20px;">graphic_eq</span><audio src="${escAttr(msg.file_url)}" class="msg-audio" controls></audio></div>${metaDiv}</div>`;
+        appendBotKeyboard(msgDiv, msg);
         msgDiv.addEventListener('contextmenu', onMsgContextMenu);
         return msgDiv;
     }
@@ -740,6 +861,7 @@ function createMessageElement(msg, animate = false) {
         const formattedContent = formatMessageContent(msg.content);
         msgDiv.innerHTML = `${authorHtml}<div class="msg-content">${replyHtml}${formattedContent}<div class="msg-meta">${editedHtml}<span class="msg-time">${escHtml(msg.timestamp)}</span><span class="msg-ticks">${ticksHtml}</span></div></div>`;
     }
+    appendBotKeyboard(msgDiv, msg);
     msgDiv.addEventListener('contextmenu', onMsgContextMenu);
     return msgDiv;
 }
@@ -1089,6 +1211,8 @@ async function fetchMessages(isHistory = false) {
                     });
                     if (isInitialLoad || isAtBottom) scrollToBottom();
                 }
+                updateBotWelcome(currentChatIsBot && !cache.messages.some(msg => !msg.is_deleted));
+                renderBotReplyDock();
             }
         }
     } catch (e) {
@@ -1133,6 +1257,7 @@ async function pollNewMessages() {
                     cache.lastMessageId = Math.max(cache.lastMessageId, msg.id);
                     if (cache.firstMessageId === 0 || msg.id < cache.firstMessageId) cache.firstMessageId = msg.id;
                 });
+                renderBotReplyDock();
                 if (isAtBottom) scrollToBottom();
             }
         }
@@ -1604,6 +1729,7 @@ async function _renderSidebarFromData(chatsData, reset = false) {
             }
         }
         chatItem.setAttribute('data-target-id', chat.target_user_id || '');
+        chatItem.setAttribute('data-is-bot', chat.is_bot ? 'true' : 'false');
         chatItem.setAttribute('data-chat-type', chat.chat_type || 'group');
         if (chat.owner_id) chatItem.setAttribute('data-owner-id', chat.owner_id);
         chatItem.setAttribute('data-blocked', chat.blocked ? 'true' : 'false');
@@ -2351,6 +2477,136 @@ const drawerOverlay = document.getElementById('drawer-overlay');
 const drawerCreateGroup = document.getElementById('drawer-create-group');
 const drawerThemeToggle = document.getElementById('drawer-theme-toggle');
 const themeCheckbox = document.getElementById('theme-checkbox');
+const botManager = document.getElementById('bot-manager-overlay');
+async function loadBotManager() {
+    const list = document.getElementById('bot-manager-list');
+    if (!list) return;
+    list.replaceChildren();
+    const loading = document.createElement('div');
+    loading.className = 'bot-manager-empty';
+    loading.textContent = 'Загружаем список ботов…';
+    list.appendChild(loading);
+    try {
+        const response = await fetch('/api/bots', {credentials: 'same-origin'});
+        const payload = await response.json();
+        if (!response.ok || !payload.ok) throw new Error(payload.description || 'Не удалось загрузить ботов');
+        list.replaceChildren();
+        if (!payload.result.length) {
+            const empty = document.createElement('div');
+            empty.className = 'bot-manager-empty';
+            empty.textContent = 'Ботов пока нет. Создайте первого бота выше.';
+            list.appendChild(empty);
+            return;
+        }
+        payload.result.forEach((bot) => {
+            const card = document.createElement('article');
+            card.className = 'bot-manager-card';
+            const head = document.createElement('div');
+            head.className = 'bot-manager-card-head';
+            const title = document.createElement('strong');
+            title.textContent = bot.name;
+            const state = document.createElement('span');
+            state.className = 'bot-manager-meta';
+            state.textContent = bot.active ? `@${bot.username}` : 'Токен отключён';
+            head.append(title, state);
+            const hint = document.createElement('div');
+            hint.className = 'bot-manager-meta';
+            hint.textContent = `Токен заканчивается на ${bot.token_hint}`;
+            const nameInput = document.createElement('input');
+            nameInput.value = bot.name;
+            nameInput.setAttribute('aria-label', 'Имя бота');
+            nameInput.placeholder = 'Имя бота';
+            const avatarInput = document.createElement('input');
+            avatarInput.value = bot.avatar || '';
+            avatarInput.setAttribute('aria-label', 'Ссылка на аватар');
+            avatarInput.placeholder = 'Ссылка на аватар (HTTPS или /static/)';
+            const actions = document.createElement('div');
+            actions.className = 'bot-manager-actions';
+            const actionButton = (label, handler, danger = false) => {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = danger ? 'bot-danger-button' : 'bot-action-button';
+                button.textContent = label;
+                button.addEventListener('click', handler);
+                return button;
+            };
+            actions.append(
+                actionButton('Сохранить профиль', async () => {
+                    const response = await fetch(`/api/bots/${bot.id}`, {method: 'PATCH', credentials: 'same-origin', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({name: nameInput.value, avatar: avatarInput.value})});
+                    const result = await response.json();
+                    if (!response.ok || !result.ok) { alert(result.description || 'Не удалось сохранить'); return; }
+                    loadBotManager();
+                }),
+                actionButton('Новый токен', async () => {
+                    if (!confirm('Старый токен перестанет работать. Продолжить?')) return;
+                    const response = await fetch(`/api/bots/${bot.id}/token`, {method: 'POST', credentials: 'same-origin'});
+                    const result = await response.json();
+                    if (!response.ok || !result.ok) { alert(result.description || 'Не удалось создать токен'); return; }
+                    document.getElementById('bot-token-value').textContent = result.result.token;
+                    document.getElementById('bot-token-result').hidden = false;
+                    loadBotManager();
+                }),
+                actionButton('Отключить', async () => {
+                    if (!confirm('Отключить токен этого бота?')) return;
+                    const response = await fetch(`/api/bots/${bot.id}`, {method: 'DELETE', credentials: 'same-origin'});
+                    const result = await response.json();
+                    if (!response.ok || !result.ok) { alert(result.description || 'Не удалось отключить токен'); return; }
+                    loadBotManager();
+                }, true)
+            );
+            const openChat = actionButton('Открыть чат', () => {
+                botManager?.classList.remove('visible');
+                updateSidebar();
+                setTimeout(() => document.querySelector(`.chat-item[data-chat-id="${CSS.escape(String(bot.chat_id))}"]`)?.click(), 250);
+            });
+            openChat.classList.add('bot-open-chat');
+            const details = document.createElement('details');
+            details.className = 'bot-manager-details';
+            const summary = document.createElement('summary');
+            summary.textContent = 'Настройки бота';
+            details.append(summary, nameInput, avatarInput, actions);
+            card.append(head, hint, openChat, details);
+            list.appendChild(card);
+        });
+    } catch (error) {
+        list.replaceChildren();
+        const message = document.createElement('div');
+        message.className = 'bot-manager-empty';
+        message.textContent = error.message || 'Не удалось загрузить ботов';
+        list.appendChild(message);
+    }
+}
+document.getElementById('drawer-bots')?.addEventListener('click', () => {
+    sideDrawer?.classList.remove('open');
+    drawerOverlay?.classList.remove('visible');
+    document.getElementById('bot-token-result').hidden = true;
+    botManager?.classList.add('visible');
+    loadBotManager();
+});
+document.getElementById('bot-manager-close')?.addEventListener('click', () => botManager?.classList.remove('visible'));
+botManager?.addEventListener('click', (event) => { if (event.target === botManager) botManager.classList.remove('visible'); });
+document.getElementById('bot-create-form')?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const errorBox = document.getElementById('bot-create-error');
+    errorBox.textContent = '';
+    const name = document.getElementById('bot-create-name').value.trim();
+    try {
+        const response = await fetch('/api/bots', {method: 'POST', credentials: 'same-origin', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({name})});
+        const payload = await response.json();
+        if (!response.ok || !payload.ok) throw new Error(payload.description || 'Не удалось создать бота');
+        document.getElementById('bot-token-value').textContent = payload.result.token;
+        document.getElementById('bot-token-result').hidden = false;
+        document.getElementById('bot-create-name').value = '';
+        loadBotManager();
+        updateSidebar();
+    } catch (error) {
+        errorBox.textContent = error.message || 'Не удалось создать бота';
+    }
+});
+document.getElementById('bot-token-copy')?.addEventListener('click', async () => {
+    await navigator.clipboard.writeText(document.getElementById('bot-token-value').textContent);
+    document.getElementById('bot-token-copy').textContent = 'Скопировано';
+});
 if (menuBtn && sideDrawer && drawerOverlay) {
     menuBtn.addEventListener('click', () => {
         sideDrawer.classList.add('open');

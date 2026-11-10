@@ -134,7 +134,7 @@ class DDoSGuard:
             cls._h = {k: v for k, v in cls._h.items() if v > n}
 
         target = f"{ip}:{uid or sid or 'anon'}"
-        
+
         if path.startswith('/static/'):
             cls._h[target] = n + 3600
             return True
@@ -144,7 +144,7 @@ class DDoSGuard:
             del cls._b[target]
 
         ua = (ua or "").lower()
-        if any(bot in ua for bot in cls._ua_blacklist) or (not ua and not uid):
+        if (any(bot in ua for bot in cls._ua_blacklist) and not path.startswith('/api/bot')) or (not ua and not uid and not path.startswith('/api/bot')):
             cls._b[target] = n + 86400
             return False
 

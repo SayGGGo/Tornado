@@ -13,6 +13,7 @@ class User(db.Model):
     projects = db.Column(db.String(200))
     source = db.Column(db.String(50))
     bio = db.Column(db.String(200))
+    is_bot = db.Column(db.Boolean, nullable=False, default=False)
 
     premium = db.Column(db.Boolean, default=False)
     premium_emoji = db.Column(db.Integer, default=0)

@@ -4,13 +4,13 @@
             <span class="material-symbols-outlined">menu</span>
         </button>
         <div class="mobile-profile-btn mobile-only" id="mobile-profile-btn">
-            <img src="" class="avatar" id="mobile-profile-avatar" alt="">
+            <img src="{{ url_for('static', filename='icons/logo.svg') }}" class="avatar" id="mobile-profile-avatar" alt="">
         </div>
 
         <div id="drawer-overlay" class="drawer-overlay"></div>
         <div id="side-drawer" class="side-drawer">
             <div class="drawer-header">
-                <img src="" class="drawer-avatar" id="drawer-user-avatar" alt="">
+                <img src="{{ url_for('static', filename='icons/logo.svg') }}" class="drawer-avatar" id="drawer-user-avatar" alt="">
                 <div class="drawer-user-info">
                     <div class="drawer-user-name" id="drawer-user-name">Пользователь</div>
                     <div class="drawer-user-status">Сменить эмодзи-статус</div>
@@ -33,9 +33,9 @@
                     <span class="material-symbols-outlined">group</span>
                     <span>Создать группу</span>
                 </div>
-                <div class="drawer-item" id="drawer-create-channel">
-                    <span class="material-symbols-outlined">campaign</span>
-                    <span>Создать канал</span>
+                <div class="drawer-item" id="drawer-bots">
+                    <span class="material-symbols-outlined">smart_toy</span>
+                    <span>Боты и токены</span>
                 </div>
                 <div class="drawer-item" id="drawer-calls">
                     <span class="material-symbols-outlined">call</span>

@@ -1,4 +1,6 @@
 import logging
+import html
+import json
 from datetime import datetime
 import base64
 import os
@@ -273,7 +275,7 @@ class ChatService:
         last_msgs_sub2 = db.session.query(
             Message.chat_id,
             func.max(Message.id).label('max_id')
-        ).filter(Message.chat_id.in_(paged_chat_ids)).group_by(Message.chat_id).subquery()
+        ).filter(Message.chat_id.in_(paged_chat_ids), Message.msg_type != 'bot_callback').group_by(Message.chat_id).subquery()
 
         last_messages = Message.query.join(
             last_msgs_sub2,
@@ -289,6 +291,7 @@ class ChatService:
 
         unread_map = dict(db.session.query(Message.chat_id, func.count(Message.id)).filter(
             Message.chat_id.in_(paged_chat_ids),
+            Message.msg_type != 'bot_callback',
             Message.is_read == False,
             Message.user_id != user_id
         ).group_by(Message.chat_id).all())
@@ -308,8 +311,15 @@ class ChatService:
             elif last_msg and last_msg.file_name:
                 msg_preview = f"📎 {last_msg.file_name}"
             elif last_msg:
+                try:
+                    preview_text = html.unescape(self.crypto.decrypt_for_user(
+                        last_msg.content, db.session.get(User, user_id).private_key,
+                        last_msg.user_id != user_id
+                    ))
+                except Exception:
+                    preview_text = "Сообщение недоступно"
                 sn = sender_map.get(last_msg.user_id, '')
-                msg_preview = f"{sn}: 🔒" if sn else "🔒 Сообщение"
+                msg_preview = f"{sn}: {preview_text}" if sn else preview_text
             else:
                 msg_preview = "Нет сообщений"
 
@@ -335,7 +345,8 @@ class ChatService:
                     "last_status": last_status, "unread": unread_count,
                     "pinned": False, "muted": False,
                     "premium": "1" if getattr(pu, 'premium', False) else "",
-                    "target_user_id": pu.id, "online": is_online, "typing": is_typing, "blocked": is_blocked
+                    "target_user_id": pu.id, "online": is_online, "typing": is_typing, "blocked": is_blocked,
+                    "is_bot": bool(getattr(pu, 'is_bot', False))
                 }
             else:
                 chats_data[str(chat_id_key)] = {
@@ -360,7 +371,7 @@ class ChatService:
 
         curr_user = db.session.get(User, user_id)
         from sqlalchemy.orm import joinedload
-        query = Message.query.filter_by(chat_id=chat_id).options(joinedload(Message.author))
+        query = Message.query.filter_by(chat_id=chat_id).filter(Message.msg_type != 'bot_callback').options(joinedload(Message.author))
 
         if first_id > 0:
             messages = query.filter(Message.id < first_id).order_by(Message.id.desc()).limit(50).all()
@@ -390,29 +401,30 @@ class ChatService:
                 if rt.is_deleted:
                     reply_preview = {"id": rt.id, "login": rt.author.login, "text": "Сообщение удалено", "file_url": None, "msg_type": "text"}
                 else:
-                    rt_text = self.crypto.decrypt_for_user(rt.content, curr_user.private_key, (rt.user_id != user_id))
+                    rt_text = html.unescape(self.crypto.decrypt_for_user(rt.content, curr_user.private_key, (rt.user_id != user_id)))
                     reply_preview = {"id": rt.id, "login": rt.author.login, "text": rt_text[:80], "file_url": rt.file_url, "msg_type": getattr(rt, 'msg_type', 'text') or 'text'}
 
             if msg.is_deleted:
                 result.append({
-                    "id": msg.id, "user_id": msg.user_id, "login": msg.author.login, "avatar": avatar,
+                    "id": msg.id, "user_id": msg.user_id, "chat_id": msg.chat_id, "login": msg.author.login, "avatar": avatar,
                     "content": "", "timestamp": msg.timestamp.strftime("%H:%M"),
                     "is_read": getattr(msg, 'is_read', False), "is_edited": False, "is_deleted": True,
                     "file_url": None, "file_name": None, "file_type": None, "file_size": None,
-                    "online": is_online, "reply": None, "msg_type": "text"
+                    "online": is_online, "reply": None, "msg_type": "text", "reply_markup": None
                 })
             else:
                 result.append({
-                    "id": msg.id, "user_id": msg.user_id, "login": msg.author.login, "avatar": avatar,
-                    "content": self.crypto.decrypt_for_user(msg.content, curr_user.private_key, (msg.user_id != user_id)),
+                    "id": msg.id, "user_id": msg.user_id, "chat_id": msg.chat_id, "login": msg.author.login, "avatar": avatar,
+                    "content": html.unescape(self.crypto.decrypt_for_user(msg.content, curr_user.private_key, (msg.user_id != user_id))),
                     "timestamp": msg.timestamp.strftime("%H:%M"),
                     "is_read": getattr(msg, 'is_read', False), "is_edited": msg.is_edited or False, "is_deleted": False,
                     "file_url": msg.file_url, "file_name": msg.file_name, "file_type": msg.file_type, "file_size": msg.file_size,
-                    "online": is_online, "reply": reply_preview, "msg_type": getattr(msg, 'msg_type', 'text') or 'text'
+                    "online": is_online, "reply": reply_preview, "msg_type": getattr(msg, 'msg_type', 'text') or 'text',
+                    "reply_markup": json.loads(msg.reply_markup) if getattr(msg, 'reply_markup', None) else None
                 })
         return result
 
-    def post_message(self, user_id, chat_id, content, file_data=None, reply_to_id=None, msg_type='text'):
+    def post_message(self, user_id, chat_id, content, file_data=None, reply_to_id=None, msg_type='text', reply_markup=None):
         if not chat_id: return {"error": "Empty"}
         if not content and not file_data: return {"error": "Empty"}
 
@@ -462,6 +474,8 @@ class ChatService:
             encrypted = self.crypto.encrypt_for_multiple(safe_chunk, pub_pems)
             new_msg = Message(user_id=user_id, chat_id=chat_id, content=encrypted)
             new_msg.msg_type = msg_type or 'text'
+            if idx == 0 and reply_markup:
+                new_msg.reply_markup = json.dumps(reply_markup, ensure_ascii=False)
             if reply_to_id and idx == 0:
                 new_msg.reply_to_id = reply_to_id
             if idx == 0 and file_data:

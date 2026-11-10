@@ -20,3 +20,10 @@ node_modules/
 
 build_exe.py
 app-trn.log
+__pycache__/
+*.py[cod]
+*.log
+*.err
+.agents/
+.codex/
+.impeccable/

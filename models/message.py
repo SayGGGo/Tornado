@@ -16,6 +16,7 @@ class Message(db.Model):
     file_size = db.Column(db.Integer, nullable=True)
     reply_to_id = db.Column(db.Integer, db.ForeignKey("message.id"), nullable=True)
     msg_type = db.Column(db.String(20), default='text')
+    reply_markup = db.Column(db.Text, nullable=True)
 
     author = db.relationship("User", back_populates="messages")
     chat = db.relationship("Chat", back_populates="messages")
