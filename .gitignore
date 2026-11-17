@@ -24,6 +24,8 @@ __pycache__/
 *.py[cod]
 *.log
 *.err
+build/
+*.egg-info/
 .agents/
 .codex/
 .impeccable/
