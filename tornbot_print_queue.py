@@ -22,6 +22,11 @@ PORTAL_URL = os.getenv("PORTAL_URL", "").rstrip("/")
 PORTAL_PUBLIC_URL = os.getenv("PORTAL_PUBLIC_URL", PORTAL_URL).rstrip("/")
 PORTAL_KEY = os.getenv("PORTAL_SERVICE_TOKEN", "").strip()
 ADMIN_IDS = {int(x.strip()) for x in os.getenv("ADMIN_CHAT_IDS", "").replace(";", ",").split(",") if x.strip().lstrip("-").isdigit()}
+DEMO_QUEUE = [
+    {"shortId": "demo-104", "status": "queued", "firstName": "Алина", "lastName": "Соколова", "group": "8А", "purpose": "Корпус для учебного датчика", "quantity": 2, "comment": "PLA, зелёный", "createdAt": "2026-11-17T09:30:00+00:00", "file": {"name": "sensor-case.stl"}},
+    {"shortId": "demo-103", "status": "in_progress", "firstName": "Илья", "lastName": "Морозов", "group": "10Б", "purpose": "Шестерни для робота", "quantity": 6, "createdAt": "2026-11-16T14:10:00+00:00", "file": {"name": "gears.3mf"}},
+    {"shortId": "demo-102", "status": "done", "firstName": "Мария", "lastName": "Ким", "group": "7В", "purpose": "Подставка для микроскопа", "quantity": 1, "createdAt": "2026-11-15T11:45:00+00:00"},
+]
 
 
 class PortalError(RuntimeError):
@@ -29,6 +34,23 @@ class PortalError(RuntimeError):
 
 
 def api(method, path, payload=None, body=None, headers=None):
+    if not PORTAL_URL:
+        if method == "GET" and path == "/api/print/requests":
+            return {"requests": [item for item in DEMO_QUEUE if item["status"] != "archived"]}
+        if path.startswith("/api/print/track/") and method == "GET":
+            sid = urllib.parse.unquote(path.rsplit("/", 1)[-1])
+            item = next((item for item in DEMO_QUEUE if item["shortId"] == sid), None)
+            if item:
+                return {"request": item}
+            raise PortalError("Заявка не найдена")
+        if path.startswith("/api/print/requests/") and method == "PATCH":
+            sid = urllib.parse.unquote(path.rsplit("/", 1)[-1])
+            item = next((item for item in DEMO_QUEUE if item["shortId"] == sid), None)
+            if item:
+                item["status"] = (payload or {}).get("status", item["status"])
+                return {"request": item}
+            raise PortalError("Заявка не найдена")
+        raise PortalError("Этот метод недоступен в локальном демо")
     request_headers = {"x-service-key": PORTAL_KEY, "Accept": "application/json"}
     if payload is not None:
         body = json.dumps(payload, ensure_ascii=False).encode()
@@ -174,12 +196,12 @@ def button(callback):
 
 
 def main():
-    missing = [name for name, value in (("TORNBOT_TOKEN", BOT_TOKEN), ("PORTAL_URL", PORTAL_URL), ("PORTAL_SERVICE_TOKEN", PORTAL_KEY)) if not value]
+    missing = [name for name, value in (("TORNBOT_TOKEN", BOT_TOKEN),) if not value]
     if missing:
         raise SystemExit('TORNBOT_TOKEN не задан в .env')
     if not ADMIN_IDS:
         log.warning("ADMIN_CHAT_IDS не задан; админские команды будут закрыты")
-    log.info("Queue bot starting; portal host: %s", urllib.parse.urlparse(PORTAL_URL).hostname)
+    log.info("Queue bot starting in %s mode", "portal" if PORTAL_URL and PORTAL_KEY else "local demo")
     bot.infinity_polling(timeout=20, long_polling_timeout=20)
 
 
