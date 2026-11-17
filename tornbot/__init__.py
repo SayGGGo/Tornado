@@ -58,6 +58,11 @@ class InlineKeyboardButton:
 
 
 @dataclass
+class KeyboardButton:
+    text: str
+
+
+@dataclass
 class ReplyKeyboardMarkup:
     keyboard: list = field(default_factory=list)
     resize_keyboard: bool = True
@@ -132,15 +137,22 @@ class Bot:
         return self._call("setMyProfilePhoto", {"photo_url": photo_url})
 
     def send_message(self, chat_id, text, **kwargs):
+        kwargs = self._serialize_kwargs(kwargs)
+        raw = self._call("sendMessage", {"chat_id": chat_id, "text": text, **kwargs})
+        return self._message(raw)
+
+    @staticmethod
+    def _serialize_kwargs(kwargs):
+        kwargs = dict(kwargs)
         markup = kwargs.get("reply_markup")
         if isinstance(markup, InlineKeyboardMarkup):
             kwargs["reply_markup"] = {"inline_keyboard": markup.inline_keyboard}
         elif isinstance(markup, ReplyKeyboardMarkup):
             kwargs["reply_markup"] = {"keyboard": markup.keyboard, "resize_keyboard": markup.resize_keyboard}
-        raw = self._call("sendMessage", {"chat_id": chat_id, "text": text, **kwargs})
-        return self._message(raw)
+        return kwargs
 
     def edit_message_text(self, text, chat_id=None, message_id=None, **kwargs):
+        kwargs = self._serialize_kwargs(kwargs)
         return self._message(self._call("editMessageText", {"text": text, "chat_id": chat_id, "message_id": message_id, **kwargs}))
 
     def edit_message_reply_markup(self, chat_id=None, message_id=None, reply_markup=None):
@@ -207,8 +219,12 @@ class Bot:
                     raise
                 time.sleep(max(interval, 1))
 
+    def infinity_polling(self, timeout=20, long_polling_timeout=None, **kwargs):
+        return self.polling(none_stop=True, timeout=long_polling_timeout or timeout, **kwargs)
+
     def stop_polling(self):
         self._running = False
 
 
-types = type("types", (), {"InlineKeyboardMarkup": InlineKeyboardMarkup, "InlineKeyboardButton": InlineKeyboardButton, "ReplyKeyboardMarkup": ReplyKeyboardMarkup})
+TeleBot = Bot
+types = type("types", (), {"InlineKeyboardMarkup": InlineKeyboardMarkup, "InlineKeyboardButton": InlineKeyboardButton, "ReplyKeyboardMarkup": ReplyKeyboardMarkup, "KeyboardButton": KeyboardButton})

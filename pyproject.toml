@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tornbot"
+version = "0.1.0"
+description = "TeleBot-style Python client for the Tornado organization Bot API"
+readme = "tornbot/README.md"
+requires-python = ">=3.10"
+dependencies = ["requests>=2.31"]
+license = { text = "MIT" }
+authors = [{ name = "Tornado contributors" }]
+keywords = ["tornado", "bot", "telebot", "telegram-style"]
+
+[tool.setuptools]
+packages = ["tornbot"]
