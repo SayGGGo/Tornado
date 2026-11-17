@@ -2,6 +2,7 @@ import json
 import logging
 import mimetypes
 import os
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -151,6 +152,7 @@ def queue(message):
             return
         for item in items[:30]:
             bot.send_message(message.chat.id, request_info(item), reply_markup=action_keyboard(item), reply_to_message_id=message.message_id)
+            time.sleep(1.1)
     except PortalError as exc:
         bot.send_message(message.chat.id, f"Не удалось загрузить очередь: {exc}")
 

@@ -13,7 +13,7 @@
     <meta name="current-user-avatar" content="{{ _av_url }}"
           data-is-video="{{ 'true' if _av_url.endswith('.mp4') or _av_url.endswith('.webm') else 'false' }}">
     <title>TORNADO</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/chat.css', v='20261110-10') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/chat.css', v='20261117-1') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile.css', v='20261110-4') }}">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
@@ -157,7 +157,6 @@
                 <span>Вы заблокированы в этом чате</span>
             </div>
 
-            <div id="bot-reply-dock" class="bot-reply-dock" hidden></div>
             <div class="chat-input-wrapper" id="chat-input-wrapper-el">
                 <div id="voice-record-bar" class="voice-record-bar" style="display:none;">
                     <div class="voice-record-inner">
@@ -1015,7 +1014,7 @@
 
     <div id="liquid-glass-root"></div>
 
-    <script src="{{ url_for('static', filename='js/chat.js', v='20261110-6') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/chat.js', v='20261117-2') }}" defer></script>
     <script src="{{ url_for('static', filename='dist/glass-bundle.js') }}" defer></script>
     <script defer>if(window.innerWidth>768){var _s=document.createElement('script');_s.src='{{ url_for("static", filename="js/bg.js") }}';document.head.appendChild(_s);}</script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" integrity="sha512-D9gUyxqja7hBtkWpPWGt9wfbfaMGVt9gnyCvYa+jojwwPHLCzUm5i8rpk7vD7wNee9bA35eYIjobYPaQuKS1MQ==" crossorigin="anonymous" defer></script>

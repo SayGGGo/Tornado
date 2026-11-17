@@ -499,7 +499,6 @@ function onChatClick(e) {
     clearFilePreview();
     closeEmojiPicker();
     messagesContainer.innerHTML = '';
-    renderBotReplyDock();
     updateBotWelcome(false);
     isLoadingHistory = false;
     isFetchingInitial = false;
@@ -512,7 +511,6 @@ function onChatClick(e) {
             const fragment = document.createDocumentFragment();
             cache.messages.forEach(msg => { if (!msg.is_deleted) { const el = createMessageElement(msg, false); if (el) fragment.appendChild(el); } });
             messagesContainer.appendChild(fragment);
-            renderBotReplyDock();
             setTimeout(() => {
                 messagesContainer.scrollTop = cache.scrollPos || messagesContainer.scrollHeight + 1000;
             }, 50);
@@ -667,8 +665,7 @@ function appendBotKeyboard(messageElement, message) {
     const markup = message.reply_markup;
     if (!markup || typeof markup !== 'object') return;
     const keyboardSets = [
-        {rows: markup.inline_keyboard, inline: true},
-        {rows: markup.keyboard, inline: false}
+        {rows: markup.inline_keyboard, inline: true}
     ].filter((set) => Array.isArray(set.rows) && set.rows.length);
     if (!keyboardSets.length) return;
     keyboardSets.forEach(({rows, inline}) => {
@@ -730,27 +727,6 @@ function appendBotKeyboard(messageElement, message) {
         if (rowElement.childElementCount) wrap.appendChild(rowElement);
       });
       if (wrap.childElementCount) messageElement.appendChild(wrap);
-    });
-}
-function renderBotReplyDock() {
-    const dock = document.getElementById('bot-reply-dock');
-    if (!dock) return;
-    dock.replaceChildren();
-    const messages = chatCache[currentChatId]?.messages || [];
-    const source = currentChatIsBot ? [...messages].reverse().find(msg => !msg.is_deleted && Array.isArray(msg.reply_markup?.keyboard)) : null;
-    const rows = source?.reply_markup.keyboard;
-    dock.hidden = !rows?.length;
-    if (!rows?.length) return;
-    rows.flat().forEach(item => {
-        if (!item?.text) return;
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.textContent = item.text;
-        button.addEventListener('click', () => {
-            document.getElementById('message-input').value = item.text;
-            document.getElementById('send-btn')?.click();
-        });
-        dock.appendChild(button);
     });
 }
 function createMessageElement(msg, animate = false) {
@@ -1212,7 +1188,6 @@ async function fetchMessages(isHistory = false) {
                     if (isInitialLoad || isAtBottom) scrollToBottom();
                 }
                 updateBotWelcome(currentChatIsBot && !cache.messages.some(msg => !msg.is_deleted));
-                renderBotReplyDock();
             }
         }
     } catch (e) {
@@ -1257,7 +1232,6 @@ async function pollNewMessages() {
                     cache.lastMessageId = Math.max(cache.lastMessageId, msg.id);
                     if (cache.firstMessageId === 0 || msg.id < cache.firstMessageId) cache.firstMessageId = msg.id;
                 });
-                renderBotReplyDock();
                 if (isAtBottom) scrollToBottom();
             }
         }

@@ -1,7 +1,10 @@
 import time
+import logging
 from dataclasses import dataclass, field
 
 import requests
+
+log = logging.getLogger("tornbot")
 
 
 class ApiException(RuntimeError):
@@ -215,6 +218,7 @@ class Bot:
                 if interval:
                     time.sleep(interval)
             except Exception:
+                log.exception("Polling failed")
                 if not none_stop:
                     raise
                 time.sleep(max(interval, 1))

@@ -3348,10 +3348,6 @@ video.profile-big-avatar {
 #bot-manager-overlay .bot-manager-modal button { color: #f5fff7; }
 #bot-manager-overlay .bot-manager-modal .contact-action-btn { background: #24693e; border: 1px solid #378653; border-radius: 10px; font-weight: 700; }
 #bot-manager-overlay .bot-manager-modal .modal-close { background: #252e28; border-radius: 10px; }
-.bot-reply-dock { position: absolute; bottom: 82px; left: 50%; z-index: 100; display: flex; flex-wrap: wrap; gap: 8px; width: calc(100% - 48px); max-width: 760px; padding: 10px 12px; transform: translateX(-50%); background: #141a17; border: 1px solid #34463c; border-radius: 13px; }
-.bot-reply-dock[hidden] { display: none; }
-.bot-reply-dock button { min-height: 42px; padding: 9px 17px; border: 1px solid #54765e; border-radius: 11px; background: #1d3023; color: #f2fff5; font: inherit; font-weight: 650; cursor: pointer; }
-.bot-reply-dock button:hover, .bot-reply-dock button:focus-visible { background: #285136; border-color: #79c58d; }
 .bot-manager-details { display: grid; gap: 10px; margin-top: 8px; border-top: 1px solid #36453a; padding-top: 12px; }
 .bot-manager-details:not([open]) > :not(summary) { display: none; }
 .bot-manager-details summary { color: #c9d9cc; cursor: pointer; font-size: 13px; font-weight: 650; }
@@ -3368,7 +3364,6 @@ video.profile-big-avatar {
 #bot-manager-overlay .bot-manager-modal .bot-open-chat, #bot-manager-overlay .bot-manager-modal .contact-action-btn { background: #28764a; border-color: #368958; }
 #bot-manager-overlay .bot-manager-modal .bot-action-button { background: #303a3c; border-color: #536265; }
 #bot-manager-overlay .bot-manager-modal .bot-danger-button { background: #39282a; border-color: #94545b; color: #ffd2d4; }
-@media (max-width: 600px) { .bot-reply-dock { padding: 8px 12px; } .bot-reply-dock button { flex: 1 1 40%; } }
 
 .msg-voice-player {
     display: flex;
