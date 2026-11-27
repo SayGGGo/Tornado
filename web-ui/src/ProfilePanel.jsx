@@ -13,6 +13,32 @@ const titles={'new-chat':'Новое сообщение','new-group':'Добав
  'chat-members':'Участники','chat-admin-pick':'Выбрать администратора','chat-admin-rights':'Права администратора','chat-admin-review':'Проверить права','chat-admins':'Администраторы','chat-blocked':'Чёрный список','chat-requests':'Заявки на вступление',
  settings:'Настройки',developer:'API-кабинет',display:'Отображение',privacy:'Конфиденциальность',shortcuts:'Набор сообщений',notifications:'Уведомления',logout:'Выход из аккаунта',qr:'QR-код',join:'Вступить в канал'};
 const setupViews=['new-chat','new-group','new-channel','invite'];
+function UsernameDialog({name,collectible,onClose}) {
+ const dialog=React.useRef(null);
+ const [copied,setCopied]=useState(false);
+ const [copyError,setCopyError]=useState('');
+ const link=new URL(appPath('/t/'+encodeURIComponent(name)),location.origin).href;
+ useEffect(()=>{
+  const element=dialog.current;
+  element.showModal();
+  return ()=>element.close();
+ },[]);
+ return <dialog ref={dialog} className="username-dialog" aria-labelledby="username-title" onCancel={event=>{event.preventDefault();onClose();}} onClick={event=>{if(event.target===event.currentTarget)onClose();}}>
+  <div className="username-dialog-body">
+   <button type="button" className="header-action username-close" aria-label="Закрыть" onClick={onClose}><PanelIcon name="close"/></button>
+   <span className={'username-emblem'+(collectible?' collectible':'')}><PanelIcon name={collectible?'favorite':'alternate_email'}/></span>
+   <h2 id="username-title">@{name}</h2>
+   <strong>{collectible?'Коллекционное имя пользователя':'Имя пользователя'}</strong>
+   <p>{collectible?'Это короткое имя закреплено за ботом «3D Печать». Его нельзя выбрать при регистрации или в настройках профиля.':'По этой ссылке можно открыть переписку в Tornado.'}</p>
+   <input aria-label="Публичная ссылка" readOnly value={link} onFocus={event=>event.currentTarget.select()}/>
+   <FormError message={copyError}/>
+   <button type="button" className="access-save" onClick={async()=>{
+    try {await navigator.clipboard.writeText(link);setCopied(true);setCopyError('');}
+    catch {setCopyError('Не удалось скопировать. Ссылку можно выделить в поле выше.');}
+   }}><PanelIcon name={copied?'check':'content_copy'}/>{copied?'Ссылка скопирована':'Копировать ссылку'}</button>
+  </div>
+ </dialog>;
+}
 function editDraft(profile) {
  const [first,...rest]=(profile.name || '').trim().split(/\s+/);
  return {first,last:rest.join(' '),bio:profile.bio || '',login:profile.login};
@@ -24,11 +50,13 @@ export default function ProfilePanel({page,setPage,profile,setProfile,onOpenChat
  const [saving,setSaving]=useState(false);
  const [peer,setPeer]=useState(null);
  const [portraitOpen,setPortraitOpen]=useState(false);
+ const [usernameDialog,setUsernameDialog]=useState(null);
  const [qrReady,setQrReady]=useState(false);
  const view=page?.view;
  useEffect(()=>{
   setError('');
   setPortraitOpen(false);
+  setUsernameDialog(null);
   setQrReady(false);
   setFieldError(null);
   if(view!=='peer') return;
@@ -109,7 +137,7 @@ export default function ProfilePanel({page,setPage,profile,setProfile,onOpenChat
      <strong>{info?.name || info?.fio || page.name || info?.login}<VerifiedBadge visible={info?.verified}/></strong><small>{own?'в сети':presenceLabel(peer)}</small>
     </div>
     {info && view!=='settings' && <div className="access-settings"><PanelSection title="Данные профиля">
-     <DetailRow icon="alternate_email" tone="blue" title={'@'+(info.handle || info.login)} detail="Имя пользователя" onClick={openQr}><span className="profile-qr-chip" aria-hidden="true"><PanelIcon name="qr_code_2"/></span></DetailRow>
+     <DetailRow icon="alternate_email" tone="blue" title={<button type="button" className={'profile-username'+(info.collectible_handle?' collectible':'')} onClick={()=>setUsernameDialog({name:info.handle || info.login,collectible:info.collectible_handle})}>@{info.handle || info.login}</button>} detail={info.alias?'Имя пользователя · также @'+info.alias:'Имя пользователя'}><button type="button" className="header-action profile-qr-action" aria-label="Открыть QR-код" onClick={openQr}><PanelIcon name="qr_code_2"/></button></DetailRow>
      {info.bio && <DetailRow icon="info" title={info.bio} detail="О себе"/>}
      {view==='peer' && page.chatId && <DetailRow icon="notifications" tone="coral" title="Уведомления" onClick={()=>onToggleNotifications(page.chatId)}><span className={'panel-switch'+(notificationEnabled(page.chatId)?' enabled':'')}/></DetailRow>}
      {view==='peer' && <DetailRow icon="chat_bubble" tone="green" title="Написать сообщение" onClick={async()=>{
@@ -132,7 +160,7 @@ export default function ProfilePanel({page,setPage,profile,setProfile,onOpenChat
      <FloatingField label="Фамилия" maxLength={100} value={draft.last} onChange={event=>update('last',event.target.value)}/>
      <FloatingField label="О себе" multiline maxLength={200} rows={2} error={fieldError?.field==='bio'?fieldError.message:''} value={draft.bio} onChange={event=>update('bio',event.target.value)}/>
     </div></PanelSection>
-    <PanelSection title="Публичный профиль" hint="Это имя используется в поиске и для входа в Tornado."><div className="panel-fields"><FloatingField label="Имя пользователя" required pattern="[A-Za-z0-9_]{3,50}" autoCapitalize="none" spellCheck={false} formatError="Введите от 3 до 50 символов. Подойдут латинские буквы, цифры и подчёркивания." error={fieldError?.field==='login'?fieldError.message:''} value={draft.login} maxLength={50} onChange={event=>update('login',event.target.value)}/></div></PanelSection>
+    <PanelSection title="Публичный профиль" hint="Это имя используется в поиске и для входа в Tornado."><div className="panel-fields"><FloatingField label="Имя пользователя" required pattern={draft.login===profile.login?undefined:"[A-Za-z][A-Za-z0-9_]{2,49}"} autoCapitalize="none" spellCheck={false} formatError="Начните с латинской буквы. Далее — латинские буквы, цифры или подчёркивания. От 3 до 50 символов." error={fieldError?.field==='login'?fieldError.message:''} value={draft.login} maxLength={50} onChange={event=>update('login',event.target.value)}/></div></PanelSection>
     </div>
     <PanelFooter disabled={saving}>{saving?'Сохраняем…':'Сохранить'}</PanelFooter>
    </form>}
@@ -178,6 +206,7 @@ export default function ProfilePanel({page,setPage,profile,setProfile,onOpenChat
     {page.pending?<p className="access-hint">Заявка отправлена владельцу.</p>:<button className="access-save" type="button" disabled={saving || !page.id} onClick={join}><PanelIcon name="person_add"/>{saving?'Вступаем…':'Вступить'}</button>}</div>
    </PanelSection></div>}
   </div>
+  {usernameDialog && <UsernameDialog {...usernameDialog} onClose={()=>setUsernameDialog(null)}/>}
   {portraitOpen && <div className="portrait-overlay" role="dialog" aria-modal="true" aria-label="Фото профиля" onClick={()=>setPortraitOpen(false)} onKeyDown={event=>{if(event.key==='Escape')setPortraitOpen(false);}}>
    <button autoFocus type="button" className="header-action" aria-label="Закрыть фото"><PanelIcon name="close"/></button>
    <Portrait name={info?.name || info?.fio || page.name} src={info?.avatar || page.avatar}/>

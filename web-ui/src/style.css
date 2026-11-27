@@ -1107,3 +1107,19 @@ button.profile-row:hover { background:#ffffff0b; }
 @keyframes file-upload-processing { to { background-position:-220% 0; } }
 @media(prefers-reduced-motion:reduce) { .file-upload-track i { transition:none; } .file-upload-track.is-processing i { animation:none; } }
 .file-upload-progress small { white-space:nowrap; color:#d2e6da; font-size:11px; }
+.profile-username { padding:0; border:0; background:none; color:inherit; font:inherit; text-align:start; cursor:pointer; }
+.profile-username:hover { text-decoration:underline; }
+.profile-username.collectible { color:#d6efd9; text-shadow:0 0 10px #9cdda258; }
+.username-dialog { width:min(380px,calc(100% - 28px)); max-height:calc(100dvh - 28px); padding:0; border:0; border-radius:23px; background:#202725; color:#edf6f0; }
+.username-dialog::backdrop { background:#060908a6; backdrop-filter:blur(6px); }
+.username-dialog[open] { animation:username-enter .22s ease-out both; }
+.username-dialog-body { position:relative; display:grid; justify-items:center; gap:9px; padding:24px 20px 20px; text-align:center; }
+.username-dialog-body .username-close { position:absolute; inset:8px 8px auto auto; }
+.username-emblem { display:grid; place-items:center; width:48px; height:48px; border-radius:16px; background:#34483d; color:#b2e2c7; }
+.username-emblem.collectible { background:linear-gradient(145deg,#554a35,#393b2f); color:#f0d49a; }
+.username-dialog h2,.username-dialog p { margin:0; }
+.username-dialog p { color:#b9c8bf; font-size:14px; line-height:1.45; }
+.username-dialog input { width:100%; margin:4px 0; padding:10px 11px; border:1px solid #45574d; border-radius:12px; background:#161d19; color:#e2f0e7; font:inherit; font-size:13px; }
+.username-dialog .access-save { background:#9ad4b6; }
+@keyframes username-enter { from { opacity:0; transform:translateY(5px) scale(.97); } }
+@media(prefers-reduced-motion:reduce) { .username-dialog[open] { animation:none; } }

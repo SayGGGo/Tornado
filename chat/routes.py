@@ -141,7 +141,7 @@ def register_chat(app):
             chat = db.session.get(Chat, int(handle[5:]))
         else:
             entry = db.session.get(PublicHandle, handle.lower())
-            if entry and entry.kind == "user" and db.session.get(User, entry.owner_id):
+            if entry and entry.kind in ("user", "user_alias") and db.session.get(User, entry.owner_id):
                 return redirect(url_for("chat", start_peer=entry.owner_id))
             chat = db.session.get(Chat, entry.owner_id) if entry and entry.kind == "chat" else None
         if chat and not chat.personal and chat.visibility == "public":
@@ -327,11 +327,15 @@ def register_chat(app):
         may_see_presence = user.id == session["user_id"] or user.show_last_seen is not False
         is_online = may_see_presence and user.last_seen and (datetime.utcnow() - user.last_seen) < timedelta(minutes=2)
         avatar = user.avatar if getattr(user, 'avatar', None) else f"https://ui-avatars.com/api/?name={user.login}&background=random&color=fff&rounded=true&bold=true"
+        handle = public_name(user)
+        alias = PublicHandle.query.filter_by(kind="user_alias", owner_id=user.id).first()
         return jsonify({
             "id": user.id,
             "login": user.login,
             "fio": user.fio,
-            "handle": public_name(user),
+            "handle": handle,
+            "alias": alias.name if alias else None,
+            "collectible_handle": user.is_bot and user.login == "bot_print_queue" and handle == "3d",
             "verified": bool(user.is_verified),
             "avatar": avatar,
             "bio": (user.bio or "") if user.id == session["user_id"] or user.show_bio is not False else "",
@@ -977,8 +981,8 @@ def register_chat(app):
         if "login" in data:
             from sqlalchemy import func
             login = data["login"]
-            if not isinstance(login, str) or not re.fullmatch(r"[A-Za-z0-9_]{3,50}", login):
-                return jsonify(error="Введите от 3 до 50 символов. Подойдут латинские буквы, цифры и подчёркивания.", field="login"), 400
+            if not isinstance(login, str) or (login != original_login and not re.fullmatch(r"[A-Za-z][A-Za-z0-9_]{2,49}", login)):
+                return jsonify(error="Начните с латинской буквы. Далее допустимы латинские буквы, цифры и подчёркивания. Длина от 3 до 50 символов.", field="login"), 400
             login = login.lower() if login != user.login else user.login
             if login != user.login and User.query.filter(func.lower(User.login) == login.lower(), User.id != user.id).first():
                 return jsonify(error="Это имя уже занято. Выберите другое.", field="login"), 409

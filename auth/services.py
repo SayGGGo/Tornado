@@ -23,8 +23,8 @@ class AuthService:
             return {"success": False, "message": "Заполните все обязательные поля"}
 
         login = str(data["login"]).strip().lower()
-        if not 3 <= len(login) <= 50 or not re.match(r"^[a-zA-Z0-9_]+$", login):
-            return {"success": False, "message": "Логин должен быть от 3 символов и содержать только латиницу"}
+        if not re.fullmatch(r"[a-z][a-z0-9_]{2,49}", login):
+            return {"success": False, "message": "Имя пользователя должно начинаться с латинской буквы. Далее допустимы латинские буквы, цифры и подчёркивания. Длина от 3 до 50 символов."}
 
         password = data.get("password")
         if not password or len(password) < 6:

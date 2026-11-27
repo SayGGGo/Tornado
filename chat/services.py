@@ -615,6 +615,10 @@ class ChatService:
             if not handle:
                 return []
             matches = [PublicHandle.name.icontains(handle, autoescape=True), User.login.icontains(handle, autoescape=True)]
+            aliases = db.session.query(PublicHandle.owner_id).filter(
+                PublicHandle.kind == "user_alias", PublicHandle.name.icontains(handle, autoescape=True)
+            )
+            matches.append(User.id.in_(aliases))
             if not query.startswith("@"):
                 matches.append(User.fio.icontains(query, autoescape=True))
             users = users.filter(or_(*matches)).order_by(case((PublicHandle.name == handle, 0), else_=1))
