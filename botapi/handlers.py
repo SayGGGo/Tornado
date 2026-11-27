@@ -172,6 +172,8 @@ class TornBotAPI:
             notify_chat_users(chat_id)
             return {"ok": True, "result": _json_message(msg)}
         if method == "deleteMessage":
+            if not msg or msg.chat_id != chat_id:
+                return {"ok": False, "error_code": 400, "description": "message not found"}, 400
             result = ChatService().delete_message(owner.id, message_id)
             return ({"ok": True, "result": True} if "success" in result else {"ok": False, "error_code": 400, "description": result.get("error", "delete failed")}, 200 if "success" in result else 400)
         if method == "getChat":

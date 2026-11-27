@@ -537,14 +537,17 @@ export default function ChatContent({chat, channel, showSender, search, forwardT
       onClick={selectionMode?event=>{if(!event.target.closest('button,audio,a')) toggleMarked(key);}:undefined}>
      <button type="button" className="message-selection" inert={!selectionMode} aria-hidden={!selectionMode || undefined} aria-pressed={isSelected} aria-label={isSelected?'Снять выделение сообщения':'Выбрать сообщение'} onClick={()=>toggleMarked(key)}><Icon name="tick"/></button>
      {message.sender && <button className="sender-avatar sender-link" type="button" aria-label={'Профиль '+message.sender} onClick={()=>onOpenAuthor(message)}><Portrait src={message.avatar} name={message.sender}/></button>}
-     <article data-message-id={message.id} className={'bubble'+(message.own?' own':'')+(effect?' dissolving':'')+(enteringMessage===message.id || message.pending?' entering':'')} onContextMenu={message.pending?undefined:event=>openMessageMenu(event,message)}
+     <article data-message-id={message.id} className={'bubble'+(message.own?' own':'')+(compact && !message.quote && !message.forwarded && !message.keyboard?' compact-bubble':'')+(effect?' dissolving':'')+(enteringMessage===message.id || message.pending?' entering':'')} onContextMenu={message.pending?undefined:event=>openMessageMenu(event,message)}
       onAnimationEnd={event=>{if(event.target===event.currentTarget && event.animationName==='message-arrive') setEnteringMessage(current=>current===message.id?null:current);}}>
       {message.forwarded && <div className="forwarded-label">Переслано из «{message.forwarded}»</div>}
       {message.quote && <blockquote>{message.quote}</blockquote>}
       {showSender && !message.own && <button type="button" className="sender-name sender-link" onClick={()=>onOpenAuthor(message)}>{message.sender || message.author}</button>}
       {compact ? <div className="bubble-inline"><span className="bubble-copy">{message.text}</span>{metadata}</div> : message.text && <div className="bubble-copy">{message.text}</div>}
       {message.file && <div className="bubble-file"><Icon name="clip"/>{message.file.url?<a href={message.file.url} download>{message.file.name}</a>:message.file.name}</div>}
-      {message.pending && message.file && <div className="file-upload-progress"><progress value={message.progress??0} max="100" aria-label="Загрузка файла"/><small>{message.progress===100?'Обрабатываем…':(message.progress??0)+'%'}</small></div>}
+      {message.pending && message.file && <div className="file-upload-progress">
+       <div className={'file-upload-track'+(message.progress===100?' is-processing':'')} role="progressbar" aria-label={message.progress===100?'Обработка файла':'Загрузка файла'} aria-valuenow={message.progress??0} style={{'--upload-progress':(message.progress??0)+'%'}}><i/></div>
+       <small>{message.progress===100?'Обрабатываем…':(message.progress??0)+'%'}</small>
+      </div>}
       {message.audio && <audio controls src={message.audio}/>}
       {Array.isArray(message.keyboard) && <div className="bot-actions" aria-busy={inlineAction?.chat===name && inlineAction.id===message.id}>{message.keyboard.map((row,rowIndex)=>Array.isArray(row) && <div key={rowIndex}>{row.map((item,index)=>{
        if (!item || typeof item.text!=='string') return null;

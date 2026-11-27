@@ -1048,6 +1048,9 @@ button.profile-row:hover { background:#ffffff0b; }
 .bubble-copy { line-height:1.4; white-space:pre-wrap; overflow-wrap:anywhere; }
 .bubble-inline { align-items:baseline; }
 .bubble-inline footer { align-self:end; margin:0; }
+.bubble.own.compact-bubble { padding-block:7px; }
+.bubble.own.compact-bubble .bubble-inline { align-items:center; }
+.bubble.own.compact-bubble .bubble-inline footer { align-self:center; }
 .bot-start { justify-content:center; gap:7px; background:transparent; font-weight:600; }
 .bot-start:disabled { opacity:.65; cursor:wait; }
 .bot-start .outline-icon { width:16px; height:16px; }
@@ -1097,5 +1100,9 @@ button.profile-row:hover { background:#ffffff0b; }
 .message-history.drop-active { outline:2px dashed #8ac4a6; outline-offset:-7px; border-radius:18px; }
 .file-drop-hint { position:sticky; top:35%; align-self:center; z-index:4; display:flex; align-items:center; gap:9px; padding:12px 17px; border-radius:14px; background:#253b31; color:#ecf9f1; pointer-events:none; }
 .file-upload-progress { display:flex; align-items:center; gap:9px; margin-block:5px; }
-.file-upload-progress progress { min-width:65px; width:100%; height:6px; accent-color:#a7e1c0; }
+.file-upload-track { flex:1; min-width:65px; height:5px; overflow:hidden; border-radius:8px; background:#13251daf; }
+.file-upload-track i { display:block; width:var(--upload-progress); height:100%; border-radius:inherit; background:linear-gradient(90deg,#6eb392,#b3e5c6); transition:width .22s ease-out; }
+.file-upload-track.is-processing i { width:100%; background:linear-gradient(90deg,#6eb392 20%,#b3e5c6 50%,#6eb392 80%); background-size:220% 100%; animation:file-upload-processing 1.05s linear infinite; }
+@keyframes file-upload-processing { to { background-position:-220% 0; } }
+@media(prefers-reduced-motion:reduce) { .file-upload-track i { transition:none; } .file-upload-track.is-processing i { animation:none; } }
 .file-upload-progress small { white-space:nowrap; color:#d2e6da; font-size:11px; }
