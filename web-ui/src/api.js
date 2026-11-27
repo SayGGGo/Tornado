@@ -111,6 +111,20 @@ export async function sendToChat(chatId, values) {
    attachment = await response.blob();
   }
   upload.append('file',attachment,filename);
+  if (values.onProgress) return new Promise((resolve,reject)=>{
+   const request=new XMLHttpRequest();
+   request.open('POST',appPath('/api/upload'));
+   request.responseType='json';
+   request.upload.onprogress=event=>{if(event.lengthComputable)values.onProgress(Math.round(event.loaded/event.total*100));};
+   request.upload.onload=()=>values.onProgress(100);
+   request.onerror=()=>reject(new Error('Соединение прервалось во время загрузки файла.'));
+   request.onload=()=>{
+    if(request.status===401){location.assign(appPath('/login'));reject(new Error('Сеанс завершён.'));return;}
+    if(request.status>=200 && request.status<300 && request.response?.success){resolve(request.response);return;}
+    reject(new Error(request.response?.error || (request.status===413?'Файл превышает допустимый размер.':'Не удалось загрузить файл. HTTP '+request.status+'.')));
+   };
+   request.send(upload);
+  });
   return api('/api/upload',{method:'POST',body:upload});
  }
  return api('/api/messages',{method:'POST',json:{chat_id:Number(chatId),content,reply_to_id:values.replyId,forward_from:values.forwardFrom}});

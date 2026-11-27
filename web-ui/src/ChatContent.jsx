@@ -22,6 +22,7 @@ function readHistoryCache() {
 export default function ChatContent({chat, channel, showSender, search, forwardTargets, notificationsEnabled, onToggleNotifications, notify, header, onUpdated, canWrite, revision, focus, pickRequest, onOpenAuthor, enterToSend}) {
  const [messages, setMessages] = useState(readHistoryCache);
  const [outbox,setOutbox]=useState({});
+ const [dropActive,setDropActive]=useState(false);
  const [historyReady,setHistoryReady]=useState({});
  const [historyError,setHistoryError]=useState(null);
  const [canLoadEarlier,setCanLoadEarlier] = useState({});
@@ -245,6 +246,26 @@ export default function ChatContent({chat, channel, showSender, search, forwardT
  const query = search.trim().toLocaleLowerCase('ru');
  const rows = query ? history.filter(message=>[message.text,message.file?.name].some(value=>value?.toLocaleLowerCase('ru').includes(query))) : history;
  function patch(values) { setDrafts(previous=>({...previous,[name]:{...previous[name],error:'',...values}})); }
+ function attachFile(file) {
+  if(!canWrite || showBotStart || !file) return;
+  if(file.size>50*1024*1024){patch({error:'Выберите файл до 50 МБ.'});return;}
+  patch({file});
+ }
+ const dropHandlers={
+  onDragOver:event=>{
+   if(!event.dataTransfer.types.includes('Files'))return;
+   event.preventDefault();
+   event.dataTransfer.dropEffect=canWrite && !showBotStart?'copy':'none';
+   setDropActive(canWrite && !showBotStart);
+  },
+  onDragLeave:event=>{if(!event.relatedTarget || !event.currentTarget.contains(event.relatedTarget))setDropActive(false);},
+  onDrop:event=>{
+   if(!event.dataTransfer.types.includes('Files'))return;
+   event.preventDefault();
+   setDropActive(false);
+   attachFile(event.dataTransfer.files[0]);
+  }
+ };
  async function startBot() {
   if (startingBots[name]) return;
   setStartingBots(current=>({...current,[name]:true}));
@@ -290,7 +311,8 @@ export default function ChatContent({chat, channel, showSender, search, forwardT
     setEditing(null);
     onUpdated();
    } else {
-    await append({text:text.trim(),file,replyId:reply?.name===name?reply.message.id:null});
+    await append({text:text.trim(),file,replyId:reply?.name===name?reply.message.id:null,
+     onProgress:file?progress=>setOutbox(current=>current[name]?.id===localId?{...current,[name]:{...current[name],progress}}:current):undefined});
    }
    setReply(null);
    if(isEdit)patch({text:'',file:null});
@@ -491,7 +513,8 @@ export default function ChatContent({chat, channel, showSender, search, forwardT
    {header}
   {!channel && pinned?.name===name && <button className="chat-note" onClick={()=>setPinned(null)}>⌖ {pinned.message.text ?? 'Вложение'} · ×</button>}
   </div>
-  <div key={name} ref={historyPanel} data-history-chat={name} className="message-history" onScroll={updateLatest} aria-label="История сообщений">
+  <div key={name} ref={historyPanel} data-history-chat={name} className={'message-history'+(dropActive?' drop-active':'')} {...dropHandlers} onScroll={updateLatest} aria-label="История сообщений">
+   {dropActive && <div className="file-drop-hint" aria-hidden="true"><PanelIcon name="paperclip"/>Отпустите файл, чтобы прикрепить</div>}
    {!query && canLoadEarlier[name] && <button className="chat-note history-load-more" type="button" disabled={loadingEarlier} onClick={loadEarlier}>{loadingEarlier?'Загрузка…':'Загрузить предыдущие сообщения'}</button>}
    {!rows.length && historyError?.name===name && <FormError className="history-error" message={historyError.message===connectionMessage?historyError.message:'Не удалось загрузить сообщения. '+historyError.message}/>}
    {record && !historyReady[name] && !rows.length && historyError?.name!==name && <div className="chat-skeleton" role="status" aria-label="Загрузка сообщений…"><i/><i/><i/></div>}
@@ -521,6 +544,7 @@ export default function ChatContent({chat, channel, showSender, search, forwardT
       {showSender && !message.own && <button type="button" className="sender-name sender-link" onClick={()=>onOpenAuthor(message)}>{message.sender || message.author}</button>}
       {compact ? <div className="bubble-inline"><span className="bubble-copy">{message.text}</span>{metadata}</div> : message.text && <div className="bubble-copy">{message.text}</div>}
       {message.file && <div className="bubble-file"><Icon name="clip"/>{message.file.url?<a href={message.file.url} download>{message.file.name}</a>:message.file.name}</div>}
+      {message.pending && message.file && <div className="file-upload-progress"><progress value={message.progress??0} max="100" aria-label="Загрузка файла"/><small>{message.progress===100?'Обрабатываем…':(message.progress??0)+'%'}</small></div>}
       {message.audio && <audio controls src={message.audio}/>}
       {Array.isArray(message.keyboard) && <div className="bot-actions" aria-busy={inlineAction?.chat===name && inlineAction.id===message.id}>{message.keyboard.map((row,rowIndex)=>Array.isArray(row) && <div key={rowIndex}>{row.map((item,index)=>{
        if (!item || typeof item.text!=='string') return null;
@@ -542,7 +566,7 @@ export default function ChatContent({chat, channel, showSender, search, forwardT
     </React.Fragment>;
    })}
   </div>
-  <div ref={bottomDock} className="conversation-dock conversation-dock-bottom">
+  <div ref={bottomDock} className="conversation-dock conversation-dock-bottom" {...dropHandlers}>
   {!selectionMode && canWrite && <FormError id={composeErrorId} className="composer-error" message={composeError}/>}
   {editing?.name===name && <button className="chat-note" onClick={()=>{setEditing(null);patch({text:'',file:null});}}>Редактирование · ×</button>}
   {reply?.name===name && <button className="chat-note" onClick={()=>setReply(null)}>↩ {reply.message.text ?? "Вложение"} · ×</button>}
@@ -563,7 +587,7 @@ export default function ChatContent({chat, channel, showSender, search, forwardT
     <OutlineIcon name="down"/>
    </button>}
    {showBotStart ? <button type="button" className="channel-alert bot-start" disabled={startingBots[name]} onClick={startBot}><PanelIcon name="arrow_forward"/>{startingBots[name]?'Запускаем…':'Запустить бота'}</button> : !canWrite && !channel ? <p className="composer-restricted">{record?.peer_blocked?'Снимите блокировку, чтобы снова писать.':'Отправка сообщений недоступна'}</p> : !canWrite && channel ? <button type="button" className="channel-alert" aria-pressed={notificationsEnabled} onClick={onToggleNotifications}><span className="bell-state" aria-hidden="true"><Icon name="bell"/><i/></span><span className="alert-label"><span className="label-enable">Включить уведомления</span><span className="label-disable">Выключить уведомления</span></span></button> : <>
-    <label className="composer-action attachment"><OutlineIcon name="paperclip"/><input type="file" aria-label="Прикрепить файл" onChange={event=>{const file=event.target.files[0]; if(file) patch({file});event.target.value='';}}/></label>
+    <label className="composer-action attachment"><OutlineIcon name="paperclip"/><input type="file" aria-label="Прикрепить файл" onChange={event=>{attachFile(event.target.files[0]);event.target.value='';}}/></label>
     <div className="compose-field"><span aria-hidden="true" className={'compose-placeholder'+(text?' faded':'')}>{recording?'Идёт запись…':'Сообщение'}</span><textarea ref={field} className="message-input" rows={1} aria-label="Сообщение" aria-describedby={composeError?composeErrorId:undefined} value={text} onChange={event=>patch({text:event.target.value})} onKeyDown={event=>{if(event.key==='Enter'&&!event.shiftKey&&!event.nativeEvent.isComposing && (enterToSend || event.ctrlKey || event.metaKey)){event.preventDefault();if(!recording)send();}}}/></div>
     {file && <button type="button" className="attached-file" title="Убрать файл" onClick={()=>patch({file:null})}>{file.name} ×</button>}
     <button type="button" className="composer-action" aria-label="Добавить смайлик" onClick={()=>{patch({text:text+' 🙂'});field.current?.focus();}}><OutlineIcon name="smile"/></button>

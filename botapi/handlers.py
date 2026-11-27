@@ -44,7 +44,7 @@ class TornBotAPI:
         if method == "getMe":
             return {"ok": True, "result": {"id": owner.id, "is_bot": True, "first_name": owner.fio, "username": owner.login}}
         if method == "getPrintAttachment" and owner.login == "bot_print_queue":
-            from chat.services import FileService
+            from chat.services import FileService, MAX_FILE_SIZE, MODEL_EXTENSIONS
             message = db.session.get(Message, int(data.get("message_id", 0) or 0))
             member = ChatParticipant.query.filter_by(chat_id=message.chat_id, user_id=owner.id, blocked=False).first() if message else None
             if not member or not message.chat.personal or message.is_deleted or message.user_id == owner.id:
@@ -54,8 +54,8 @@ class TornBotAPI:
                 return {"ok": False, "description": "Файл недоступен."}, 404
             root = Path(FileService.UPLOAD_DIR).resolve()
             path = (root / match[1]).resolve()
-            if path.parent != root or not path.is_file() or path.stat().st_size > 20 * 1024 * 1024:
-                return {"ok": False, "description": "Файл недоступен или превышает 20 МБ."}, 400
+            if path.parent != root or path.suffix[1:] not in MODEL_EXTENSIONS or not path.is_file() or path.stat().st_size > MAX_FILE_SIZE:
+                return {"ok": False, "description": "Файл модели недоступен или превышает 50 МБ."}, 400
             return {"ok": True, "result": {"name": message.file_name, "data": base64.b64encode(path.read_bytes()).decode("ascii")}}
         if method in ("getUser", "getChatMember"):
             chat_id = int(data.get("chat_id", 0) or 0)

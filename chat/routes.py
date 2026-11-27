@@ -603,6 +603,7 @@ def register_chat(app):
             return jsonify({"error": "No file"}), 400
 
         last_result = None
+        send_error = None
         for i, f in enumerate(files):
             file_data = FileService.save_file(f)
             if not file_data:
@@ -615,6 +616,12 @@ def register_chat(app):
                 result["chat_id"] = int(chat_id)
                 result["file"] = file_data
                 last_result = result
+            else:
+                send_error = result.get("error")
+                try:
+                    os.unlink(os.path.join(FileService.UPLOAD_DIR, urlsplit(file_data["url"]).path.rsplit("/", 1)[-1]))
+                except OSError:
+                    pass
 
         if last_result:
             sender = db.session.get(User, session["user_id"])
@@ -623,7 +630,7 @@ def register_chat(app):
                 send_push_to_chat_members(int(chat_id), session["user_id"], sender.login, "📎 Файл", avatar)
             return jsonify(last_result), 200
 
-        return jsonify({"error": "Неверный формат файла или превышен лимит 50 МБ"}), 400
+        return jsonify(error=send_error or "Неподдерживаемый формат или файл больше 50 МБ. Для моделей подходят STL, STEP, STP, OBJ и 3MF."), 400
 
     @app.route("/api/users/search", methods=["GET"])
     def search_users_api():

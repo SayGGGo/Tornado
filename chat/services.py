@@ -24,7 +24,8 @@ from agora_token_builder import RtcTokenBuilder
 from werkzeug.utils import secure_filename
 import time
 
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'mp4', 'webm', 'mp3', 'ogg', 'wav', 'pdf', 'doc', 'docx', 'zip', 'rar', 'txt', 'csv', 'xls', 'xlsx'}
+MODEL_EXTENSIONS = {'stl', 'stp', 'step', 'obj', '3mf'}
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'mp4', 'webm', 'mp3', 'ogg', 'wav', 'pdf', 'doc', 'docx', 'zip', 'rar', 'txt', 'csv', 'xls', 'xlsx'} | MODEL_EXTENSIONS
 MAX_FILE_SIZE = 50 * 1024 * 1024
 IMAGE_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 VIDEO_EXTENSIONS = {'mp4', 'webm'}
@@ -211,7 +212,7 @@ class FileService:
         file_storage.save(file_path)
 
         display_name = secure_filename(raw_name) or f"file.{ext}"
-        mime = file_storage.content_type or 'application/octet-stream'
+        mime = 'application/octet-stream' if ext in MODEL_EXTENSIONS else file_storage.content_type or 'application/octet-stream'
         sig = cls.sign_filename(safe_name)
 
         return {
