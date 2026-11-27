@@ -9,6 +9,10 @@ class PublicHandle(db.Model):
     owner_id = db.Column(db.Integer, nullable=False)
     __table_args__ = (db.UniqueConstraint("kind", "owner_id"),)
 
+class CollectibleHandle(db.Model):
+    __tablename__ = "collectible_handle"
+    name = db.Column(db.String(64), db.ForeignKey("public_handle.name", ondelete="CASCADE"), primary_key=True)
+
 
 def reserve_handle(kind, owner_id, name):
     name = name.lower() if name else None

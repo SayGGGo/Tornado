@@ -13,17 +13,25 @@ const titles={'new-chat':'Новое сообщение','new-group':'Добав
  'chat-members':'Участники','chat-admin-pick':'Выбрать администратора','chat-admin-rights':'Права администратора','chat-admin-review':'Проверить права','chat-admins':'Администраторы','chat-blocked':'Чёрный список','chat-requests':'Заявки на вступление',
  settings:'Настройки',developer:'API-кабинет',display:'Отображение',privacy:'Конфиденциальность',shortcuts:'Набор сообщений',notifications:'Уведомления',logout:'Выход из аккаунта',qr:'QR-код',join:'Вступить в канал'};
 const setupViews=['new-chat','new-group','new-channel','invite'];
-function UsernameDialog({name,collectible,onClose}) {
+function UsernameDialog({name,collectible,source,onClose}) {
  const dialog=React.useRef(null);
  const timer=React.useRef(null);
  const [closing,setClosing]=useState(false);
  const [copied,setCopied]=useState(false);
  const [copyError,setCopyError]=useState('');
  const link=new URL(appPath('/t/'+encodeURIComponent(name)),location.origin).href;
- useEffect(()=>{
+ React.useLayoutEffect(()=>{
   const element=dialog.current;
   element.showModal();
-  return ()=>{clearTimeout(timer.current);element.close();};
+  const title=element.querySelector('h2');
+  const from=source?.getBoundingClientRect();
+  const to=title.getBoundingClientRect();
+  const animate=from && from.width && !matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(animate){
+   source.classList.add('username-in-flight');
+   title.animate([{transform:'translate('+(from.left-to.left)+'px,'+(from.top-to.top)+'px) scale('+Math.max(.5,from.width/to.width)+')'},{transform:'none'}],{duration:430,easing:'cubic-bezier(.22,1,.36,1)'});
+  }
+  return ()=>{clearTimeout(timer.current);source?.classList.remove('username-in-flight');element.close();};
  },[]);
  function close() {
   if(timer.current!==null)return;
@@ -31,14 +39,14 @@ function UsernameDialog({name,collectible,onClose}) {
   setClosing(true);
   timer.current=setTimeout(onClose,180);
  }
- return <dialog ref={dialog} className={'username-dialog'+(closing?' closing':'')} aria-labelledby="username-title" onCancel={event=>{event.preventDefault();close();}} onClick={event=>{if(event.target===event.currentTarget)close();}}>
+ return <dialog ref={dialog} className={'username-dialog'+(source?' username-flight':'')+(closing?' closing':'')} aria-labelledby="username-title" onCancel={event=>{event.preventDefault();close();}} onClick={event=>{if(event.target===event.currentTarget)close();}}>
   <div className="username-dialog-body">
    <button type="button" className="header-action username-close" aria-label="Закрыть" onClick={close}><PanelIcon name="close"/></button>
    <div className="username-heading">
     <span className="username-emblem"><PanelIcon name={collectible?'favorite':'alternate_email'}/></span>
     <div><h2 id="username-title">@{name}</h2><span>{collectible?'Коллекционное имя':'Имя пользователя'}</span></div>
    </div>
-   <p>{collectible?'Это короткое имя закреплено за ботом «3D Печать». Коллекционные имена недоступны при регистрации и смене имени.':'По имени пользователя можно найти профиль и открыть переписку в Tornado.'}</p>
+   <p>{collectible?'Это имя закреплено за владельцем. Коллекционные имена недоступны при регистрации и смене обычного имени.':'По имени пользователя можно найти профиль и открыть переписку в Tornado.'}</p>
    <FormError message={copyError}/>
    <button type="button" className="access-save" onClick={async()=>{
     try {await navigator.clipboard.writeText(link);setCopied(true);setCopyError('');}
@@ -59,6 +67,7 @@ export default function ProfilePanel({page,setPage,profile,setProfile,onOpenChat
  const [peer,setPeer]=useState(null);
  const [portraitOpen,setPortraitOpen]=useState(false);
  const [usernameDialog,setUsernameDialog]=useState(null);
+ const [ordering,setOrdering]=useState(false);
  const [qrReady,setQrReady]=useState(false);
  const view=page?.view;
  useEffect(()=>{
@@ -88,6 +97,7 @@ export default function ProfilePanel({page,setPage,profile,setProfile,onOpenChat
  const editing=view==='edit';
  const own=view==='self' || view==='settings';
  const info=own?profile:view==='peer'?peer:null;
+ const usernames=info?.usernames || (info?[{name:info.handle || info.login,collectible:info.collectible_handle}]:[]);
  const showingProfile=own || view==='peer';
  const openQr=()=>setPage({view:'qr',id:own?profile.id:page.id,name:info?.login,handle:info?.handle || info?.login,back:page});
  const qrUrl=appPath(page.qrUrl || '/api/user/'+page.id+'/qr');
@@ -109,13 +119,35 @@ export default function ProfilePanel({page,setPage,profile,setProfile,onOpenChat
   setSaving(true);
   try {
    const result=await api('/api/user/profile',{method:'POST',json:{fio:[draft.first,draft.last].map(value=>value.trim()).filter(Boolean).join(' '),login:draft.login.trim(),bio:draft.bio,...(draft.avatar?{avatar:draft.avatar}:{})}});
-   setProfile({...profile,name:result.fio,login:result.login,handle:result.handle,bio:result.bio,avatar:result.avatar});
+   setProfile({...profile,name:result.fio,login:result.login,handle:result.handle,usernames:result.usernames,bio:result.bio,avatar:result.avatar});
    setPage(previous || {view:'self'});
   } catch(reason){if(reason.field)setFieldError(reason);else setError(reason.message);}
   finally{setSaving(false);}
  }
- function changeAvatar(file) {
+ async function moveUsername(index,direction) {
+  if(ordering)return;
+  const order=usernames.map(entry=>entry.name);
+  [order[index],order[index+direction]]=[order[index+direction],order[index]];
+  setOrdering(true);
+  try {const result=await api('/api/user/profile/username-order',{method:'PUT',json:{order}});setProfile(current=>({...current,usernames:result.usernames}));}
+  catch(reason){setError(reason.message);}
+  finally{setOrdering(false);}
+ }
+ async function changeAvatar(file) {
   if(file.size>10*1024*1024 || !['image/jpeg','image/png','image/webp','image/gif'].includes(file.type)){setFieldError({field:'avatar',message:'Выберите фото JPG, PNG, WebP или GIF размером до 10 МБ.'});return;}
+  if(file.type!=='image/gif' && typeof createImageBitmap==='function'){
+   try{
+    const image=await createImageBitmap(file);
+    const ratio=Math.min(1,384/Math.max(image.width,image.height));
+    const canvas=document.createElement('canvas');
+    canvas.width=Math.max(1,Math.round(image.width*ratio));
+    canvas.height=Math.max(1,Math.round(image.height*ratio));
+    canvas.getContext('2d').drawImage(image,0,0,canvas.width,canvas.height);
+    image.close();
+    const preview=canvas.toDataURL('image/webp',.86);
+    if(preview.length<file.size*4/3){update('avatar',preview);return;}
+   }catch{}
+  }
   const reader=new FileReader();
   reader.addEventListener('load',()=>update('avatar',reader.result));
   reader.readAsDataURL(file);
@@ -145,7 +177,13 @@ export default function ProfilePanel({page,setPage,profile,setProfile,onOpenChat
      <strong>{info?.name || info?.fio || page.name || info?.login}<VerifiedBadge visible={info?.verified}/></strong><small>{own?'в сети':presenceLabel(peer)}</small>
     </div>
     {info && view!=='settings' && <div className="access-settings"><PanelSection title="Данные профиля">
-     <DetailRow icon="alternate_email" tone="blue" title={<button type="button" className="profile-username" onClick={()=>setUsernameDialog({name:info.handle || info.login,collectible:info.collectible_handle})}>@{info.handle || info.login}</button>} detail={info.alias?'Имя пользователя · также @'+info.alias:'Имя пользователя'}><button type="button" className="header-action profile-qr-action" aria-label="Открыть QR-код" onClick={openQr}><PanelIcon name="qr_code_2"/></button></DetailRow>
+     {usernames.map(({name,collectible},index)=><DetailRow key={name} icon="alternate_email" tone="blue" title={<button type="button" className="profile-username" onClick={event=>setUsernameDialog({name,collectible,source:event.currentTarget})}>@{name}</button>} detail={collectible?'Коллекционное имя':'Имя пользователя'}>
+      {index===0 && <button type="button" className="header-action profile-qr-action" aria-label="Открыть QR-код профиля" onClick={openQr}><PanelIcon name="qr_code_2"/></button>}
+      {own && usernames.length>1 && <div className="username-order">
+       <button type="button" className="header-action" aria-label={'Поднять @'+name} disabled={ordering || index===0} onClick={()=>moveUsername(index,-1)}><PanelIcon name="send"/></button>
+       <button type="button" className="header-action" aria-label={'Опустить @'+name} disabled={ordering || index===usernames.length-1} onClick={()=>moveUsername(index,1)}><PanelIcon name="down"/></button>
+      </div>}
+     </DetailRow>)}
      {info.bio && <DetailRow icon="info" title={info.bio} detail="О себе"/>}
      {view==='peer' && page.chatId && <DetailRow icon="notifications" tone="coral" title="Уведомления" onClick={()=>onToggleNotifications(page.chatId)}><span className={'panel-switch'+(notificationEnabled(page.chatId)?' enabled':'')}/></DetailRow>}
      {view==='peer' && <DetailRow icon="chat_bubble" tone="green" title="Написать сообщение" onClick={async()=>{

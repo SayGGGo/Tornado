@@ -616,7 +616,7 @@ class ChatService:
                 return []
             matches = [PublicHandle.name.icontains(handle, autoescape=True), User.login.icontains(handle, autoescape=True)]
             aliases = db.session.query(PublicHandle.owner_id).filter(
-                PublicHandle.kind == "user_alias", PublicHandle.name.icontains(handle, autoescape=True)
+                PublicHandle.kind.in_(("user_alias", "collectible")), PublicHandle.name.icontains(handle, autoescape=True)
             )
             matches.append(User.id.in_(aliases))
             if not query.startswith("@"):

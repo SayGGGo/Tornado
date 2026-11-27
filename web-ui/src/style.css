@@ -1134,3 +1134,16 @@ button.profile-row:hover { background:#ffffff0b; }
 @keyframes search-result-reveal { from { opacity:0; translate:0 3px; } }
 @media(prefers-reduced-motion:reduce) { .global-search .search-result,.global-search .search-contacts > button { animation:none; } }
 .motion-disabled .global-search :is(.search-result,.search-contacts > button) { animation:none; }
+.username-in-flight { visibility:hidden; }
+.username-dialog.username-flight[open]:not(.closing) { overflow:visible; animation:username-flight-surface .35s ease-out both; }
+.username-dialog.username-flight .username-heading h2 { transform-origin:top left; }
+.username-dialog.username-flight[open]:not(.closing) .username-dialog-body :is(.username-emblem,.username-close,p,.access-save,.username-heading > div > span) { animation:username-flight-content .3s .08s ease-out both; }
+.username-order { display:flex; gap:1px; }
+.username-order .header-action { width:27px; height:31px; }
+.username-order .header-action:disabled { opacity:.32; }
+.username-order .outline-icon { width:15px; height:15px; }
+@keyframes username-flight-surface { from { background-color:#22252500; box-shadow:0 18px 56px #0000; } }
+@keyframes username-flight-content { from { opacity:0; } }
+@media(prefers-reduced-motion:reduce) {
+ .username-dialog.username-flight[open]:not(.closing),.username-dialog.username-flight[open]:not(.closing) .username-dialog-body :is(.username-emblem,.username-close,p,.access-save,.username-heading > div > span) { animation:none; }
+}

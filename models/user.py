@@ -17,6 +17,7 @@ class User(db.Model):
     show_last_seen = db.Column(db.Boolean, default=True)
     is_bot = db.Column(db.Boolean, nullable=False, default=False)
     is_verified = db.Column(db.Boolean, nullable=False, default=False)
+    public_name_order = db.Column(db.Text, default="[]")
 
     premium = db.Column(db.Boolean, default=False)
     premium_emoji = db.Column(db.Integer, default=0)

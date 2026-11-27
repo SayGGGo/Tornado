@@ -4,9 +4,20 @@ export function appPath(path) {
   !(appRoot && (path===appRoot || path.startsWith(appRoot+'/')))?appRoot+path:path;
 }
 const panelCache = new Map();
+export const account = JSON.parse(document.getElementById('tornado-session').textContent);
+const panelStorageKey='tornado:panels-v2:'+account.id;
+const persistentPanel=path=>/^\/api\/(user\/\d+|chats\/\d+\/info)$/.test(path);
+try {
+ for(const [path,entry] of Object.entries(JSON.parse(sessionStorage.getItem(panelStorageKey)) || {}))
+  if(persistentPanel(path) && Date.now()-entry.at<300000)panelCache.set(path,entry);
+} catch {}
+function persistPanels() {
+ try {sessionStorage.setItem(panelStorageKey,JSON.stringify(Object.fromEntries([...panelCache].filter(([path])=>persistentPanel(path)))));}
+ catch {}
+}
 export function cachedPanel(path) {
  const entry=panelCache.get(path);
- return entry && Date.now()-entry.at<30000?entry.value:undefined;
+ return entry && Date.now()-entry.at<(persistentPanel(path)?300000:30000)?entry.value:undefined;
 }
 export function fetchPanel(path, signal) {
  const stored=cachedPanel(path);
@@ -15,6 +26,7 @@ export function fetchPanel(path, signal) {
   if(!signal?.aborted) {
    if(panelCache.size>=64) panelCache.delete(panelCache.keys().next().value);
    panelCache.set(path,{at:Date.now(),value});
+   if(persistentPanel(path))persistPanels();
   }
   return value;
  });
@@ -67,10 +79,16 @@ export async function api(path, options={}) {
   error.field=result?.field;
   throw error;
  }
- if (request.method && request.method!=='GET') panelCache.clear();
+ if (request.method && request.method!=='GET') {
+  const relatedChat=path.match(/^\/api\/chats\/(\d+)(?:\/|\?|$)/)?.[1];
+  for(const key of panelCache.keys()){
+   if(!persistentPanel(key) || path.startsWith('/api/user/profile') && key==='/api/user/'+account.id ||
+      relatedChat && key==='/api/chats/'+relatedChat+'/info')panelCache.delete(key);
+  }
+  persistPanels();
+ }
  return result;
 }
-export const account = JSON.parse(document.getElementById('tornado-session').textContent);
 export const formatTime = new Intl.DateTimeFormat('ru-RU',{hour:'2-digit',minute:'2-digit'});
 const formatPresenceDate = new Intl.DateTimeFormat('ru-RU',{day:'numeric',month:'short'});
 export function presenceLabel(profile) {

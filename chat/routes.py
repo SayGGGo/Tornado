@@ -8,7 +8,7 @@ from urllib.parse import urlsplit
 from datetime import datetime, timedelta
 from flask import render_template, jsonify, session, request, redirect, url_for, send_from_directory, abort, make_response
 from models import db, User, Chat, ChatParticipant, Message, PublicHandle
-from models.public_handle import reserve_handle
+from models.public_handle import CollectibleHandle, reserve_handle
 from .services import ChatService, AgoraService, FileService, EncryptionService, flood_control
 from config import Config
 import uuid
@@ -112,6 +112,16 @@ def public_name(user):
     return row.name if row else user.login
 
 
+def profile_names(user):
+    primary = public_name(user)
+    aliases = PublicHandle.query.filter(PublicHandle.owner_id == user.id, PublicHandle.kind.in_(("user_alias", "collectible"))).order_by(PublicHandle.kind, PublicHandle.name).all()
+    all_names = [primary, *(row.name for row in aliases)]
+    collectible = {row.name for row in CollectibleHandle.query.filter(CollectibleHandle.name.in_(all_names))}
+    names = {name: {"name": name, "collectible": name in collectible} for name in all_names}
+    order = json.loads(user.public_name_order or "[]")
+    return [names[name] for name in dict.fromkeys([*order, *names]) if name in names]
+
+
 def register_chat(app):
     chat_service = ChatService()
     register_chat_management(app)
@@ -141,7 +151,7 @@ def register_chat(app):
             chat = db.session.get(Chat, int(handle[5:]))
         else:
             entry = db.session.get(PublicHandle, handle.lower())
-            if entry and entry.kind in ("user", "user_alias") and db.session.get(User, entry.owner_id):
+            if entry and entry.kind in ("user", "user_alias", "collectible") and db.session.get(User, entry.owner_id):
                 return redirect(url_for("chat", start_peer=entry.owner_id))
             chat = db.session.get(Chat, entry.owner_id) if entry and entry.kind == "chat" else None
         if chat and not chat.personal and chat.visibility == "public":
@@ -226,7 +236,7 @@ def register_chat(app):
         if request.endpoint == "chat":
             account = dict(id=user.id, login=user.login, name=user.fio, bio=user.bio or "",
                            avatar=_profile_avatar(user), premium=bool(user.premium),
-                           handle=public_name(user),
+                           handle=public_name(user), usernames=profile_names(user),
                            show_bio=user.show_bio is not False, show_last_seen=user.show_last_seen is not False,
                            can_message=not premium_only or bool(user.premium))
             bundle = os.path.join(app.static_folder, "chat-web", "tornado.js")
@@ -335,6 +345,7 @@ def register_chat(app):
             "fio": user.fio,
             "handle": handle,
             "alias": alias.name if alias else None,
+            "usernames": profile_names(user),
             "collectible_handle": user.is_bot and user.login == "bot_print_queue" and handle == "3d",
             "verified": bool(user.is_verified),
             "avatar": avatar,
@@ -953,6 +964,20 @@ def register_chat(app):
         db.session.commit()
         return jsonify(show_bio=user.show_bio is not False, show_last_seen=user.show_last_seen is not False)
 
+    @app.put("/api/user/profile/username-order")
+    def update_username_order():
+        user = db.session.get(User, session["user_id"]) if session.get("user_id") else None
+        if not user:
+            abort(401)
+        data = request.get_json(silent=True)
+        order = data.get("order") if isinstance(data, dict) else None
+        available = [entry["name"] for entry in profile_names(user)]
+        if not isinstance(order, list) or any(not isinstance(name, str) for name in order) or sorted(order) != sorted(available):
+            return jsonify(error="Список имён изменился. Откройте профиль заново."), 400
+        user.public_name_order = json.dumps(order)
+        db.session.commit()
+        return jsonify(usernames=profile_names(user))
+
     @app.route("/api/user/profile", methods=["POST"])
     def update_user_profile():
         if "user_id" not in session:
@@ -984,6 +1009,8 @@ def register_chat(app):
             if not isinstance(login, str) or (login != original_login and not re.fullmatch(r"[A-Za-z][A-Za-z0-9_]{2,49}", login)):
                 return jsonify(error="Начните с латинской буквы. Далее допустимы латинские буквы, цифры и подчёркивания. Длина от 3 до 50 символов.", field="login"), 400
             login = login.lower() if login != user.login else user.login
+            if login != original_login and any(entry["name"] == original_login and entry["collectible"] for entry in profile_names(user)):
+                return jsonify(error="Это коллекционное имя закреплено за профилем. Порядок имён можно изменить в профиле.", field="login"), 400
             if login != user.login and User.query.filter(func.lower(User.login) == login.lower(), User.id != user.id).first():
                 return jsonify(error="Это имя уже занято. Выберите другое.", field="login"), 409
             user.login = login
@@ -1058,7 +1085,7 @@ def register_chat(app):
 
         avatar_url = user.avatar if user.avatar else f"https://ui-avatars.com/api/?name={user.login}&background=random&color=fff&rounded=true&bold=true"
         return jsonify({"success": True, "avatar": avatar_url, "bio": user.bio or "", "fio": user.fio, "login": user.login,
-                        "handle": public_name(user)})
+                        "handle": public_name(user), "usernames": profile_names(user)})
 
     @app.route("/api/push/vapid-key", methods=["GET"])
     def push_vapid_key():

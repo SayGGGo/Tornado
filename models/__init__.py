@@ -10,7 +10,7 @@ from .admin import Admin
 from .push import PushSubscription
 from .report import UserReport
 from .bot import BotToken
-from .public_handle import PublicHandle, backfill_handles
+from .public_handle import CollectibleHandle, PublicHandle, backfill_handles
 from .oauth_client import OAuthAccessToken, OAuthApp, OAuthGrant
 
 def _automigrate(engine):
