@@ -43,7 +43,23 @@
     startupObserver.disconnect();
   });
   startupObserver.observe(chatRoot, {childList: true});
+  const client = document.createElement('script');
+  client.setAttribute('data-cfasync', 'false');
+  client.onerror = () => {
+    clearTimeout(slowStartup);
+    showChatStartupError('Браузер не смог загрузить файл интерфейса.');
+  };
+  client.onload = () => {
+    clearTimeout(slowStartup);
+    if (!chatRoot.firstElementChild && startup.querySelector('a').hidden) {
+      setTimeout(() => {
+        if (!chatRoot.firstElementChild && startup.querySelector('a').hidden)
+          showChatStartupError('Файл интерфейса загрузился, но чат не запустился.');
+      }, 2000);
+    }
+  };
+  client.src = {{ url_for('static', filename='chat-web/tornado.js', v=asset_version) | tojson }};
+  document.body.appendChild(client);
  </script>
- <script data-cfasync="false">{{ chat_script | safe }}</script>
 </body>
 </html>
