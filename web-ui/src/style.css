@@ -1060,6 +1060,11 @@ button.profile-row:hover { background:#ffffff0b; }
 }
 .bot-actions :is(button,a):hover { background:#405749; }
 .bot-actions button:disabled { opacity:.55; cursor:wait; }
+.bot-actions :is(button,a),.bot-start { transition:translate .13s ease, scale .13s ease, background-color .16s ease, opacity .16s ease; }
+.bot-actions :is(button,a):active,.bot-start:active { scale:.965; translate:0 1px; }
+.bot-actions button.inline-working { opacity:1; background:#49695a; animation:inline-action-pulse .65s ease-in-out infinite alternate; }
+@keyframes inline-action-pulse { to { background:#3b564a; } }
+@media(prefers-reduced-motion:reduce) { .bot-actions button.inline-working { animation:none; } }
 .chat-skeleton { display:grid; gap:10px; margin:auto 0 0; padding:10px 15px; }
 .chat-skeleton i { display:block; width:clamp(120px,38%,270px); height:34px; border-radius:14px; background:#ffffff12; animation:chat-skeleton-pulse 1.2s ease-in-out infinite alternate; }
 .chat-skeleton i:nth-child(2) { width:clamp(90px,26%,200px); justify-self:end; animation-delay:.12s; }

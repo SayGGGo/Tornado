@@ -24,6 +24,10 @@ def wait_for_revision(user_id, previous, timeout=20):
         condition.wait_for(lambda: _revisions[user_id] != previous, timeout=timeout)
         return _revisions[user_id]
 
+def current_revision(user_id):
+    with _condition(user_id):
+        return _revisions[user_id]
+
 
 def notify_user(user_id):
     condition = _condition(user_id)

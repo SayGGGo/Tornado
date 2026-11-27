@@ -18,7 +18,7 @@ from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from config import Config
 from .events import notify_chat_users, notify_user
-from models.public_handle import reserve_handle
+from models.public_handle import PublicHandle, reserve_handle
 from .permissions import member_rights, has_right
 from agora_token_builder import RtcTokenBuilder
 from werkzeug.utils import secure_filename
@@ -54,6 +54,7 @@ class FloodControl:
 
 
 flood_control = FloodControl()
+callback_flood_control = FloodControl(min_interval=0.15, burst_limit=12)
 
 
 class EncryptionService:
@@ -461,7 +462,8 @@ class ChatService:
         if not chat_id: return {"error": "Empty"}
         if not content and not file_data: return {"error": "Empty"}
 
-        if not flood_control.check(user_id):
+        limiter = callback_flood_control if msg_type == "bot_callback" else flood_control
+        if not limiter.check(user_id):
             return {"error": "Слишком быстро. Подождите немного."}
 
         from models.server import Settings
@@ -523,11 +525,15 @@ class ChatService:
             message_ids.append(new_msg.id)
 
         db.session.commit()
-        if msg_type != "bot_callback":
+        if msg_type == "bot_callback":
+            for part in parts:
+                if part.user.is_bot and part.user_id != user_id:
+                    notify_user(part.user_id)
+        else:
             notify_chat_users(chat_id)
         return {"success": True, "ids": message_ids}
 
-    def edit_message(self, user_id, message_id, new_content):
+    def edit_message(self, user_id, message_id, new_content, *, markup=None, replace_markup=False):
         msg = db.session.get(Message, message_id)
         if not msg:
             return {"error": "Not found"}
@@ -553,6 +559,8 @@ class ChatService:
         encrypted = self.crypto.encrypt_for_multiple(safe_content, pub_pems)
         msg.content = encrypted
         msg.is_edited = True
+        if replace_markup:
+            msg.reply_markup = json.dumps(markup, ensure_ascii=False) if markup else None
         db.session.commit()
         notify_chat_users(msg.chat_id)
         return {"success": True}
@@ -596,16 +604,26 @@ class ChatService:
         return {"success": True}
 
     def search_users(self, query, current_user_id):
-        users = User.query.filter(User.id != current_user_id)
+        from sqlalchemy import case
+        users = db.session.query(User, PublicHandle.name).outerjoin(
+            PublicHandle, (PublicHandle.kind == "user") & (PublicHandle.owner_id == User.id)
+        ).filter(User.id != current_user_id)
         if query:
-            users = users.filter(or_(User.login.ilike(f"%{query}%"), User.fio.ilike(f"%{query}%")))
+            handle = query.lstrip("@").lower()
+            if not handle:
+                return []
+            matches = [PublicHandle.name.icontains(handle, autoescape=True), User.login.icontains(handle, autoescape=True)]
+            if not query.startswith("@"):
+                matches.append(User.fio.icontains(query, autoescape=True))
+            users = users.filter(or_(*matches)).order_by(case((PublicHandle.name == handle, 0), else_=1))
         else:
             personal_chat_ids = db.session.query(ChatParticipant.chat_id).join(Chat).filter(
                 ChatParticipant.user_id == current_user_id, Chat.personal.is_(True)
             )
-            users = users.join(ChatParticipant).filter(ChatParticipant.chat_id.in_(personal_chat_ids))
-        return [{"id": u.id, "login": u.login, "fio": u.fio, "avatar": u.avatar}
-                for u in users.order_by(User.fio).distinct().limit(40).all()]
+            contacts = db.session.query(ChatParticipant.user_id).filter(ChatParticipant.chat_id.in_(personal_chat_ids))
+            users = users.filter(User.id.in_(contacts))
+        return [{"id": u.id, "login": u.login, "handle": handle or u.login, "fio": u.fio, "avatar": u.avatar}
+                for u, handle in users.order_by(User.fio).limit(40).all()]
 
     def get_or_create_personal_chat(self, user1_id, user2_id):
         c1 = [p.chat_id for p in ChatParticipant.query.filter_by(user_id=user1_id).all()]

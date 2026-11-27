@@ -30,6 +30,7 @@ export default function ChatContent({chat, channel, showSender, search, forwardT
  const [drafts, setDrafts] = useState({});
  const composeErrorId=React.useId();
  const [reactionOverrides,setReactionOverrides]=useState({});
+ const [inlineAction,setInlineAction]=useState(null);
  const pendingReactions=useRef(new Set());
  const reactionMovement = useRef(null);
  const [recording, setRecording] = useState(false);
@@ -121,7 +122,6 @@ export default function ChatContent({chat, channel, showSender, search, forwardT
  const [name,,,,,record] = chat;
  const [startedBots,setStartedBots]=useState({});
  const [startingBots,setStartingBots]=useState({});
- const showBotStart=record?.is_bot && !record.bot_started && !startedBots[name] && canWrite;
  const historyCutoff = record?.history_after_id ?? 0;
  const [editing, setEditing] = useState(null);
  const [armed,setArmed]=useState(null);
@@ -182,6 +182,29 @@ export default function ChatContent({chat, channel, showSender, search, forwardT
  const reactionKey = message => JSON.stringify([name,message.id]);
  const {text='',file=null,error:composeError=''} = drafts[name] ?? {};
  const history = historyCutoff ? (messages[name] ?? emptyHistory).filter(message=>message.id>historyCutoff) : messages[name] ?? emptyHistory;
+ const showBotStart=record?.is_bot && !record.bot_started && !startedBots[name] && canWrite && historyReady[name] && !history.length;
+ useEffect(()=>{
+  if (!inlineAction || inlineAction.chat!==name) return;
+  const message=history.find(item=>item.id===inlineAction.id);
+  if (message && JSON.stringify([message.text,message.keyboard])!==inlineAction.moment) setInlineAction(null);
+ },[inlineAction,history,name]);
+ useEffect(()=>{
+  if(!inlineAction) return;
+  const timer=setTimeout(()=>setInlineAction(current=>current===inlineAction?null:current),5000);
+  return ()=>clearTimeout(timer);
+ },[inlineAction]);
+ async function runInline(message,item) {
+  if (inlineAction?.chat===name && inlineAction.id===message.id) return;
+  const action={chat:name,id:message.id,data:item.callback_data,moment:JSON.stringify([message.text,message.keyboard])};
+  setInlineAction(action);
+  try {
+   const result=await api('/api/bot/callback',{method:'POST',json:{chat_id:Number(name),message_id:message.id,data:item.callback_data}});
+   if (!result.ok) throw new Error('Бот не выполнил действие.');
+  } catch (error) {
+   setInlineAction(current=>current===action?null:current);
+   notify(error.message);
+  }
+ }
  async function loadEarlier() {
   if (loadingEarlier || !history.length) return;
   setLoadingEarlier(true);
@@ -488,19 +511,12 @@ export default function ChatContent({chat, channel, showSender, search, forwardT
       {compact ? <div className="bubble-inline"><span className="bubble-copy">{message.text}</span>{metadata}</div> : message.text && <div className="bubble-copy">{message.text}</div>}
       {message.file && <div className="bubble-file"><Icon name="clip"/>{message.file.url?<a href={message.file.url} download>{message.file.name}</a>:message.file.name}</div>}
       {message.audio && <audio controls src={message.audio}/>}
-      {Array.isArray(message.keyboard) && <div className="bot-actions">{message.keyboard.map((row,rowIndex)=>Array.isArray(row) && <div key={rowIndex}>{row.map((item,index)=>{
+      {Array.isArray(message.keyboard) && <div className="bot-actions" aria-busy={inlineAction?.chat===name && inlineAction.id===message.id}>{message.keyboard.map((row,rowIndex)=>Array.isArray(row) && <div key={rowIndex}>{row.map((item,index)=>{
        if (!item || typeof item.text!=='string') return null;
        if (typeof item.url==='string' && /^https?:\/\//i.test(item.url)) return <a key={index} href={item.url} target="_blank" rel="noopener noreferrer">{item.text}</a>;
        if (item.callback_data==null) return null;
-       return <button key={index} type="button" onClick={async event=>{
-        const button=event.currentTarget;
-        button.disabled=true;
-        try {
-         const result=await api('/api/bot/callback',{method:'POST',json:{chat_id:Number(name),message_id:message.id,data:item.callback_data}});
-         if (!result.ok) throw new Error(result.description || 'Бот не выполнил действие');
-        } catch (error) { notify(error.message); }
-        finally {button.disabled=false;}
-       }}>{item.text}</button>;
+       const pending=inlineAction?.chat===name && inlineAction.id===message.id;
+       return <button key={index} type="button" disabled={pending || !canWrite} className={pending && inlineAction.data===item.callback_data?'inline-working':undefined} onClick={()=>runInline(message,item)}>{item.text}</button>;
       })}</div>)}</div>}
       {reactions.length ? <div className="bubble-reaction-line">
        <div className="bubble-reaction-buttons">{reactions.map(item=><button type="button" key={item.emoji} className={'message-reaction'+(channel?' channel-reaction':'')} aria-pressed={item.own} aria-label={item.emoji+', всего '+item.count}

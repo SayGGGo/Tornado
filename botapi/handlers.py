@@ -6,6 +6,7 @@ from flask import jsonify, request
 from sqlalchemy import or_
 
 from models import Chat, ChatParticipant, Message, User, db
+from chat.events import current_revision, notify_chat_users, wait_for_revision
 
 
 def _json_message(message):
@@ -78,17 +79,23 @@ class TornBotAPI:
             return {"ok": True, "result": True}
         if method == "getUpdates":
             offset = int(data.get("offset", 0) or 0)
-            timeout = min(int(data.get("timeout", 0) or 0), 25)
-            deadline = time.time() + timeout
+            timeout = max(0, min(int(data.get("timeout", 0) or 0), 25))
+            deadline = time.monotonic() + timeout
+            owner_id = owner.id
+            revision = current_revision(owner_id)
             while True:
                 q = Message.query.join(ChatParticipant, ChatParticipant.chat_id == Message.chat_id).filter(
-                    ChatParticipant.user_id == owner.id, Message.user_id != owner.id, Message.id >= offset
+                    ChatParticipant.user_id == owner_id, ChatParticipant.blocked.is_(False),
+                    Message.user_id != owner_id, Message.id >= offset, Message.is_deleted.is_(False)
                 ).order_by(Message.id).limit(min(int(data.get("limit", 100) or 100), 100))
                 rows = q.all()
-                if rows or time.time() >= deadline:
+                if rows or time.monotonic() >= deadline:
                     updates = []
                     for row in rows:
                         if row.msg_type == "bot_callback":
+                            if not row.reply_to or row.reply_to.user_id != owner_id or row.reply_to.is_deleted:
+                                updates.append({"update_id": row.id})
+                                continue
                             callback_text = ChatService().crypto.decrypt_for_user(row.content, owner.private_key, False)
                             updates.append({"update_id": row.id, "callback_query": {
                                 "id": str(row.id),
@@ -99,7 +106,8 @@ class TornBotAPI:
                         else:
                             updates.append({"update_id": row.id, "message": _json_message(row)})
                     return {"ok": True, "result": updates}
-                time.sleep(0.5)
+                db.session.rollback()
+                revision = wait_for_revision(owner_id, revision, timeout=max(0, deadline - time.monotonic()))
         chat_id = int(data.get("chat_id", 0) or 0)
         participant = ChatParticipant.query.filter_by(chat_id=chat_id, user_id=owner.id).first()
         if method == "sendMessage":
@@ -119,16 +127,18 @@ class TornBotAPI:
         message_id = int(data.get("message_id", 0) or 0)
         msg = db.session.get(Message, message_id)
         if method in ("editMessageText", "editMessageCaption"):
-            result = ChatService().edit_message(owner.id, message_id, data.get("text", data.get("caption", "")))
+            markup = data.get("reply_markup")
+            if markup is not None and not isinstance(markup, dict):
+                return {"ok": False, "error_code": 400, "description": "reply_markup must be an object"}, 400
+            if not msg or msg.chat_id != chat_id:
+                return {"ok": False, "error_code": 400, "description": "message not found"}, 400
+            result = ChatService().edit_message(owner.id, message_id, data.get("text", data.get("caption", "")),
+                                                markup=markup, replace_markup="reply_markup" in data)
             if "success" not in result:
                 return {"ok": False, "error_code": 400, "description": str(result.get("error", "edit failed"))}, 400
-            db.session.refresh(msg)
-            if "reply_markup" in data:
-                msg.reply_markup = json.dumps(data["reply_markup"], ensure_ascii=False) if data["reply_markup"] else None
-                db.session.commit()
             return {"ok": True, "result": _json_message(msg)}
         if method == "editMessageReplyMarkup":
-            if not msg:
+            if not msg or msg.is_deleted or msg.chat_id != chat_id:
                 return {"ok": False, "error_code": 400, "description": "message not found"}, 400
             if msg.user_id != owner.id:
                 return {"ok": False, "error_code": 400, "description": "bots can only edit their own messages"}, 400
@@ -138,6 +148,7 @@ class TornBotAPI:
             msg.reply_markup = json.dumps(markup, ensure_ascii=False) if markup else None
             msg.is_edited = True
             db.session.commit()
+            notify_chat_users(chat_id)
             return {"ok": True, "result": _json_message(msg)}
         if method == "deleteMessage":
             result = ChatService().delete_message(owner.id, message_id)

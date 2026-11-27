@@ -51,7 +51,7 @@ export default function GlobalSearch({open,query,tab,setTab,recent,clearRecent,r
    </>}
    {local.length>0 && <section className="search-result-card"><header>Ваши чаты</header>{local.map(([id,chat])=><Result key={id} avatar={chat.avatar} title={chat.name} detail={chat.last_msg} onClick={()=>openChat(id)}/>)}</section>}
    {(results.users.length>0 || results.channels.length>0) && <section className="search-result-card"><header>Глобальный поиск</header>
-    {results.users.map(user=><Result key={'user'+user.id} avatar={user.avatar} title={user.fio || user.login} detail={'@'+user.login} onClick={()=>openPerson(user)}/>)}
+    {results.users.map(user=><Result key={'user'+user.id} avatar={user.avatar} title={user.fio || user.login} detail={'@'+(user.handle || user.login)} onClick={()=>openPerson(user)}/>)}
     {results.channels.map(chat=><Result key={'channel'+chat.id} avatar={chat.avatar} title={chat.name} detail={chat.description || 'Публичный канал'} onClick={()=>openChannel(chat)}/>)}
    </section>}
    {results.messages.length>0 && <section className="search-result-card"><header>Сообщения</header>{results.messages.map(message=>{

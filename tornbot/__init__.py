@@ -93,6 +93,7 @@ class Bot:
         self.api_url = api_url.rstrip("/") + token + "/"
         self.handlers = []
         self._offset = int(__import__("os").getenv("TORNBOT_OFFSET", "0"))
+        self.on_update_processed = None
         self._running = False
 
     def _call(self, method, data=None):
@@ -201,7 +202,7 @@ class Bot:
                         update = Update(item["update_id"], message)
                         for handler, commands, predicate in self.handlers:
                             if commands and message.text.startswith("/"):
-                                matched = message.text[1:].split()[0] in commands
+                                matched = next(iter(message.text[1:].split()), "") in commands
                             else:
                                 matched = not commands
                             if matched and (predicate is None or predicate(message)):
@@ -215,6 +216,8 @@ class Bot:
                         for handler, predicate in getattr(self, "callback_handlers", []):
                             if predicate is None or predicate(callback):
                                 handler(callback)
+                    if self.on_update_processed:
+                        self.on_update_processed(self._offset)
                 if interval:
                     time.sleep(interval)
             except Exception:
