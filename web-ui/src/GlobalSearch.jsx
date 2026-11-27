@@ -1,44 +1,84 @@
 import React,{useEffect,useState} from 'react';
-import {api,formatTime,fetchPanel} from './api.js';
+import {account,api,formatTime} from './api.js';
 import {FormError,PanelIcon,Portrait,Loader} from './panelControls.jsx';
 import {VerifiedBadge} from './OutlineIcon.jsx';
 
 const categories=[['all','Чаты'],['channels','Каналы'],['bots','Боты'],['posts','Посты'],['media','Медиа'],['links','Ссылки'],['messages','Сообщения']];
 const empty={users:[],channels:[],messages:[],next_cursor:null};
+const storageKey='tornado:'+account.id+':search-v1';
+const freshFor=30000;
+const retainFor=300000;
+const cache=new Map();
+try {
+ for(const [key,entry] of Object.entries(JSON.parse(sessionStorage.getItem(storageKey)) || {}))
+  if(entry && Date.now()-entry.at<retainFor) cache.set(key,entry);
+} catch {}
+function cached(key) {
+ const entry=cache.get(key);
+ return entry && Date.now()-entry.at<retainFor?entry:undefined;
+}
+function saveSearch(key,data) {
+ cache.delete(key);
+ cache.set(key,{at:Date.now(),data});
+ while(cache.size>20) cache.delete(cache.keys().next().value);
+ try {
+  // Message snippets stay in memory. Persist only profiles and channel previews.
+  sessionStorage.setItem(storageKey,JSON.stringify(Object.fromEntries([...cache].map(([path,entry])=>[
+   path,Array.isArray(entry.data)?entry:{...entry,at:Math.min(entry.at,Date.now()-freshFor),data:{...entry.data,messages:[],next_cursor:null}}
+  ]))));
+ } catch {}
+}
+const contactsPath='/api/users/search';
 export default function GlobalSearch({open,query,tab,setTab,recent,clearRecent,records,openPerson,openChat,openResult,openChannel}) {
- const [contacts,setContacts]=useState([]);
- const [results,setResults]=useState(empty);
- const [busy,setBusy]=useState(false);
- const [error,setError]=useState('');
- const term=query.trim();
+ const [contacts,setContacts]=useState(()=>cached(contactsPath)?.data || []);
+ const [resultFrame,setResultFrame]=useState(null);
+ const [paging,setPaging]=useState(null);
+ const term=query.trim().toLowerCase();
+ const path=term.length>=2?'/api/search?'+new URLSearchParams({q:term,kind:tab}):null;
+ const frame=resultFrame?.path===path?resultFrame:null;
+ const results=frame?.data || cached(path)?.data || empty;
+ const hasResults=!!(results.users.length || results.channels.length || results.messages.length);
+ const busy=!!path && (paging===path || (frame?.busy ?? !cached(path)));
+ const error=frame?.error || '';
  useEffect(()=>{
-  if(!open) return;
-  const controller=new AbortController();
-  fetchPanel('/api/users/search',controller.signal).then(data=>{if(!controller.signal.aborted)setContacts(data);}).catch(()=>{});
-  return ()=>controller.abort();
- },[open]);
- useEffect(()=>{
-  if(!open) return;
-  setResults(empty);
-  setError('');
-  setBusy(term.length>=2);
-  if(term.length<2) return;
+  if(!open && cached(contactsPath)) return;
+  if(cached(contactsPath) && Date.now()-cached(contactsPath).at<freshFor) return;
   const controller=new AbortController();
   const timer=setTimeout(()=>{
-   fetchPanel('/api/search?'+new URLSearchParams({q:term,kind:tab}),controller.signal)
-    .then(data=>{if(!controller.signal.aborted)setResults(data);}).catch(reason=>{if(!controller.signal.aborted)setError(reason.message);})
-    .finally(()=>{if(!controller.signal.aborted)setBusy(false);});
-  },320);
+   api(contactsPath,{signal:controller.signal}).then(data=>{
+    if(!controller.signal.aborted && Array.isArray(data)){saveSearch(contactsPath,data);setContacts(data);}
+   }).catch(()=>{});
+  },open?0:800);
   return ()=>{clearTimeout(timer);controller.abort();};
- },[open,term,tab]);
+ },[open]);
+ useEffect(()=>{
+  if(!open || !path) return;
+  const stored=cached(path);
+  if(stored && Date.now()-stored.at<freshFor){
+   setResultFrame({path,data:stored.data,busy:false});
+   return;
+  }
+  const controller=new AbortController();
+  setResultFrame({path,data:stored?.data,busy:true});
+  const timer=setTimeout(()=>{
+   api(path,{signal:controller.signal}).then(data=>{
+    if(controller.signal.aborted)return;
+    saveSearch(path,data);
+    setResultFrame({path,data,busy:false});
+   }).catch(reason=>{if(!controller.signal.aborted)setResultFrame({path,data:stored?.data,busy:false,error:reason.message});});
+  },stored?0:180);
+  return ()=>{clearTimeout(timer);controller.abort();};
+ },[open,path]);
  async function more() {
-  setBusy(true);
-  setError('');
+  if(!path || busy || !results.next_cursor)return;
+  setPaging(path);
   try {
-   const data=await api('/api/search?'+new URLSearchParams({q:term,kind:tab,cursor:results.next_cursor}));
-   setResults(current=>current===results?{...current,messages:[...current.messages,...data.messages],next_cursor:data.next_cursor}:current);
-  } catch(reason){setError(reason.message);}
-  finally{setBusy(false);}
+   const data=await api(path+'&cursor='+encodeURIComponent(results.next_cursor));
+   const combined={...results,messages:[...new Map([...results.messages,...data.messages].map(row=>[row.id,row])).values()],next_cursor:data.next_cursor};
+   saveSearch(path,combined);
+   setResultFrame(current=>current?.path===path?{path,data:combined,busy:false}:current);
+  } catch(reason){setResultFrame(current=>current?.path===path?{path,data:results,busy:false,error:reason.message}:current);}
+  finally{setPaging(current=>current===path?null:current);}
  }
  const local=term.length>=2 && tab==='all'?Object.entries(records).filter(([,chat])=>chat.name?.toLocaleLowerCase('ru').includes(term.toLocaleLowerCase('ru'))).slice(0,8):[];
  return <div className={'global-search'+(open?' searching':'')} inert={!open} aria-hidden={!open || undefined}>
@@ -60,9 +100,9 @@ export default function GlobalSearch({open,query,tab,setTab,recent,clearRecent,r
     return <Result key={message.id} avatar={chat?.avatar || message.avatar} title={chat?.name || message.name || message.author} detail={message.text} time={formatTime.format(new Date(message.at))} onClick={()=>openResult(message)}/>;
    })}</section>}
    {results.next_cursor && <button type="button" className="search-more" onClick={more} disabled={busy}>Искать дальше</button>}
-   <FormError message={error}/>
+   <FormError message={hasResults?'':error}/>
    {term.length>=2 && !error && !busy && !local.length && !results.users.length && !results.channels.length && !results.messages.length && !results.next_cursor && <p className="panel-empty">Ничего не найдено</p>}
-   {busy && <Loader/>}
+   {busy && !hasResults && !local.length && <Loader label="Поиск…"/>}
   </div>
  </div>;
 }
