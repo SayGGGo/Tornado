@@ -28,9 +28,10 @@
     output.hidden = false;
   }
   let clientLoaded = false;
+  const parts = {{ chat_parts | tojson }};
   const slowStartup = setTimeout(() => showChatStartupError(clientLoaded
-    ? 'Скрипт загружен, но React не отобразил интерфейс за 7 секунд.'
-    : 'Истекло время ожидания загрузки tornado.js (7 секунд).'), 7000);
+    ? 'Скрипт загружен, но React не отобразил интерфейс.'
+    : 'Истекло время ожидания загрузки интерфейса.'), parts ? 20000 : 10000);
   const chatRoot = document.getElementById('root');
   function handleStartupError(event) {
     if (chatRoot.firstElementChild) return;
@@ -57,6 +58,7 @@
   client.onerror = async () => {
     clearTimeout(slowStartup);
     showChatStartupError('Браузер не смог загрузить файл интерфейса.');
+    if (parts) return;
     try {
       const response = await fetch(client.src, {method:'HEAD', cache:'no-store'});
       const type = response.headers.get('content-type') || 'не указан';
@@ -78,8 +80,48 @@
       }, 2000);
     }
   };
-  client.src = {{ url_for('static', filename='chat-web/tornado.js', v=asset_version) | tojson }};
   document.body.appendChild(client);
+  if (!parts) {
+    client.src = {{ url_for('static', filename='chat-web/tornado.js', v=asset_version) | tojson }};
+  } else {
+    async function loadParts() {
+      const base = {{ url_for('static', filename='chat-parts/' ~ asset_version ~ '/') | tojson }};
+      const blocks = new Array(parts.count);
+      let next = 0;
+      async function download() {
+        while (next < blocks.length) {
+          const index = next++;
+          const name = String(index).padStart(2, '0');
+          let result;
+          for (let attempt = 0; attempt < 2; attempt++) {
+            try {
+              result = await fetch(base + name + '.js', {signal: AbortSignal.timeout(7000)});
+              if (result.ok) {
+                blocks[index] = await result.arrayBuffer();
+                break;
+              }
+            } catch (error) {
+              if (attempt === 1) throw new Error('Часть ' + (index + 1) + ': ' + error.message);
+            }
+          }
+          if (!blocks[index]) throw new Error('Часть ' + (index + 1) + ': HTTP ' + result?.status);
+        }
+      }
+      await Promise.all(Array.from({length:4}, download));
+      const blob = new Blob(blocks, {type:'application/javascript'});
+      const hash = await crypto.subtle.digest('SHA-256', await blob.arrayBuffer());
+      const hex = Array.from(new Uint8Array(hash), value => value.toString(16).padStart(2, '0')).join('');
+      if (hex !== parts.sha256) throw new Error('Загруженные части интерфейса не прошли проверку целостности.');
+      const url = URL.createObjectURL(blob);
+      client.addEventListener('load', () => URL.revokeObjectURL(url), {once:true});
+      client.addEventListener('error', () => URL.revokeObjectURL(url), {once:true});
+      client.src = url;
+    }
+    loadParts().catch(error => {
+      clearTimeout(slowStartup);
+      showChatStartupError(error.message);
+    });
+  }
  </script>
 </body>
 </html>

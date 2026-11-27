@@ -1,4 +1,6 @@
 import os
+import hashlib
+from functools import lru_cache
 import re
 import json
 import threading
@@ -14,6 +16,18 @@ import uuid
 from .events import epoch, notify_chat_users, notify_user, wait_for_revision
 from .permissions import member_rights
 from .management import chat_fields, join_managed_chat, message_reactions, register_chat_management
+
+CHAT_PART_SIZE = 24000
+
+
+@lru_cache(maxsize=2)
+def chat_bundle_info(path, version):
+    with open(path, "rb") as source:
+        bundle = source.read()
+    return {
+        "count": (len(bundle) + CHAT_PART_SIZE - 1) // CHAT_PART_SIZE,
+        "sha256": hashlib.sha256(bundle).hexdigest(),
+    }
 
 try:
     from pywebpush import webpush, WebPushException
@@ -101,6 +115,20 @@ def public_name(user):
 def register_chat(app):
     chat_service = ChatService()
     register_chat_management(app)
+
+    @app.get("/static/chat-parts/<int:version>/<int:part>.js")
+    def chat_bundle_part(version, part):
+        bundle = os.path.join(app.static_folder, "chat-web", "tornado.js")
+        if os.getenv("TORNADO_CHUNKED_CLIENT") != "1" or not os.path.isfile(bundle) or int(os.path.getmtime(bundle)) != version:
+            abort(404)
+        if part >= chat_bundle_info(bundle, version)["count"]:
+            abort(404)
+        with open(bundle, "rb") as source:
+            source.seek(part * CHAT_PART_SIZE)
+            data = source.read(CHAT_PART_SIZE)
+        if not data:
+            abort(404)
+        return app.response_class(data, mimetype="application/javascript")
 
     @app.get("/t/<handle>")
     def public_link(handle):
@@ -203,7 +231,10 @@ def register_chat(app):
                            can_message=not premium_only or bool(user.premium))
             bundle = os.path.join(app.static_folder, "chat-web", "tornado.js")
             asset_version = int(os.path.getmtime(bundle)) if os.path.isfile(bundle) else 0
-            response = make_response(render_template("chat_web.html", account=account, asset_version=asset_version))
+            parts = None
+            if asset_version and os.getenv("TORNADO_CHUNKED_CLIENT") == "1":
+                parts = chat_bundle_info(bundle, asset_version)
+            response = make_response(render_template("chat_web.html", account=account, asset_version=asset_version, chat_parts=parts))
             response.headers["Cache-Control"] = "no-store"
             return response
 
