@@ -13,10 +13,9 @@ const titles={'new-chat':'Новое сообщение','new-group':'Добав
  'chat-members':'Участники','chat-admin-pick':'Выбрать администратора','chat-admin-rights':'Права администратора','chat-admin-review':'Проверить права','chat-admins':'Администраторы','chat-blocked':'Чёрный список','chat-requests':'Заявки на вступление',
  settings:'Настройки',developer:'API-кабинет',display:'Отображение',privacy:'Конфиденциальность',shortcuts:'Набор сообщений',notifications:'Уведомления',logout:'Выход из аккаунта',qr:'QR-код',join:'Вступить в канал'};
 const setupViews=['new-chat','new-group','new-channel','invite'];
-function UsernameDialog({name,collectible,source,onClose}) {
+function UsernameDialog({name,collectible,onClose}) {
  const dialog=React.useRef(null);
  const timer=React.useRef(null);
- const flight=React.useRef(null);
  const [closing,setClosing]=useState(false);
  const [copied,setCopied]=useState(false);
  const [copyError,setCopyError]=useState('');
@@ -24,29 +23,15 @@ function UsernameDialog({name,collectible,source,onClose}) {
  React.useLayoutEffect(()=>{
   const element=dialog.current;
   element.showModal();
-  const title=element.querySelector('h2');
-  const from=source?.getBoundingClientRect();
-  const to=title.getBoundingClientRect();
-  const animate=from && from.width && !matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if(animate){
-   source.classList.add('username-in-flight');
-   flight.current=title.animate([{transform:'translate('+(from.left-to.left)+'px,'+(from.top-to.top)+'px) scale('+Math.max(.5,from.width/to.width)+')'},{transform:'none'}],{duration:430,easing:'cubic-bezier(.22,1,.36,1)'});
-  }
-  return ()=>{clearTimeout(timer.current);source?.classList.remove('username-in-flight');element.close();};
+  return ()=>{clearTimeout(timer.current);element.close();};
  },[]);
  function close() {
   if(timer.current!==null)return;
   if(matchMedia('(prefers-reduced-motion: reduce)').matches){onClose();return;}
-  if(flight.current){
-   const animation=flight.current;
-   if(animation.playState==='finished')animation.currentTime=430;
-   animation.updatePlaybackRate(-Math.max(1,animation.currentTime/290));
-   animation.play();
-  }
   setClosing(true);
-  timer.current=setTimeout(onClose,flight.current?300:180);
+  timer.current=setTimeout(onClose,180);
  }
- return <dialog ref={dialog} className={'username-dialog'+(source?' username-flight':'')+(closing?' closing':'')} aria-labelledby="username-title" onCancel={event=>{event.preventDefault();close();}} onClick={event=>{if(event.target===event.currentTarget)close();}}>
+ return <dialog ref={dialog} className={'username-dialog'+(closing?' closing':'')} aria-labelledby="username-title" onCancel={event=>{event.preventDefault();close();}} onClick={event=>{if(event.target===event.currentTarget)close();}}>
   <div className="username-dialog-body">
    <button type="button" className="header-action username-close" aria-label="Закрыть" onClick={close}><PanelIcon name="close"/></button>
    <div className="username-heading">
@@ -147,7 +132,7 @@ export default function ProfilePanel({page,setPage,profile,setProfile,onOpenChat
   });
  }
  function renderUsername({name,collectible}) {
-  return collectible?<button type="button" className="profile-username" onClick={event=>setUsernameDialog({name,collectible,source:event.currentTarget})}>@{name}</button>:<span>@{name}</span>;
+  return collectible?<button type="button" className="profile-username" onClick={()=>setUsernameDialog({name,collectible})}>@{name}</button>:<span>@{name}</span>;
  }
  async function changeAvatar(file) {
   if(file.size>10*1024*1024 || !['image/jpeg','image/png','image/webp','image/gif'].includes(file.type)){setFieldError({field:'avatar',message:'Выберите фото JPG, PNG, WebP или GIF размером до 10 МБ.'});return;}
@@ -220,11 +205,11 @@ export default function ProfilePanel({page,setPage,profile,setProfile,onOpenChat
     </div></PanelSection>
     <PanelSection title="Публичный профиль"><div className="panel-fields">
      {!draft.primaryCollectible && <FloatingField label="Имя пользователя" required pattern={draft.login===profile.login?undefined:"[A-Za-z][A-Za-z0-9_]{2,49}"} autoCapitalize="none" spellCheck={false} formatError="Начните с латинской буквы. От 3 до 50 символов." error={fieldError?.field==='login'?fieldError.message:''} value={draft.login} maxLength={50} onChange={event=>update('login',event.target.value)}/>}
-     {draft.ordinaryAlias!==undefined && <FloatingField label="Обычное имя пользователя" required pattern="[A-Za-z][A-Za-z0-9_]{2,49}" autoCapitalize="none" spellCheck={false} formatError="Начните с латинской буквы. От 3 до 50 символов." error={fieldError?.field==='ordinary_alias'?fieldError.message:''} value={draft.ordinaryAlias} maxLength={50} onChange={event=>update('ordinaryAlias',event.target.value)}/>}
+     {draft.ordinaryAlias!==undefined && <FloatingField label={draft.names.some(entry=>entry.collectible)?'Обычное имя пользователя':'Имя пользователя'} required pattern="[A-Za-z][A-Za-z0-9_]{2,49}" autoCapitalize="none" spellCheck={false} formatError="Начните с латинской буквы. От 3 до 50 символов." error={fieldError?.field==='ordinary_alias'?fieldError.message:''} value={draft.ordinaryAlias} maxLength={50} onChange={event=>update('ordinaryAlias',event.target.value)}/>}
      {draft.names.length>1 && <div className="username-order-list" aria-label="Порядок имён в профиле">{draft.names.map(({name,collectible},index)=><div key={name} className="profile-row">
       <span>@{name}<small>{index===0?'Основное · ':''}{collectible?'Коллекционное':'Обычное'}</small></span>
       <div className="username-order">
-       <button type="button" className="header-action" aria-label={'Поднять @'+name} disabled={index===0} onClick={()=>moveUsername(index,-1)}><PanelIcon name="send"/></button>
+       <button type="button" className="header-action username-order-up" aria-label={'Поднять @'+name} disabled={index===0} onClick={()=>moveUsername(index,-1)}><PanelIcon name="down"/></button>
        <button type="button" className="header-action" aria-label={'Опустить @'+name} disabled={index===draft.names.length-1} onClick={()=>moveUsername(index,1)}><PanelIcon name="down"/></button>
       </div>
      </div>)}</div>}

@@ -1111,7 +1111,7 @@ button.profile-row:hover { background:#ffffff0b; }
 .profile-username:hover { text-decoration:underline; }
 .username-dialog { width:min(370px,calc(100% - 28px)); max-height:calc(100dvh - 28px); padding:0; border:0; border-radius:22px; background:#222525; color:#edf6f0; box-shadow:0 18px 56px #0008; }
 .username-dialog::backdrop { background:#060908a6; backdrop-filter:blur(5px); animation:username-backdrop .3s ease-out both; }
-.username-dialog[open] { animation:username-enter .31s cubic-bezier(.21,1,.32,1) both; }
+.username-dialog[open] { animation:username-enter .2s ease-out both; }
 .username-dialog.closing { pointer-events:none; animation:username-exit .18s ease-in both; }
 .username-dialog.closing::backdrop { animation:username-backdrop .18s ease-in reverse both; }
 .username-dialog-body { position:relative; display:grid; gap:14px; padding:20px; user-select:none; }
@@ -1126,29 +1126,18 @@ button.profile-row:hover { background:#ffffff0b; }
 .username-dialog .access-save { width:100%; background:#344b3e; color:#e5f4eb; }
 .username-dialog .access-save:hover { background:#41604e; }
 .username-dialog .form-error { margin:0; }
-@keyframes username-enter { from { opacity:0; transform:translateY(9px) scale(.975); } }
-@keyframes username-exit { to { opacity:0; transform:translateY(6px) scale(.98); } }
+@keyframes username-enter { from { opacity:0; } }
+@keyframes username-exit { to { opacity:0; } }
 @keyframes username-backdrop { from { opacity:0; } }
 @media(prefers-reduced-motion:reduce) { .username-dialog[open],.username-dialog::backdrop { animation:none; } }
 .global-search .search-result,.global-search .search-contacts > button { animation:search-result-reveal .17s ease-out both; }
 @keyframes search-result-reveal { from { opacity:0; translate:0 3px; } }
 @media(prefers-reduced-motion:reduce) { .global-search .search-result,.global-search .search-contacts > button { animation:none; } }
 .motion-disabled .global-search :is(.search-result,.search-contacts > button) { animation:none; }
-.username-in-flight { visibility:hidden; }
-.username-dialog.username-flight[open]:not(.closing) { overflow:visible; animation:username-flight-surface .35s ease-out both; }
-.username-dialog.username-flight .username-heading h2 { transform-origin:top left; }
-.username-dialog.username-flight[open]:not(.closing) .username-dialog-body :is(.username-emblem,.username-close,p,.access-save,.username-heading > div > span) { animation:username-flight-content .3s .08s ease-out both; }
 .username-order { display:flex; gap:1px; }
 .username-order .header-action { width:27px; height:31px; }
 .username-order .header-action:disabled { opacity:.32; }
 .username-order .outline-icon { width:15px; height:15px; }
-@keyframes username-flight-surface { from { background-color:#22252500; box-shadow:0 18px 56px #0000; } }
-@keyframes username-flight-content { from { opacity:0; } }
-@media(prefers-reduced-motion:reduce) {
- .username-dialog.username-flight[open]:not(.closing),.username-dialog.username-flight[open]:not(.closing) .username-dialog-body :is(.username-emblem,.username-close,p,.access-save,.username-heading > div > span) { animation:none; }
-}
+.username-order-up .outline-icon { rotate:180deg; }
 .username-order-list .profile-row { justify-content:space-between; gap:8px; }
 .username-order-list .profile-row > span { min-width:0; overflow-wrap:anywhere; }
-.username-dialog.username-flight.closing { overflow:visible; animation:username-flight-exit .29s ease-in both; }
-.username-dialog.username-flight.closing::backdrop { animation-duration:.29s; }
-@keyframes username-flight-exit { to { opacity:0; } }
