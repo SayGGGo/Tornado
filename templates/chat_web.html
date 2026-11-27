@@ -6,15 +6,20 @@
  <meta name="tornado-root" content="{{ request.script_root }}">
  <title>Tornado</title>
  <style>
- #chat-startup:not([hidden]){position:fixed;inset:0;z-index:50;background:#080808;color:#f2f7f4;display:grid;place-content:center;justify-items:center;gap:12px;text-align:center;font:15px system-ui,sans-serif}
- #chat-startup .startup-brand{display:flex;align-items:center;gap:12px;font-size:30px;animation:tornado-intro .36s ease-out both}
- #chat-startup .startup-brand svg{width:64px;height:auto}
+ body > #chat-startup:not([hidden]){position:fixed;inset:0;z-index:50;background:#080808;color:#f2f7f4;display:grid;place-content:center;justify-items:center;gap:12px;text-align:center;font:15px system-ui,sans-serif}
+ #chat-startup .startup-brand{display:flex;align-items:center;gap:12px;font:400 30px "Golos Text",system-ui,sans-serif}
+ #chat-startup .startup-brand svg{width:64px;height:auto;filter:drop-shadow(0 0 10px #ddffeb38);animation:tornado-logo 460ms cubic-bezier(.16,1,.3,1) both}
+ #chat-startup .startup-word{display:flex}
+ #chat-startup .startup-word span{animation:tornado-letter 260ms cubic-bezier(.16,1,.3,1) both;animation-delay:calc(115ms + var(--letter) * 28ms)}
+ #chat-startup.startup-leaving{pointer-events:none;animation:tornado-dismiss 230ms ease-out both}
  #chat-startup .startup-progress{height:2px;width:76px;overflow:hidden;border-radius:8px;background:#263630}
  #chat-startup .startup-progress::before{content:'';display:block;width:36px;height:100%;border-radius:8px;background:#91cbb0;animation:tornado-progress .9s ease-in-out infinite alternate}
  #chat-startup a{color:#a7d9bf}
- @keyframes tornado-intro{from{opacity:0;transform:scale(.92)}}
+ @keyframes tornado-logo{from{opacity:0;transform:translateX(44px) scale(.78)}to{opacity:1;transform:translateX(0) scale(1)}}
+ @keyframes tornado-letter{from{opacity:0;transform:translateX(-6px)}to{opacity:1;transform:translateX(0)}}
+ @keyframes tornado-dismiss{to{opacity:0}}
  @keyframes tornado-progress{to{transform:translateX(40px)}}
- @media(prefers-reduced-motion:reduce){ #chat-startup .startup-brand,#chat-startup .startup-progress::before{animation:none}}
+ @media(prefers-reduced-motion:reduce){ #chat-startup .startup-brand svg,#chat-startup .startup-word span,#chat-startup .startup-progress::before,#chat-startup.startup-leaving{animation:none}}
  </style>
  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'">
  <link rel="stylesheet" href="{{ url_for('static', filename='chat-web/tornado.css', v=asset_version) }}">
@@ -22,7 +27,7 @@
 <body>
  <div id="root"></div>
  <div id="chat-startup" role="status">
-  <div class="startup-brand"><svg viewBox="0 0 1132 642" aria-hidden="true"><path fill="currentColor" d="M442.493 592L687.802 384.673L687.802 235.834L811.937 235.834L1082 50L334.072 50L50 235.834L442.493 235.834L442.493 592Z"/></svg>Tornado</div>
+  <div class="startup-brand"><svg viewBox="0 0 1132 642" aria-hidden="true"><path fill="currentColor" d="M442.493 592L687.802 384.673L687.802 235.834L811.937 235.834L1082 50L334.072 50L50 235.834L442.493 235.834L442.493 592Z"/></svg><span class="startup-word" aria-label="Tornado" role="img">{% for letter in 'Tornado' %}<span aria-hidden="true" style="--letter:{{ loop.index0 }}">{{ letter }}</span>{% endfor %}</span></div>
   <div class="startup-progress" aria-label="Загрузка"></div>
   <span class="startup-message" hidden></span>
   <small hidden class="startup-detail"></small>
@@ -70,8 +75,12 @@
     startupObserver.disconnect();
   });
   startupObserver.observe(chatRoot, {childList: true});
-  document.addEventListener('tornado:chat-ready', () => {
+  document.addEventListener('tornado:chat-ready', async () => {
     clearTimeout(slowStartup);
+    const brand = startup.querySelector('.startup-brand');
+    await Promise.allSettled(brand.getAnimations({subtree:true}).map(animation => animation.finished));
+    startup.classList.add('startup-leaving');
+    await Promise.allSettled(startup.getAnimations().map(animation => animation.finished));
     startup.hidden = true;
   }, {once:true});
   const client = document.createElement('script');
