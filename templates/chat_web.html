@@ -31,6 +31,6 @@
   });
   startupObserver.observe(chatRoot, {childList: true});
  </script>
- <script data-cfasync="false" type="module" src="{{ url_for('static', filename='chat-web/tornado.js', v=asset_version) }}"></script>
+ <script data-cfasync="false">{{ chat_script | safe }}</script>
 </body>
 </html>

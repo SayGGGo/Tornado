@@ -4,6 +4,6 @@ export default defineConfig({
  build:{
   outDir:'../static/chat-web',
   emptyOutDir:true,
-  lib:{entry:'src/main.jsx',formats:['es'],fileName:()=> 'tornado.js',cssFileName:'tornado'},
+  lib:{entry:'src/main.jsx',name:'TornadoChat',formats:['iife'],fileName:()=> 'tornado.js',cssFileName:'tornado'},
  },
 });

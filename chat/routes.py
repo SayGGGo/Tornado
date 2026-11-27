@@ -203,7 +203,11 @@ def register_chat(app):
                            can_message=not premium_only or bool(user.premium))
             bundle = os.path.join(app.static_folder, "chat-web", "tornado.js")
             asset_version = int(os.path.getmtime(bundle)) if os.path.isfile(bundle) else 0
-            response = make_response(render_template("chat_web.html", account=account, asset_version=asset_version))
+            chat_script = ""
+            if asset_version:
+                with open(bundle, encoding="utf-8") as source:
+                    chat_script = re.sub(r"</script", lambda match: r"<\/" + match[0][2:], source.read(), flags=re.IGNORECASE)
+            response = make_response(render_template("chat_web.html", account=account, asset_version=asset_version, chat_script=chat_script))
             response.headers["Cache-Control"] = "no-store"
             return response
 
