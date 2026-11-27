@@ -15,7 +15,11 @@ const archiveRow = ['Архив','Сохранённые чаты','',0,'/static
 function usePreference(key,fallback) {
  const storageKey = 'tornado:'+account.id+':'+key;
  const [value,setValue] = useState(()=>{
-  try {return JSON.parse(localStorage.getItem(storageKey)) ?? fallback;}
+  try {
+   const stored=JSON.parse(localStorage.getItem(storageKey));
+   if (stored==null || typeof stored!==typeof fallback || Array.isArray(stored)!==Array.isArray(fallback)) return fallback;
+   return stored;
+  }
   catch {return fallback;}
  });
  useEffect(()=>{try {localStorage.setItem(storageKey,JSON.stringify(value));} catch {}},[storageKey,value]);
@@ -455,6 +459,10 @@ function App() {
    </div>)}
   </div></>;
 }
-createRoot(document.getElementById('root')).render(<App/>);
+const root=document.getElementById('root');
+createRoot(root,{onUncaughtError(error){
+ console.error(error);
+ root.dispatchEvent(new ErrorEvent('tornado:render-error',{message:error?.message || 'Ошибка рендера.'}));
+}}).render(<App/>);
 
 

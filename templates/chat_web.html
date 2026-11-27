@@ -12,17 +12,30 @@
  <div id="root"></div>
  <div id="chat-startup" role="status">
   <span>Открываем чаты…</span>
+  <small hidden class="startup-detail"></small>
   <a hidden href="{{ url_for('chat') }}">Обновить страницу</a>
   <noscript>Включите JavaScript, чтобы открыть чаты.</noscript>
  </div>
  <script type="application/json" id="tornado-session">{{ account | tojson }}</script>
  <script data-cfasync="false">
   const startup = document.getElementById('chat-startup');
-  const slowStartup = setTimeout(() => {
+  function showChatStartupError(detail) {
+    startup.hidden = false;
     startup.querySelector('span').textContent = 'Чат не загрузился.';
     startup.querySelector('a').hidden = false;
-  }, 7000);
+    const output = startup.querySelector('.startup-detail');
+    output.textContent = detail;
+    output.hidden = false;
+  }
+  const slowStartup = setTimeout(() => showChatStartupError('Интерфейс не запустился за 7 секунд.'), 7000);
   const chatRoot = document.getElementById('root');
+  function handleStartupError(event) {
+    if (chatRoot.firstElementChild) return;
+    clearTimeout(slowStartup);
+    showChatStartupError(event.message || 'Ошибка выполнения JavaScript.');
+  }
+  window.addEventListener('error', handleStartupError);
+  chatRoot.addEventListener('tornado:render-error', handleStartupError);
   const startupObserver = new MutationObserver(() => {
     if (!chatRoot.firstElementChild) return;
     clearTimeout(slowStartup);
