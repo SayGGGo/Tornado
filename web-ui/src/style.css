@@ -1050,7 +1050,8 @@ button.profile-row:hover { background:#ffffff0b; }
 .bubble-inline footer { align-self:end; margin:0; }
 .bubble.own.compact-bubble { padding-block:7px; }
 .bubble.own.compact-bubble .bubble-inline { align-items:center; }
-.bubble.own.compact-bubble .bubble-inline footer { align-self:center; }
+.bubble.own.compact-bubble .bubble-copy { position:relative; inset-block-start:-1px; }
+.bubble.own.compact-bubble .bubble-inline footer { align-self:end; position:relative; inset-block-start:2px; }
 .bot-start { justify-content:center; gap:7px; background:transparent; font-weight:600; }
 .bot-start:disabled { opacity:.65; cursor:wait; }
 .bot-start .outline-icon { width:16px; height:16px; }
