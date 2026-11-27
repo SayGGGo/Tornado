@@ -160,10 +160,11 @@ body {
 .auth-links a:hover { text-shadow:0 0 10px rgba(52,199,89,.5); }
 
 .error-message {
-  background:rgba(255,59,48,.1);border:1px solid rgba(255,59,48,.3);
-  color:#ff453a;padding:14px 18px;border-radius:12px;font-size:13px;font-weight:500;
-  margin-bottom:16px;display:none;transition:opacity .3s;
+  background:#342426;border:1px solid #ff8c8829;
+  color:#ffc0b9;padding:10px 12px;border-radius:12px;font-size:13px;line-height:1.45;
+  margin-bottom:14px;overflow-wrap:anywhere;
 }
+.error-message:empty { display:none; }
 
 .viz-panel {
   position:relative;overflow:hidden;

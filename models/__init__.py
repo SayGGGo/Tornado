@@ -10,6 +10,8 @@ from .admin import Admin
 from .push import PushSubscription
 from .report import UserReport
 from .bot import BotToken
+from .public_handle import PublicHandle, backfill_handles
+from .oauth_client import OAuthAccessToken, OAuthApp, OAuthGrant
 
 def _automigrate(engine):
     from sqlalchemy import inspect, text
@@ -46,3 +48,7 @@ def init_models(app):
     with app.app_context():
         db.create_all()
         _automigrate(db.engine)
+        from sqlalchemy import text
+        with db.engine.begin() as connection:
+            connection.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS uq_chat_alias ON chat (alias)"))
+        backfill_handles()

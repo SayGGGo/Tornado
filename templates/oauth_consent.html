@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Доступ к Tornado</title><style>
+:root{color-scheme:dark;font:16px system-ui;background:#111615;color:#edf3ef}body{margin:0;min-height:100vh;display:grid;place-items:center}
+main{width:min(85vw,420px);padding:24px;border-radius:24px;background:#202a24}h1{font-size:22px;margin-top:0}
+p{color:#c3d0c8;overflow-wrap:anywhere}form{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:9px;margin-top:23px}
+button{border:0;border-radius:18px;padding:10px 15px;background:#303d35;color:#fff;cursor:pointer;font:inherit}button[value=allow]{background:#447a60}
+</style></head><body><main>
+<h1>{{ client.name }} запрашивает доступ</h1>
+<p>Приложение получит ID аккаунта, имя и имя пользователя. Доступ к переписке не предоставляется.</p>
+<p>Адрес возврата: {{ client.redirect_uri }}</p>
+<form method="post"><input type="hidden" name="consent" value="{{ consent }}">
+<button name="decision" value="deny">Отказать</button><button name="decision" value="allow">Разрешить</button></form>
+</main></body></html>

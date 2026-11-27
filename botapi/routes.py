@@ -3,6 +3,8 @@ from config import logger
 from .handlers import TornBotAPI
 from chat.services import ChatService
 from models import BotToken, Chat, ChatParticipant, Message, User, db
+from models.public_handle import PublicHandle, reserve_handle
+from sqlalchemy.exc import IntegrityError
 import json
 import re
 import secrets
@@ -35,7 +37,7 @@ def register_bot_api(app):
         base = re.sub(r"[^a-z0-9_]", "_", str(data.get("username", name)).lower()).strip("_")[:40] or "bot"
         login = "bot_" + base
         suffix = 2
-        while User.query.filter_by(login=login).first():
+        while db.session.get(PublicHandle, login) or User.query.filter_by(login=login).first():
             login = f"bot_{base[:35]}_{suffix}"
             suffix += 1
         from chat.services import EncryptionService
@@ -43,7 +45,12 @@ def register_bot_api(app):
         bot_user = User(fio=name, login=login, password_hash=generate_password_hash(secrets.token_urlsafe(32)),
                         group_id="", private_key=private_key, public_key=public_key, is_bot=True)
         db.session.add(bot_user)
-        db.session.flush()
+        try:
+            db.session.flush()
+            reserve_handle("user", bot_user.id, login)
+        except (IntegrityError, ValueError):
+            db.session.rollback()
+            return jsonify({"ok": False, "description": "Это публичное имя уже занято"}), 409
         token = BotToken(user_id=bot_user.id, owner_id=owner_id, token="torn-" + secrets.token_urlsafe(32), active=True)
         db.session.add(token)
         dm = Chat(personal=True, owner_id=owner_id, chat_type="personal")

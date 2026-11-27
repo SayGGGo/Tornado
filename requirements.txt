@@ -3,6 +3,7 @@ flask-cors~=6.0.2
 Werkzeug~=3.1.5
 MarkupSafe~=3.0.3
 SQLAlchemy~=2.0.46
+psycopg[binary]>=3.2,<4
 cryptography~=46.0.5
 requests>=2.33.0
 pycryptodome~=3.23.0
@@ -20,3 +21,5 @@ openpyxl
 gunicorn
 eventlet
 flask-compress
+flask-sock>=0.7,<1
+pywebpush>=2,<3

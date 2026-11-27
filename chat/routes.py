@@ -2,38 +2,18 @@ import os
 import re
 import json
 import threading
-from collections import defaultdict
+from urllib.parse import urlsplit
 from datetime import datetime, timedelta
 from flask import render_template, jsonify, session, request, redirect, url_for, send_from_directory, abort, make_response
-from models import db, User, ChatParticipant
+from models import db, User, Chat, ChatParticipant, Message, PublicHandle
+from models.public_handle import reserve_handle
 from .services import ChatService, AgoraService, FileService, EncryptionService, flood_control
 from config import Config
 import uuid
 
-_notify_lock = threading.Lock()
-_notify_conds = {}
-_notify_seq = defaultdict(int)
-
-
-def _get_cond(user_id):
-    with _notify_lock:
-        if user_id not in _notify_conds:
-            _notify_conds[user_id] = threading.Condition(threading.Lock())
-        return _notify_conds[user_id]
-
-
-def notify_chat_users(chat_id):
-    try:
-        parts = ChatParticipant.query.filter_by(chat_id=chat_id).with_entities(ChatParticipant.user_id).all()
-    except Exception:
-        return
-    for row in parts:
-        uid = row.user_id
-        with _notify_lock:
-            _notify_seq[uid] += 1
-        cond = _get_cond(uid)
-        with cond:
-            cond.notify_all()
+from .events import epoch, notify_chat_users, notify_user, wait_for_revision
+from .permissions import member_rights
+from .management import chat_fields, join_managed_chat, message_reactions, register_chat_management
 
 try:
     from pywebpush import webpush, WebPushException
@@ -42,15 +22,14 @@ except ImportError:
     _WEBPUSH_OK = False
 
 
-def _send_push_background(subscriptions, payload_dict):
+def _send_push_background(subscriptions):
     if not _WEBPUSH_OK or not Config.VAPID_PRIVATE_KEY:
         return
-    payload = json.dumps(payload_dict).encode()
-    for sub in subscriptions:
+    for sub, payload in subscriptions:
         try:
             webpush(
-                subscription_info={"endpoint": sub.endpoint, "keys": {"p256dh": sub.p256dh, "auth": sub.auth}},
-                data=payload,
+                subscription_info=sub,
+                data=json.dumps(payload).encode(),
                 vapid_private_key=Config.VAPID_PRIVATE_KEY,
                 vapid_claims={"sub": Config.VAPID_CLAIMS_EMAIL},
             )
@@ -64,7 +43,7 @@ def send_push_to_chat_members(chat_id, sender_id, sender_name, message_text, sen
     from models.push import PushSubscription
     subs = (PushSubscription.query
             .join(ChatParticipant, ChatParticipant.user_id == PushSubscription.user_id)
-            .filter(ChatParticipant.chat_id == chat_id, PushSubscription.user_id != sender_id)
+            .filter(ChatParticipant.chat_id == chat_id, ChatParticipant.blocked.is_(False), PushSubscription.user_id != sender_id)
             .all())
     if not subs:
         return
@@ -81,16 +60,96 @@ def send_push_to_chat_members(chat_id, sender_id, sender_name, message_text, sen
         "chatId": chat_id,
         "url": "/chat",
     }
-    t = threading.Thread(target=_send_push_background, args=(subs, payload), daemon=True)
-    t.start()
+    chat = db.session.get(Chat, chat_id)
+    kind = "personal" if chat and chat.personal else "channel" if chat and chat.chat_type == "channel" else "group"
+    deliveries = []
+    for sub in subs:
+        settings = json.loads(sub.settings or "{}")
+        override = settings.get("overrides", {}).get(str(chat_id))
+        if override is False or (override is None and settings.get("kinds", {}).get(kind) is False):
+            continue
+        safe_payload = dict(payload)
+        if settings.get("previews", {}).get(kind) is False:
+            safe_payload["body"] = "Новое сообщение"
+        deliveries.append(({"endpoint": sub.endpoint, "keys": {"p256dh": sub.p256dh, "auth": sub.auth}}, safe_payload))
+    if deliveries:
+        threading.Thread(target=_send_push_background, args=(deliveries,), daemon=True).start()
+
+def _profile_avatar(user):
+    return user.avatar or f"https://ui-avatars.com/api/?name={user.login}&background=315745&color=fff"
+
+
+def _can_forward(user_id, message_id):
+    if message_id is None:
+        return True
+    try:
+        message_id = int(message_id)
+    except (TypeError, ValueError):
+        return False
+    return (db.session.query(Message.id).join(Chat, Chat.id == Message.chat_id)
+            .join(ChatParticipant, ChatParticipant.chat_id == Message.chat_id)
+            .filter(Message.id == message_id, Message.is_deleted.is_(False),
+                    ChatParticipant.user_id == user_id, ChatParticipant.blocked.is_(False),
+                    Chat.protected.is_not(True)).first() is not None)
+
+
+def public_name(user):
+    row = PublicHandle.query.filter_by(kind="user", owner_id=user.id).first()
+    return row.name if row else user.login
+
 
 def register_chat(app):
     chat_service = ChatService()
+    register_chat_management(app)
 
+    @app.get("/t/<handle>")
+    def public_link(handle):
+        if not session.get("user_id"):
+            return redirect(url_for("login", next=request.full_path.rstrip("?")))
+        token = request.args.get("token")
+        if handle.startswith("join-") and handle[5:].isascii() and handle[5:].isdecimal():
+            return redirect(url_for("chat", join=int(handle[5:]), invite=token or ""))
+        if handle.startswith("chat-") and handle[5:].isascii() and handle[5:].isdecimal():
+            chat = db.session.get(Chat, int(handle[5:]))
+        else:
+            entry = db.session.get(PublicHandle, handle.lower())
+            if entry and entry.kind == "user" and db.session.get(User, entry.owner_id):
+                return redirect(url_for("chat", start_peer=entry.owner_id))
+            chat = db.session.get(Chat, entry.owner_id) if entry and entry.kind == "chat" else None
+        if chat and not chat.personal and chat.visibility == "public":
+            member = ChatParticipant.query.filter_by(chat_id=chat.id, user_id=session["user_id"], blocked=False).first()
+            return redirect(url_for("chat", chat=chat.id) if member else url_for("chat", join=chat.id))
+        abort(404)
+
+    @app.get("/t/u/<username>")
+    def public_user_link(username):
+        if not session.get("user_id"):
+            return redirect(url_for("login", next=request.path))
+        from sqlalchemy import func
+        user = User.query.filter_by(login=username).first()
+        if not user:
+            matches = User.query.filter(func.lower(User.login) == username.lower()).limit(2).all()
+            if len(matches) != 1:
+                abort(404)
+            user = matches[0]
+        return redirect(url_for("chat", peer=user.id))
+
+    @app.get("/t/c/<alias>")
+    @app.get("/c/<alias>")
+    def public_chat_link(alias):
+        if alias.isdecimal():
+            return redirect(url_for("chat", join=int(alias)))
+        return redirect(url_for("chat", channel=alias.lower()))
+
+    @app.get("/t/i/<int:chat_id>")
+    def invite_chat_link(chat_id):
+        return redirect(url_for("chat", join=chat_id, invite=request.args.get("token", "")))
+
+    @app.route("/chat/classic", endpoint="chat_classic")
     @app.route("/chat")
     def chat():
         if "user_id" not in session:
-            return redirect(url_for("login"))
+            return redirect(url_for("login", next=request.full_path.rstrip("?")))
 
         user = db.session.get(User, session["user_id"])
         if not user:
@@ -136,9 +195,68 @@ def register_chat(app):
         srv_settings = Settings.query.first()
         premium_only = srv_settings.premium_only_messaging if srv_settings else False
 
+        if request.endpoint == "chat":
+            account = dict(id=user.id, login=user.login, name=user.fio, bio=user.bio or "",
+                           avatar=_profile_avatar(user), premium=bool(user.premium),
+                           handle=public_name(user),
+                           show_bio=user.show_bio is not False, show_last_seen=user.show_last_seen is not False,
+                           can_message=not premium_only or bool(user.premium))
+            bundle = os.path.join(app.static_folder, "chat-web", "tornado.js")
+            asset_version = int(os.path.getmtime(bundle)) if os.path.isfile(bundle) else 0
+            response = make_response(render_template("chat_web.html", account=account, asset_version=asset_version))
+            response.headers["Cache-Control"] = "no-store"
+            return response
+
         resp = make_response(render_template("chat.html", current_user=user, msg_data=msg_data, folders=folders, premium_only_messaging=premium_only))
         resp.headers['Cache-Control'] = 'no-store'
         return resp
+
+    @app.get("/api/user/<int:target_user_id>/qr")
+    def profile_qr(target_user_id):
+        if not session.get("user_id"):
+            abort(401)
+        target = db.session.get(User, target_user_id)
+        if not target:
+            abort(404)
+        return public_qr(public_name(target))
+
+    @app.get("/api/chats/<int:chat_id>/qr")
+    def chat_qr(chat_id):
+        if not session.get("user_id"):
+            abort(401)
+        chat = db.session.get(Chat, chat_id)
+        if not chat or chat.personal or chat.visibility != "public":
+            abort(404)
+        return public_qr(chat.alias or f"chat-{chat.id}")
+
+    def public_qr(handle):
+        from io import BytesIO
+        import qrcode
+        from qrcode.image.styledpil import StyledPilImage
+        from qrcode.image.styles.moduledrawers.pil import RoundedModuleDrawer
+        from PIL import ImageDraw
+        from flask import send_file
+        qr = qrcode.QRCode(error_correction=qrcode.constants.ERROR_CORRECT_H, box_size=9, border=4)
+        qr.add_data(url_for("public_link", handle=handle, _external=True))
+        qr.make(fit=True)
+        image = qr.make_image(image_factory=StyledPilImage, module_drawer=RoundedModuleDrawer()).get_image().convert("RGB")
+        draw = ImageDraw.Draw(image)
+        center = image.width // 2
+        radius = image.width * 8 // 100
+        draw.rounded_rectangle((center-radius-4, center-radius-4, center+radius+4, center+radius+4),
+                               radius=max(8, radius//2), fill="white")
+        draw.rounded_rectangle((center-radius, center-radius, center+radius, center+radius),
+                               radius=max(6, radius//2), fill="#244736")
+        scale = radius * 1.45 / 1032
+        left, top = center - 566 * scale, center - 321 * scale
+        draw.polygon([(left+x*scale, top+y*scale) for x,y in (
+            (442.5,592),(687.8,384.7),(687.8,235.8),(811.9,235.8),
+            (1082,50),(334.1,50),(50,235.8),(442.5,235.8)
+        )], fill="white")
+        output = BytesIO()
+        image.save(output, format="PNG")
+        output.seek(0)
+        return send_file(output, mimetype="image/png", max_age=0)
 
     @app.route("/api/user/update_status", methods=["POST"])
     def update_status():
@@ -175,15 +293,18 @@ def register_chat(app):
         if not user:
             return jsonify({"error": "Not found"}), 404
 
-        is_online = user.last_seen and (datetime.utcnow() - user.last_seen) < timedelta(minutes=2)
+        may_see_presence = user.id == session["user_id"] or user.show_last_seen is not False
+        is_online = may_see_presence and user.last_seen and (datetime.utcnow() - user.last_seen) < timedelta(minutes=2)
         avatar = user.avatar if getattr(user, 'avatar', None) else f"https://ui-avatars.com/api/?name={user.login}&background=random&color=fff&rounded=true&bold=true"
         return jsonify({
             "id": user.id,
             "login": user.login,
+            "fio": user.fio,
+            "handle": public_name(user),
             "avatar": avatar,
-            "bio": user.bio or "",
+            "bio": (user.bio or "") if user.id == session["user_id"] or user.show_bio is not False else "",
             "online": is_online,
-            "last_seen": user.last_seen.strftime("%Y-%m-%d %H:%M:%S") if user.last_seen else None
+            "last_seen": user.last_seen.strftime("%Y-%m-%d %H:%M:%S") if may_see_presence and user.last_seen else None
         })
 
     @app.route("/api/messages", methods=["GET"])
@@ -198,7 +319,12 @@ def register_chat(app):
         if not chat_id or chat_id == 'null':
             return jsonify([])
 
-        return jsonify(chat_service.get_recent_messages(session["user_id"], int(chat_id), last_id, first_id))
+        user_id = session["user_id"]
+        messages = chat_service.get_recent_messages(user_id, int(chat_id), last_id, first_id, request.args.get("around", 0, type=int))
+        reactions = message_reactions([item["id"] for item in messages if not item["is_deleted"]], user_id)
+        for item in messages:
+            item["reactions"] = reactions.get(item["id"], [])
+        return jsonify(messages)
 
     @app.route("/api/messages", methods=["POST"])
     def send_message():
@@ -230,6 +356,8 @@ def register_chat(app):
         sender = db.session.get(User, session["user_id"])
         content = data.get("content", "")
         reply_to_id = data.get("reply_to_id")
+        if not _can_forward(session["user_id"], data.get("forward_from")):
+            return jsonify(error="Пересылка этого сообщения недоступна"), 403
         msg_type = data.get("msg_type", "text")
 
         if settings and settings.anti67_enabled and content:
@@ -254,7 +382,6 @@ def register_chat(app):
             if sender:
                 avatar = sender.avatar or f"https://ui-avatars.com/api/?name={sender.login}&background=random&color=fff&rounded=true&bold=true"
                 send_push_to_chat_members(chat_id, session["user_id"], sender.login, content, avatar)
-            notify_chat_users(chat_id)
 
             if content and not content.startswith('__'):
                 try:
@@ -428,6 +555,8 @@ def register_chat(app):
         target_user_id = request.form.get("target_user_id")
         caption = request.form.get("caption", "")
         upload_reply_to_id = request.form.get("reply_to_id")
+        if not _can_forward(session["user_id"], request.form.get("forward_from")):
+            return jsonify(error="Пересылка этого вложения недоступна"), 403
         upload_msg_type = request.form.get("msg_type", "text")
 
         if not chat_id and target_user_id:
@@ -460,7 +589,6 @@ def register_chat(app):
             if sender:
                 avatar = sender.avatar or f"https://ui-avatars.com/api/?name={sender.login}&background=random&color=fff&rounded=true&bold=true"
                 send_push_to_chat_members(int(chat_id), session["user_id"], sender.login, "📎 Файл", avatar)
-            notify_chat_users(int(chat_id))
             return jsonify(last_result), 200
 
         return jsonify({"error": "Неверный формат файла или превышен лимит 50 МБ"}), 400
@@ -512,6 +640,39 @@ def register_chat(app):
         resp.headers['Cache-Control'] = 'no-cache'
         return resp
 
+    @app.route("/api/chats/realtime")
+    def poll_chat_events():
+        user_id = session.get("user_id")
+        if not user_id:
+            return jsonify({"error": "Unauthorized"}), 401
+        previous = request.args.get("seq", -1, type=int) if request.args.get("epoch") == epoch else -1
+        sequence = wait_for_revision(user_id, previous)
+        response = jsonify(epoch=epoch, seq=sequence)
+        response.headers["Cache-Control"] = "no-store"
+        return response
+
+    try:
+        from flask_sock import Sock
+    except ImportError:
+        Sock = None
+
+    if Sock is not None:
+        app.config.setdefault("SOCK_SERVER_OPTIONS", {"ping_interval": 25, "max_message_size": 256})
+        sock = Sock(app)
+
+        @sock.route("/api/chats/socket")
+        def chat_socket(ws):
+            user_id = session.get("user_id")
+            origin = urlsplit(request.headers.get("Origin", ""))
+            if not user_id or origin.scheme not in {"http", "https"} or origin.netloc != request.host:
+                ws.close(reason=1008)
+                return
+            previous = -1
+            while ws.connected:
+                previous = wait_for_revision(user_id, previous)
+                if ws.connected:
+                    ws.send(json.dumps({"epoch": epoch, "seq": previous}))
+
     @app.route("/api/chats/poll")
     def poll_chats():
         if "user_id" not in session:
@@ -519,15 +680,7 @@ def register_chat(app):
         uid = session["user_id"]
         client_seq = request.args.get("seq", -1, type=int)
 
-        with _notify_lock:
-            current_seq = _notify_seq[uid]
-
-        if client_seq == current_seq:
-            cond = _get_cond(uid)
-            with cond:
-                cond.wait(timeout=25)
-            with _notify_lock:
-                current_seq = _notify_seq[uid]
+        current_seq = wait_for_revision(uid, client_seq, timeout=25)
 
         changed = client_seq != current_seq
         if not changed:
@@ -643,10 +796,15 @@ def register_chat(app):
         participants = data.get("participants", [])
         chat_type = data.get("chat_type", "group")
 
-        if not name or not str(name).strip():
-            return jsonify({"error": "Необходимо имя"}), 400
+        if not isinstance(name, str) or not 1 <= len(name.strip()) <= 150:
+            return jsonify(error="Введите название от 1 до 150 символов.", field="name"), 400
 
-        result = chat_service.create_group_chat(session["user_id"], str(name).strip(), participants, chat_type=chat_type)
+        description = data.get("description", "")
+        if not isinstance(description, str) or len(description.strip()) > 250:
+            return jsonify(error="Сократите описание до 250 символов.", field="description"), 400
+        if not isinstance(participants, list) or len(participants) > 100 or any(type(user_id) is not int for user_id in participants):
+            return jsonify(error="Некорректный список участников"), 400
+        result = chat_service.create_group_chat(session["user_id"], str(name).strip(), participants, chat_type=chat_type, description=description.strip())
         return jsonify(result), 200 if "success" in result else 400
 
     @app.route("/api/chats/invite", methods=["POST"])
@@ -673,9 +831,18 @@ def register_chat(app):
         if "user_id" not in session:
             return jsonify({"error": "Unauthorized"}), 401
 
+        user_id = session["user_id"]
+        membership = ChatParticipant.query.filter_by(chat_id=chat_id, user_id=user_id, blocked=False).first()
+        if not membership:
+            return jsonify(error="Чат недоступен"), 404
         result = chat_service.get_chat_info(chat_id)
         if "success" in result:
-            result["current_user_id"] = session["user_id"]
+            chat = db.session.get(Chat, chat_id)
+            result.update({key: value for key, value in chat_fields(chat).items() if key != "avatar" or value})
+            result["current_user_id"] = user_id
+            result["permissions"] = member_rights(chat, membership)
+            if "invite" in result["permissions"]:
+                result["invite_token"] = chat.invite_token
         return jsonify(result), 200 if "success" in result else 404
 
     @app.route("/api/chats/join", methods=["POST"])
@@ -689,16 +856,59 @@ def register_chat(app):
         if not chat_id:
             return jsonify({"error": "Укажите chat_id"}), 400
 
-        result = chat_service.join_chat(int(chat_id), session["user_id"])
+        try:
+            chat_id = int(chat_id)
+        except (TypeError, ValueError):
+            return jsonify(error="Некорректный чат"), 400
+        result = join_managed_chat(chat_id, session["user_id"], data.get("token"))
         return jsonify(result), 200 if "success" in result else 400
+
+    @app.route("/api/chats/<int:chat_id>/leave", methods=["POST"])
+    def leave_chat(chat_id):
+        user_id = session.get("user_id")
+        if not user_id:
+            return jsonify({"error": "Unauthorized"}), 401
+        chat = db.session.get(Chat, chat_id)
+        if not chat or chat.personal:
+            return jsonify({"error": "Группа или канал не найдены"}), 404
+        membership = ChatParticipant.query.filter_by(chat_id=chat_id, user_id=user_id).first()
+        if not membership:
+            return jsonify({"success": True})
+        if chat.owner_id == user_id:
+            successor = (ChatParticipant.query.filter(ChatParticipant.chat_id == chat_id,
+                         ChatParticipant.user_id != user_id, ChatParticipant.blocked.is_(False))
+                         .order_by(ChatParticipant.id).first())
+            chat.owner_id = successor.user_id if successor else None
+            if successor:
+                successor.role = "owner"
+        db.session.delete(membership)
+        db.session.commit()
+        notify_user(user_id)
+        notify_chat_users(chat_id)
+        return jsonify({"success": True})
 
     @app.route("/api/chats/<int:chat_id>", methods=["DELETE"])
     def delete_chat_api(chat_id):
         if "user_id" not in session:
             return jsonify({"error": "Unauthorized"}), 401
 
-        result = chat_service.delete_chat(chat_id, session["user_id"])
+        result = chat_service.delete_chat(chat_id, session["user_id"], for_both=request.args.get("scope") == "both")
         return jsonify(result), 200 if "success" in result else 403
+
+    @app.put("/api/user/privacy")
+    def update_privacy():
+        user_id = session.get("user_id")
+        user = db.session.get(User, user_id) if user_id else None
+        if not user:
+            return jsonify(error="Требуется вход"), 401
+        payload = request.get_json(silent=True) or {}
+        fields = ("show_bio", "show_last_seen")
+        if not isinstance(payload, dict) or any(type(value) is not bool or field not in fields for field, value in payload.items()):
+            return jsonify(error="Некорректные настройки приватности"), 400
+        for field, value in payload.items():
+            setattr(user, field, value)
+        db.session.commit()
+        return jsonify(show_bio=user.show_bio is not False, show_last_seen=user.show_last_seen is not False)
 
     @app.route("/api/user/profile", methods=["POST"])
     def update_user_profile():
@@ -711,6 +921,42 @@ def register_chat(app):
 
         data = request.json or {}
         changed = False
+        original_login = user.login
+        old_avatar = user.avatar
+        new_avatar_path = None
+
+        if "fio" in data:
+            fio = data["fio"]
+            if not isinstance(fio, str):
+                return jsonify(error="Введите имя.", field="fio"), 400
+            fio = re.sub(r"<[^>]*>", "", fio).strip()
+            if not fio or len(fio) > 120:
+                return jsonify(error="Имя и фамилия вместе должны содержать от 1 до 120 символов.", field="fio"), 400
+            user.fio = fio
+            changed = True
+
+        if "login" in data:
+            from sqlalchemy import func
+            login = data["login"]
+            if not isinstance(login, str) or not re.fullmatch(r"[A-Za-z0-9_]{3,50}", login):
+                return jsonify(error="Введите от 3 до 50 символов. Подойдут латинские буквы, цифры и подчёркивания.", field="login"), 400
+            login = login.lower() if login != user.login else user.login
+            if login != user.login and User.query.filter(func.lower(User.login) == login.lower(), User.id != user.id).first():
+                return jsonify(error="Это имя уже занято. Выберите другое.", field="login"), 409
+            user.login = login
+            changed = True
+
+        if "bio" in data:
+            bio = str(data["bio"]).strip()[:200]
+            try:
+                from utils.profanity import check_profanity
+                hit = check_profanity(bio)
+            except Exception:
+                hit = None
+            if hit and hit["level"] >= 2:
+                return jsonify(error="Измените описание: в нём есть недопустимые слова.", field="bio"), 400
+            user.bio = bio
+            changed = True
 
         if "avatar" in data:
             avatar_data = data["avatar"]
@@ -725,52 +971,55 @@ def register_chat(app):
                             "image/webp": "webp", "video/mp4": "mp4", "video/webm": "webm"
                         }
                         ext = ext_map.get(mime, "jpg")
-                        raw = _b64.b64decode(b64body)
-                        if len(raw) <= 10 * 1024 * 1024:
-                            safe_name = f"{uuid.uuid4().hex}.{ext}"
-                            os.makedirs(FileService.UPLOAD_DIR, exist_ok=True)
-                            fpath = os.path.join(FileService.UPLOAD_DIR, safe_name)
-                            with open(fpath, "wb") as fout:
-                                fout.write(raw)
-                            sig = FileService.sign_filename(safe_name)
-                            if user.avatar and user.avatar.startswith("/api/files/"):
-                                try:
-                                    old_fname = user.avatar.split("/api/files/")[1].split("?")[0]
-                                    old_path = os.path.join(FileService.UPLOAD_DIR, old_fname)
-                                    if os.path.isfile(old_path):
-                                        os.remove(old_path)
-                                except Exception:
-                                    pass
-                            user.avatar = f"/api/files/{safe_name}?sig={sig}"
-                            changed = True
-                    except Exception:
-                        user.avatar = avatar_data
+                        raw = _b64.b64decode(b64body, validate=True)
+                        if not raw or len(raw) > 10 * 1024 * 1024:
+                            return jsonify(error="Выберите файл размером до 10 МБ.", field="avatar"), 400
+                        safe_name = f"{uuid.uuid4().hex}.{ext}"
+                        os.makedirs(FileService.UPLOAD_DIR, exist_ok=True)
+                        new_avatar_path = os.path.join(FileService.UPLOAD_DIR, safe_name)
+                        with open(new_avatar_path, "wb") as fout:
+                            fout.write(raw)
+                        user.avatar = f"/api/files/{safe_name}?sig={FileService.sign_filename(safe_name)}"
                         changed = True
+                    except ValueError:
+                        return jsonify(error="Не удалось прочитать фото. Выберите другой файл.", field="avatar"), 400
+                    except OSError:
+                        return jsonify(error="Не удалось сохранить фото. Попробуйте позже.", field="avatar"), 500
                 elif avatar_data.startswith("http") or avatar_data.startswith("/"):
                     user.avatar = avatar_data
                     changed = True
 
-        if "bio" in data:
-            bio = str(data["bio"]).strip()[:200]
-            try:
-                from utils.profanity import check_profanity
-                hit = check_profanity(bio)
-                if hit and hit["level"] >= 2:
-                    return jsonify({"error": "Биография содержит недопустимые слова"}), 400
-            except Exception:
-                pass
-            user.bio = bio
-            changed = True
-
         if changed:
-            db.session.commit()
+            from sqlalchemy.exc import IntegrityError
+            try:
+                if "login" in data and not PublicHandle.query.filter_by(kind="user", owner_id=user.id).first():
+                    reserve_handle("user", user.id, user.login)
+                elif "login" in data and login != original_login:
+                    reserve_handle("user", user.id, user.login)
+                db.session.commit()
+            except (IntegrityError, ValueError):
+                db.session.rollback()
+                if new_avatar_path:
+                    try:
+                        os.remove(new_avatar_path)
+                    except OSError:
+                        pass
+                return jsonify(error="Это имя уже занято. Выберите другое.", field="login"), 409
+            if new_avatar_path and old_avatar:
+                old_name = re.fullmatch(r"/api/files/([a-f0-9]{32}\.[a-z0-9]{1,10})\?sig=[a-f0-9]+", old_avatar)
+                if old_name:
+                    try:
+                        os.remove(os.path.join(FileService.UPLOAD_DIR, old_name[1]))
+                    except OSError:
+                        pass
 
         avatar_url = user.avatar if user.avatar else f"https://ui-avatars.com/api/?name={user.login}&background=random&color=fff&rounded=true&bold=true"
-        return jsonify({"success": True, "avatar": avatar_url, "bio": user.bio or ""})
+        return jsonify({"success": True, "avatar": avatar_url, "bio": user.bio or "", "fio": user.fio, "login": user.login,
+                        "handle": public_name(user)})
 
     @app.route("/api/push/vapid-key", methods=["GET"])
     def push_vapid_key():
-        return jsonify({"publicKey": Config.VAPID_PUBLIC_KEY})
+        return jsonify({"publicKey": Config.VAPID_PUBLIC_KEY, "available": bool(_WEBPUSH_OK and Config.VAPID_PRIVATE_KEY)})
 
     @app.route("/api/push/subscribe", methods=["POST"])
     def push_subscribe():
@@ -784,12 +1033,33 @@ def register_chat(app):
         auth = keys.get("auth")
         if not endpoint or not p256dh or not auth:
             return jsonify({"error": "Invalid subscription"}), 400
+        raw_settings = data.get("settings")
+        settings = {}
+        if isinstance(raw_settings, dict):
+            for field in ("kinds", "previews", "overrides"):
+                values = raw_settings.get(field)
+                if isinstance(values, dict):
+                    settings[field] = {key: value for key, value in list(values.items())[:500]
+                                       if type(value) is bool and (key.isdecimal() if field == "overrides"
+                                                                  else key in ("personal", "group", "channel"))}
+        if not isinstance(endpoint, str) or len(endpoint) > 2048:
+            return jsonify(error="Некорректный адрес push-подписки"), 400
+        try:
+            host = urlsplit(endpoint)
+            domain = host.hostname or ""
+            permitted = domain in ("fcm.googleapis.com", "updates.push.services.mozilla.com", "web.push.apple.com") or domain.endswith(".notify.windows.com")
+            if host.scheme != "https" or not permitted or host.username or host.password or host.port not in (None, 443):
+                return jsonify(error="Провайдер уведомлений не поддерживается"), 400
+        except ValueError:
+            return jsonify(error="Некорректный адрес push-подписки"), 400
         existing = PushSubscription.query.filter_by(user_id=session["user_id"], endpoint=endpoint).first()
         if existing:
             existing.p256dh = p256dh
             existing.auth = auth
+            if raw_settings is not None:
+                existing.settings = json.dumps(settings)
         else:
-            sub = PushSubscription(user_id=session["user_id"], endpoint=endpoint, p256dh=p256dh, auth=auth)
+            sub = PushSubscription(user_id=session["user_id"], endpoint=endpoint, p256dh=p256dh, auth=auth, settings=json.dumps(settings))
             db.session.add(sub)
         db.session.commit()
         return jsonify({"ok": True})

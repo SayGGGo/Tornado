@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="ru">
+<head>
+ <meta charset="utf-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1">
+ <title>Tornado</title>
+ <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&display=swap">
+ <link rel="stylesheet" href="{{ url_for('static', filename='chat-web/tornado.css', v=asset_version) }}">
+</head>
+<body>
+ <div id="root"></div>
+ <script type="application/json" id="tornado-session">{{ account | tojson }}</script>
+ <script type="module" src="{{ url_for('static', filename='chat-web/tornado.js', v=asset_version) }}"></script>
+</body>
+</html>

@@ -2,6 +2,9 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import re
 from flask import url_for, session
 from models import User, db
+from models.public_handle import reserve_handle
+from sqlalchemy import func
+from sqlalchemy.exc import IntegrityError
 from utils import verify_turnstile
 import uuid
 import time
@@ -19,8 +22,8 @@ class AuthService:
         if not all(data.get(k) for k in required_fields):
             return {"success": False, "message": "Заполните все обязательные поля"}
 
-        login = str(data["login"]).strip()
-        if len(login) < 3 or not re.match(r"^[a-zA-Z0-9_]+$", login):
+        login = str(data["login"]).strip().lower()
+        if not 3 <= len(login) <= 50 or not re.match(r"^[a-zA-Z0-9_]+$", login):
             return {"success": False, "message": "Логин должен быть от 3 символов и содержать только латиницу"}
 
         password = data.get("password")
@@ -32,7 +35,7 @@ class AuthService:
         if data["password"] != data["password_retry"]:
             return {"success": False, "message": "Пароли не совпадают"}
 
-        if User.query.filter_by(login=login).first():
+        if User.query.filter(func.lower(User.login) == login).first():
             return {"success": False, "message": "Пользователь с таким логином уже существует"}
 
         from chat.services import EncryptionService
@@ -53,7 +56,7 @@ class AuthService:
 
         new_user = User(
             fio=clean_fio,
-            login=str(data["login"]).strip(),
+            login=login,
             password_hash=generate_password_hash(data["password"]),
             group_id=str(data.get("position", "")).strip(),
             study_type=str(data.get("hiring_volume", "")).strip(),
@@ -66,7 +69,13 @@ class AuthService:
         )
 
         db.session.add(new_user)
-        db.session.commit()
+        try:
+            db.session.flush()
+            reserve_handle("user", new_user.id, login)
+            db.session.commit()
+        except (IntegrityError, ValueError):
+            db.session.rollback()
+            return {"success": False, "message": "Пользователь с таким логином уже существует"}
 
         session["user_id"] = new_user.id
         return {"success": True, "redirect": url_for("chat")}
@@ -75,7 +84,12 @@ class AuthService:
         if not SecurityManager.verify_captcha(data) or data.get("website"):
             return {"success": False, "message": "Капча не пройдена"}
 
-        user = User.query.filter_by(login=data.get("login")).first()
+        login = data.get("login")
+        user = User.query.filter_by(login=login).first() if isinstance(login, str) else None
+        if not user and isinstance(login, str):
+            matches = User.query.filter(func.lower(User.login) == login.lower()).limit(2).all()
+            if len(matches) == 1:
+                user = matches[0]
         if user and check_password_hash(user.password_hash, data.get("password", "")):
             session["user_id"] = user.id
             next_url = data.get("next", "")

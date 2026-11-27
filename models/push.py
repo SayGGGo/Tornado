@@ -10,6 +10,7 @@ class PushSubscription(db.Model):
     endpoint = db.Column(db.Text, nullable=False)
     p256dh = db.Column(db.Text, nullable=False)
     auth = db.Column(db.Text, nullable=False)
+    settings = db.Column(db.Text, default="{}")
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     user = db.relationship("User", backref=db.backref("push_subscriptions", cascade="all, delete-orphan"))

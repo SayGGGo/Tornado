@@ -269,15 +269,6 @@
 
     function showError(msg) {
       errDiv.textContent = msg;
-      errDiv.style.display = 'block';
-      errDiv.style.opacity = '1';
-      setTimeout(() => {
-        errDiv.style.opacity = '0';
-        setTimeout(() => {
-          errDiv.style.display = 'none';
-          errDiv.style.opacity = '1';
-        }, 300);
-      }, 3500);
     }
 
     function checkFormValidity() {
@@ -292,12 +283,16 @@
       checkFormValidity();
     };
 
-    form.addEventListener('input', checkFormValidity);
+    form.addEventListener('input', () => {
+      errDiv.textContent = '';
+      checkFormValidity();
+    });
     checkFormValidity();
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       if (btn.classList.contains('locked')) return;
+      errDiv.textContent = '';
 
       const formData = new FormData(form);
       const data = Object.fromEntries(formData.entries());
@@ -317,7 +312,7 @@
         if (r.success) {
           window.location.href = r.redirect;
         } else {
-          showError(r.message || 'Неверный логин или пароль');
+          showError(r.message || 'Проверьте никнейм и пароль.');
           btn.querySelector('span').textContent = origText;
 
           if (window.turnstile) {
@@ -326,13 +321,13 @@
             window.smartCaptcha.reset();
           }
 
-          captchaSolved = false;
+          captchaSolved = !document.getElementById('captcha-box').querySelector('.cf-turnstile, .smart-captcha');
           checkFormValidity();
         }
       } catch (err) {
-        showError('Ошибка соединения с сервером');
+        showError('Не удалось подключиться к серверу. Проверьте соединение и попробуйте снова.');
         btn.querySelector('span').textContent = origText;
-        btn.classList.remove('locked');
+        checkFormValidity();
       }
     });
   });

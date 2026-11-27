@@ -13,6 +13,7 @@ class Config:
     SECRET_KEY = _secret if _secret else hashlib.sha256(b"tornado-default-dev-key").hexdigest()
     SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", "sqlite:///tornado.db")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    TRUST_LOCAL_PROXY = os.getenv("TRUST_LOCAL_PROXY") == "1"
 
     TURNSTILE_SECRET = os.getenv("TURNSTILE_SECRET", "0")
     TURNSTILE_SITEKEY = os.getenv("TURNSTILE_SITEKEY", "0")

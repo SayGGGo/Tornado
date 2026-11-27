@@ -144,7 +144,8 @@ class DDoSGuard:
             del cls._b[target]
 
         ua = (ua or "").lower()
-        if (any(bot in ua for bot in cls._ua_blacklist) and not path.startswith('/api/bot')) or (not ua and not uid and not path.startswith('/api/bot')):
+        machine_endpoint = path.startswith('/api/bot') or path in ('/oauth/token', '/oauth/userinfo')
+        if not machine_endpoint and (any(bot in ua for bot in cls._ua_blacklist) or (not ua and not uid)):
             cls._b[target] = n + 86400
             return False
 

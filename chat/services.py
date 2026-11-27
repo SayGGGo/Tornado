@@ -5,6 +5,7 @@ from datetime import datetime
 import base64
 import os
 import uuid
+from secrets import token_urlsafe
 import hmac
 import hashlib
 import time as _time
@@ -16,6 +17,9 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from config import Config
+from .events import notify_chat_users, notify_user
+from models.public_handle import reserve_handle
+from .permissions import member_rights, has_right
 from agora_token_builder import RtcTokenBuilder
 from werkzeug.utils import secure_filename
 import time
@@ -235,7 +239,7 @@ class ChatService:
         ).join(ChatParticipant, and_(
             ChatParticipant.chat_id == Message.chat_id,
             ChatParticipant.user_id == user_id
-        )).group_by(Message.chat_id).subquery()
+        )).filter(Message.id > func.coalesce(ChatParticipant.history_after_id,0)).group_by(Message.chat_id).subquery()
 
         no_msg_parts = (ChatParticipant.query
                         .filter_by(user_id=user_id)
@@ -246,6 +250,7 @@ class ChatService:
         sorted_ids_q = (db.session.query(ChatParticipant.chat_id)
                         .filter_by(user_id=user_id)
                         .outerjoin(last_msg_sub, last_msg_sub.c.chat_id == ChatParticipant.chat_id)
+                        .filter(or_(ChatParticipant.history_hidden.is_not(True), last_msg_sub.c.max_id.isnot(None)))
                         .order_by(desc(last_msg_sub.c.last_ts))
                         .limit(limit).offset(offset)
                         .all())
@@ -286,8 +291,8 @@ class ChatService:
         sender_ids = {m.user_id for m in last_messages if not m.is_deleted and not m.file_name}
         sender_map = {}
         if sender_ids:
-            for u in User.query.filter(User.id.in_(sender_ids)).with_entities(User.id, User.login).all():
-                sender_map[u.id] = u.login
+            for u in User.query.filter(User.id.in_(sender_ids)).with_entities(User.id, User.login, User.fio).all():
+                sender_map[u.id] = (u.fio or u.login).strip().split(' ', 1)[0]
 
         unread_map = dict(db.session.query(Message.chat_id, func.count(Message.id)).filter(
             Message.chat_id.in_(paged_chat_ids),
@@ -305,6 +310,8 @@ class ChatService:
                 continue
             my_part = my_part_map.get(chat_id_key)
             last_msg = last_msg_map.get(chat_id_key)
+            if last_msg and my_part and last_msg.id <= (my_part.history_after_id or 0):
+                last_msg = None
 
             if last_msg and last_msg.is_deleted:
                 msg_preview = "Сообщение удалено"
@@ -318,12 +325,22 @@ class ChatService:
                     ))
                 except Exception:
                     preview_text = "Сообщение недоступно"
-                sn = sender_map.get(last_msg.user_id, '')
-                msg_preview = f"{sn}: {preview_text}" if sn else preview_text
+                if preview_text.startswith(("__CALL_INVITE__", "__CALL_INVOKE__")):
+                    preview_text = "Видеозвонок"
+                elif preview_text.startswith("__CHATLINK__"):
+                    preview_text = "Приглашение в чат"
+                msg_preview = preview_text or "Вложение"
             else:
                 msg_preview = "Нет сообщений"
 
-            unread_count = unread_map.get(chat_id_key, 0)
+            if last_msg and not chat.personal and chat.chat_type != 'channel' and not last_msg.is_deleted:
+                first_name = sender_map.get(last_msg.user_id)
+                if first_name:
+                    msg_preview = f"{first_name}: {msg_preview}"
+
+            unread_count = unread_map.get(chat_id_key, 0) if not my_part or not my_part.history_after_id else Message.query.filter(
+                Message.chat_id == chat_id_key, Message.user_id != user_id, Message.is_read.is_(False),
+                Message.id > my_part.history_after_id, Message.msg_type != "bot_callback").count()
             last_status = None
             if last_msg and last_msg.user_id == user_id:
                 last_status = bool(getattr(last_msg, 'is_read', False))
@@ -335,45 +352,58 @@ class ChatService:
                 if not pp:
                     continue
                 pu = pp.user
-                is_online = bool(pu.last_seen and (now - pu.last_seen).total_seconds() < 120)
+                is_online = bool(pu.show_last_seen is not False and pu.last_seen and (now - pu.last_seen).total_seconds() < 120)
                 is_typing = bool(pp.last_typing and (now - pp.last_typing).total_seconds() < 6)
                 chats_data[str(chat_id_key)] = {
-                    "name": pu.login,
+                    "name": pu.fio or pu.login,
                     "avatar": pu.avatar or f"https://ui-avatars.com/api/?name={pu.login}&background=random&color=fff&rounded=true&bold=true",
                     "active": False, "last_msg": "печатает..." if is_typing else msg_preview,
                     "last_time": last_msg.timestamp.strftime("%H:%M") if last_msg else "",
+                    "last_sent_at": last_msg.timestamp.isoformat() + "Z" if last_msg else None,
                     "last_status": last_status, "unread": unread_count,
+                    "history_after_id": my_part.history_after_id if my_part else 0,
                     "pinned": False, "muted": False,
                     "premium": "1" if getattr(pu, 'premium', False) else "",
                     "target_user_id": pu.id, "online": is_online, "typing": is_typing, "blocked": is_blocked,
-                    "is_bot": bool(getattr(pu, 'is_bot', False))
+                    "last_seen": pu.last_seen.isoformat() + "Z" if pu.show_last_seen is not False and pu.last_seen else None,
+                    "is_bot": bool(getattr(pu, 'is_bot', False)), "peer_blocked": bool(pp.blocked)
                 }
             else:
                 chats_data[str(chat_id_key)] = {
                     "name": chat.name,
-                    "avatar": f"https://ui-avatars.com/api/?name={chat.name}&background=random&color=fff&rounded=true&bold=true",
+                    "avatar": chat.avatar or f"https://ui-avatars.com/api/?name={chat.name}&background=random&color=fff&rounded=true&bold=true",
                     "active": False, "last_msg": msg_preview,
                     "last_time": last_msg.timestamp.strftime("%H:%M") if last_msg else "",
+                    "last_sent_at": last_msg.timestamp.isoformat() + "Z" if last_msg else None,
                     "last_status": last_status, "unread": unread_count,
                     "pinned": False, "muted": False, "premium": "",
                     "target_user_id": "", "typing": False, "typing_list": [],
                     "chat_type": getattr(chat, 'chat_type', 'group') or 'group',
-                    "owner_id": chat.owner_id, "blocked": is_blocked
+                    "owner_id": chat.owner_id, "blocked": is_blocked, "protected": bool(chat.protected),
+                    "permissions": member_rights(chat, my_part),
+                    "discussion_chat_id": chat.discussion_chat_id,
+                    "reactions_mode": chat.reactions_mode or "all",
+                    "allowed_reactions": json.loads(chat.allowed_reactions or "[]")
                 }
 
         total_count = ChatParticipant.query.filter_by(user_id=user_id).count()
         has_more = (offset + limit) < total_count
         return {"items": chats_data, "has_more": has_more}
 
-    def get_recent_messages(self, user_id, chat_id, last_id=0, first_id=0):
-        if not ChatParticipant.query.filter_by(user_id=user_id, chat_id=chat_id).first():
+    def get_recent_messages(self, user_id, chat_id, last_id=0, first_id=0, around=0):
+        membership = ChatParticipant.query.filter_by(user_id=user_id, chat_id=chat_id).first()
+        if not membership:
             return []
 
         curr_user = db.session.get(User, user_id)
         from sqlalchemy.orm import joinedload
-        query = Message.query.filter_by(chat_id=chat_id).filter(Message.msg_type != 'bot_callback').options(joinedload(Message.author))
+        query = Message.query.filter_by(chat_id=chat_id).filter(Message.id > (membership.history_after_id or 0), Message.msg_type != 'bot_callback').options(joinedload(Message.author))
 
-        if first_id > 0:
+        if around > 0:
+            before = query.filter(Message.id < around).order_by(Message.id.desc()).limit(24).all()
+            after = query.filter(Message.id >= around).order_by(Message.id.asc()).limit(26).all()
+            messages = before[::-1] + after
+        elif first_id > 0:
             messages = query.filter(Message.id < first_id).order_by(Message.id.desc()).limit(50).all()
             messages.reverse()
         else:
@@ -384,21 +414,23 @@ class ChatService:
                 messages.reverse()
 
         if hasattr(Message, 'is_read'):
-            for msg in messages:
-                if msg.user_id != user_id and not getattr(msg, 'is_read', True):
+            unread = [msg for msg in messages if msg.user_id != user_id and not msg.is_read]
+            if unread:
+                for msg in unread:
                     msg.is_read = True
-            db.session.commit()
+                db.session.commit()
+                notify_chat_users(chat_id)
 
         result = []
         now = datetime.utcnow()
         for msg in messages:
             avatar = msg.author.avatar if getattr(msg.author, 'avatar', None) else f"https://ui-avatars.com/api/?name={msg.author.login}&background=random&color=fff&rounded=true&bold=true"
-            is_online = msg.author.last_seen and (now - msg.author.last_seen).total_seconds() < 120
+            is_online = msg.author.show_last_seen is not False and msg.author.last_seen and (now - msg.author.last_seen).total_seconds() < 120
 
             reply_preview = None
             if getattr(msg, 'reply_to_id', None) and msg.reply_to:
                 rt = msg.reply_to
-                if rt.is_deleted:
+                if rt.is_deleted or rt.id <= (membership.history_after_id or 0):
                     reply_preview = {"id": rt.id, "login": rt.author.login, "text": "Сообщение удалено", "file_url": None, "msg_type": "text"}
                 else:
                     rt_text = html.unescape(self.crypto.decrypt_for_user(rt.content, curr_user.private_key, (rt.user_id != user_id)))
@@ -406,17 +438,17 @@ class ChatService:
 
             if msg.is_deleted:
                 result.append({
-                    "id": msg.id, "user_id": msg.user_id, "chat_id": msg.chat_id, "login": msg.author.login, "avatar": avatar,
-                    "content": "", "timestamp": msg.timestamp.strftime("%H:%M"),
+                    "id": msg.id, "user_id": msg.user_id, "chat_id": msg.chat_id, "login": msg.author.login, "author_name": msg.author.fio or msg.author.login, "avatar": avatar,
+                    "content": "", "timestamp": msg.timestamp.strftime("%H:%M"), "sent_at": msg.timestamp.isoformat() + "Z",
                     "is_read": getattr(msg, 'is_read', False), "is_edited": False, "is_deleted": True,
                     "file_url": None, "file_name": None, "file_type": None, "file_size": None,
                     "online": is_online, "reply": None, "msg_type": "text", "reply_markup": None
                 })
             else:
                 result.append({
-                    "id": msg.id, "user_id": msg.user_id, "chat_id": msg.chat_id, "login": msg.author.login, "avatar": avatar,
+                    "id": msg.id, "user_id": msg.user_id, "chat_id": msg.chat_id, "login": msg.author.login, "author_name": msg.author.fio or msg.author.login, "avatar": avatar,
                     "content": html.unescape(self.crypto.decrypt_for_user(msg.content, curr_user.private_key, (msg.user_id != user_id))),
-                    "timestamp": msg.timestamp.strftime("%H:%M"),
+                    "timestamp": msg.timestamp.strftime("%H:%M"), "sent_at": msg.timestamp.isoformat() + "Z",
                     "is_read": getattr(msg, 'is_read', False), "is_edited": msg.is_edited or False, "is_deleted": False,
                     "file_url": msg.file_url, "file_name": msg.file_name, "file_type": msg.file_type, "file_size": msg.file_size,
                     "online": is_online, "reply": reply_preview, "msg_type": getattr(msg, 'msg_type', 'text') or 'text',
@@ -454,7 +486,7 @@ class ChatService:
                 if recipient and getattr(recipient, 'premium_only_inbox', False):
                     if not (sender_user and getattr(sender_user, 'premium', False)):
                         return {"error": "premium_required"}
-        if chat and getattr(chat, 'chat_type', 'group') == 'channel' and chat.owner_id != user_id:
+        if chat and chat.chat_type == 'channel' and 'post' not in member_rights(chat, participant):
             is_admin = participant.role in ('owner', 'admin')
             if not is_admin:
                 return {"error": "Только администраторы канала могут отправлять сообщения"}
@@ -488,6 +520,8 @@ class ChatService:
             message_ids.append(new_msg.id)
 
         db.session.commit()
+        if msg_type != "bot_callback":
+            notify_chat_users(chat_id)
         return {"success": True, "ids": message_ids}
 
     def edit_message(self, user_id, message_id, new_content):
@@ -517,6 +551,7 @@ class ChatService:
         msg.content = encrypted
         msg.is_edited = True
         db.session.commit()
+        notify_chat_users(msg.chat_id)
         return {"success": True}
 
     def delete_message(self, user_id, message_id):
@@ -533,7 +568,7 @@ class ChatService:
 
         is_own = msg.user_id == user_id
         is_personal = chat.personal if chat else False
-        is_owner = (not chat.personal and chat.owner_id == user_id) if chat else False
+        is_owner = chat and not chat.personal and "moderate" in member_rights(chat, participant)
 
         if not is_own and not is_personal and not is_owner:
             return {"error": "Denied"}
@@ -554,12 +589,20 @@ class ChatService:
         msg.file_type = None
         msg.file_size = None
         db.session.commit()
+        notify_chat_users(msg.chat_id)
         return {"success": True}
 
     def search_users(self, query, current_user_id):
-        if not query: return []
-        users = User.query.filter(or_(User.login.ilike(f"%{query}%"), User.fio.ilike(f"%{query}%"))).limit(10).all()
-        return [{"id": u.id, "login": u.login, "fio": u.fio} for u in users if u.id != current_user_id]
+        users = User.query.filter(User.id != current_user_id)
+        if query:
+            users = users.filter(or_(User.login.ilike(f"%{query}%"), User.fio.ilike(f"%{query}%")))
+        else:
+            personal_chat_ids = db.session.query(ChatParticipant.chat_id).join(Chat).filter(
+                ChatParticipant.user_id == current_user_id, Chat.personal.is_(True)
+            )
+            users = users.join(ChatParticipant).filter(ChatParticipant.chat_id.in_(personal_chat_ids))
+        return [{"id": u.id, "login": u.login, "fio": u.fio, "avatar": u.avatar}
+                for u in users.order_by(User.fio).distinct().limit(40).all()]
 
     def get_or_create_personal_chat(self, user1_id, user2_id):
         c1 = [p.chat_id for p in ChatParticipant.query.filter_by(user_id=user1_id).all()]
@@ -568,7 +611,13 @@ class ChatService:
 
         for cid in common:
             chat = Chat.query.get(cid)
-            if chat and chat.personal: return {"chat_id": cid, "is_new": False}
+            if chat and chat.personal:
+                member = ChatParticipant.query.filter_by(chat_id=cid, user_id=user1_id).first()
+                if member.history_hidden:
+                    member.history_hidden = False
+                    db.session.commit()
+                    notify_user(user1_id)
+                return {"chat_id": cid, "is_new": False}
 
         new_chat = Chat(personal=True)
         db.session.add(new_chat)
@@ -584,22 +633,26 @@ class ChatService:
         db.session.commit()
         return {"chat_id": new_chat.id, "is_new": True}
 
-    def create_group_chat(self, owner_id, name, participant_ids, chat_type='group'):
+    def create_group_chat(self, owner_id, name, participant_ids, chat_type='group', description=''):
         if not name:
             return {"error": "Invalid data"}
 
-        new_chat = Chat(personal=False, name=name, owner_id=owner_id, chat_type=chat_type if chat_type in ('group', 'channel') else 'group')
+        new_chat = Chat(personal=False, name=name, owner_id=owner_id,
+                        chat_type=chat_type if chat_type in ('group', 'channel') else 'group',
+                        description=description, visibility="private" if chat_type == "channel" else "public",
+                        invite_token=token_urlsafe(24))
         db.session.add(new_chat)
         db.session.flush()
 
         db.session.add(ChatParticipant(user_id=owner_id, chat_id=new_chat.id, role="owner"))
 
         if participant_ids:
-            for uid in participant_ids:
+            for (uid,) in db.session.query(User.id).filter(User.id.in_(set(participant_ids))):
                 if uid != owner_id:
                     db.session.add(ChatParticipant(user_id=uid, chat_id=new_chat.id, role="member"))
 
         db.session.commit()
+        notify_chat_users(new_chat.id)
         return {"chat_id": new_chat.id, "success": True}
 
     def invite_to_chat(self, chat_id, inviter_id, participant_ids):
@@ -608,7 +661,7 @@ class ChatService:
             return {"error": "Invalid chat"}
 
         inviter_p = ChatParticipant.query.filter_by(user_id=inviter_id, chat_id=chat_id).first()
-        if not inviter_p:
+        if not inviter_p or "invite" not in member_rights(chat, inviter_p):
             return {"error": "Denied"}
 
         added_count = 0
@@ -619,6 +672,8 @@ class ChatService:
                 added_count += 1
 
         db.session.commit()
+        if added_count:
+            notify_chat_users(chat_id)
         return {"success": True, "added": added_count}
 
     def get_chat_info(self, chat_id):
@@ -634,8 +689,10 @@ class ChatService:
             participants.append({
                 "id": user.id,
                 "login": user.login,
+                "name": user.fio or user.login,
                 "avatar": avatar,
                 "role": p.role,
+                "permissions": member_rights(chat, p),
                 "blocked": p.blocked
             })
 
@@ -650,13 +707,13 @@ class ChatService:
     def _can_block_in_chat(self, chat, requester_id):
         if chat.personal:
             return ChatParticipant.query.filter_by(user_id=requester_id, chat_id=chat.id).first() is not None
-        return chat.owner_id == requester_id
+        return has_right(chat, requester_id, "moderate")
 
     def block_user(self, chat_id, requester_id, target_user_id):
         chat = db.session.get(Chat, chat_id)
         if not chat:
             return {"error": "Not found"}
-        if target_user_id == requester_id:
+        if target_user_id in (requester_id, chat.owner_id):
             return {"error": "Denied"}
         if not self._can_block_in_chat(chat, requester_id):
             return {"error": "Denied"}
@@ -668,6 +725,7 @@ class ChatService:
             return {"error": "Not found"}
         participant.blocked = True
         db.session.commit()
+        notify_chat_users(chat_id)
         return {"success": True}
 
     def unblock_user(self, chat_id, requester_id, target_user_id):
@@ -681,18 +739,30 @@ class ChatService:
             return {"error": "Not found"}
         participant.blocked = False
         db.session.commit()
+        notify_chat_users(chat_id)
         return {"success": True}
 
-    def delete_chat(self, chat_id, user_id):
+    def delete_chat(self, chat_id, user_id, for_both=False):
         chat = db.session.get(Chat, chat_id)
         if not chat:
-            return {"error": "Not found"}
-
-        if chat.personal or chat.owner_id != user_id:
-            return {"error": "Denied"}
-
+            return {"error": "Чат не найден"}
+        membership = ChatParticipant.query.filter_by(chat_id=chat_id, user_id=user_id).first()
+        if not membership or (not chat.personal and chat.owner_id != user_id):
+            return {"error": "Недостаточно прав"}
+        if chat.personal and not for_both:
+            from sqlalchemy import func
+            cutoff = db.session.query(func.max(Message.id)).filter(Message.chat_id == chat_id).scalar() or 0
+            membership.history_after_id = max(membership.history_after_id or 0, cutoff)
+            membership.history_hidden = True
+            db.session.commit()
+            notify_user(user_id)
+            return {"success": True}
+        recipients = [item.user_id for item in chat.participants]
+        reserve_handle("chat", chat.id, None)
         db.session.delete(chat)
         db.session.commit()
+        for recipient in recipients:
+            notify_user(recipient)
         return {"success": True}
 
     def join_chat(self, chat_id, user_id):
@@ -704,6 +774,7 @@ class ChatService:
         if not existing:
             db.session.add(ChatParticipant(user_id=user_id, chat_id=chat_id, role="member"))
             db.session.commit()
+            notify_chat_users(chat_id)
 
         return {"success": True}
 

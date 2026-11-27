@@ -21,3 +21,11 @@ class Message(db.Model):
     author = db.relationship("User", back_populates="messages")
     chat = db.relationship("Chat", back_populates="messages")
     reply_to = db.relationship("Message", remote_side=[id], foreign_keys=[reply_to_id])
+
+    reactions = db.relationship("MessageReaction", cascade="all, delete-orphan")
+
+class MessageReaction(db.Model):
+    __tablename__ = "message_reaction"
+    message_id = db.Column(db.Integer, db.ForeignKey("message.id"), primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), primary_key=True)
+    emoji = db.Column(db.String(16), nullable=False)

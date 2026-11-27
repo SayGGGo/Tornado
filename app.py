@@ -16,6 +16,7 @@ from models import init_models, User, Chat, Message, ChatParticipant, Settings, 
 from utils import verify_turnstile, get_groups, get_randomization, verify_key, check_github_updates
 from utils.security import DDoSGuard
 from auth import register_auth
+from auth.oauth import register_oauth
 from system import register_system
 from chat import register_chat
 from admin import register_admin
@@ -27,6 +28,10 @@ app.config.from_object(Config)
 app.config['SECRET_KEY'] = Config.SECRET_KEY
 app.config['COMPRESS_ALGORITHM'] = 'gzip'
 app.config['COMPRESS_MIN_SIZE'] = 1024
+if Config.TRUST_LOCAL_PROXY:
+    from werkzeug.middleware.proxy_fix import ProxyFix
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1)
+    app.config["SESSION_COOKIE_SECURE"] = True
 
 try:
     from flask_compress import Compress
@@ -68,6 +73,7 @@ with app.app_context():
         print(f"[TORNADO] Admin seed error: {_e}", flush=True)
 register_bot_api(app)
 register_auth(app)
+register_oauth(app)
 register_system(app)
 register_chat(app)
 register_admin(app)

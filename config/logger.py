@@ -17,7 +17,7 @@ def setup_logger():
     logs_enabled = os.environ.get("ENABLE_LOGS", "0").strip().lower() in ("1", "true", "yes")
     level = logging.INFO if logs_enabled else logging.CRITICAL
 
-    file_handler = RotatingFileHandler("app-trn.log", maxBytes=5000000, backupCount=5, encoding="utf-8")
+    file_handler = RotatingFileHandler(os.getenv("TORNADO_LOG_PATH", "app-trn.log"), maxBytes=5000000, backupCount=5, encoding="utf-8")
     file_handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s"))
 
     stream_handler = logging.StreamHandler(sys.stdout)
