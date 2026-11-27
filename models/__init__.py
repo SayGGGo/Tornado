@@ -27,7 +27,6 @@ def _automigrate(engine):
             if col.name in existing_cols:
                 continue
             col_type = col.type.compile(engine.dialect)
-            nullable = "" if col.nullable else " NOT NULL"
             default = ""
             if col.default is not None and col.default.is_scalar:
                 val = col.default.arg
@@ -40,7 +39,8 @@ def _automigrate(engine):
             elif col.nullable:
                 default = " DEFAULT NULL"
             with engine.connect() as conn:
-                conn.execute(text(f'ALTER TABLE "{table}" ADD COLUMN "{col.name}" {col_type}{default}'))
+                if_missing = " IF NOT EXISTS" if engine.dialect.name == "postgresql" else ""
+                conn.execute(text(f'ALTER TABLE "{table}" ADD COLUMN{if_missing} "{col.name}" {col_type}{default}'))
                 conn.commit()
 
 def init_models(app):
