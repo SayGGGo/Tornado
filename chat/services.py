@@ -368,6 +368,7 @@ class ChatService:
                     "target_user_id": pu.id, "online": is_online, "typing": is_typing, "blocked": is_blocked,
                     "last_seen": pu.last_seen.isoformat() + "Z" if pu.show_last_seen is not False and pu.last_seen else None,
                     "is_bot": bool(getattr(pu, 'is_bot', False)), "peer_blocked": bool(pp.blocked),
+                    "verified": bool(pu.is_verified),
                     "bot_started": bool(my_part and my_part.bot_started)
                 }
             else:
@@ -622,7 +623,7 @@ class ChatService:
             )
             contacts = db.session.query(ChatParticipant.user_id).filter(ChatParticipant.chat_id.in_(personal_chat_ids))
             users = users.filter(User.id.in_(contacts))
-        return [{"id": u.id, "login": u.login, "handle": handle or u.login, "fio": u.fio, "avatar": u.avatar}
+        return [{"id": u.id, "login": u.login, "handle": handle or u.login, "fio": u.fio, "avatar": u.avatar, "verified": bool(u.is_verified)}
                 for u, handle in users.order_by(User.fio).limit(40).all()]
 
     def get_or_create_personal_chat(self, user1_id, user2_id):

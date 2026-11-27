@@ -1076,3 +1076,6 @@ button.profile-row:hover { background:#ffffff0b; }
  .chat-skeleton i,.message-slot:not(.collapsing) { animation:none; }
 }
 .motion-disabled :is(.chat-skeleton i,.message-slot:not(.collapsing)) { animation:none; }
+.verified-badge { display:inline-flex; margin-inline-start:5px; vertical-align:-2px; color:#85becf; white-space:nowrap; }
+.verified-badge svg { display:block; fill:#416e7d; stroke:#bcecff; }
+.profile-cover .verified-badge svg { width:17px; height:17px; }

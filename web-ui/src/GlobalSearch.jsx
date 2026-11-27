@@ -1,6 +1,7 @@
 import React,{useEffect,useState} from 'react';
 import {api,formatTime,fetchPanel} from './api.js';
 import {FormError,PanelIcon,Portrait,Loader} from './panelControls.jsx';
+import {VerifiedBadge} from './OutlineIcon.jsx';
 
 const categories=[['all','Чаты'],['channels','Каналы'],['bots','Боты'],['posts','Посты'],['media','Медиа'],['links','Ссылки'],['messages','Сообщения']];
 const empty={users:[],channels:[],messages:[],next_cursor:null};
@@ -51,7 +52,7 @@ export default function GlobalSearch({open,query,tab,setTab,recent,clearRecent,r
    </>}
    {local.length>0 && <section className="search-result-card"><header>Ваши чаты</header>{local.map(([id,chat])=><Result key={id} avatar={chat.avatar} title={chat.name} detail={chat.last_msg} onClick={()=>openChat(id)}/>)}</section>}
    {(results.users.length>0 || results.channels.length>0) && <section className="search-result-card"><header>Глобальный поиск</header>
-    {results.users.map(user=><Result key={'user'+user.id} avatar={user.avatar} title={user.fio || user.login} detail={'@'+(user.handle || user.login)} onClick={()=>openPerson(user)}/>)}
+    {results.users.map(user=><Result key={'user'+user.id} avatar={user.avatar} title={user.fio || user.login} verified={user.verified} detail={'@'+(user.handle || user.login)} onClick={()=>openPerson(user)}/>)}
     {results.channels.map(chat=><Result key={'channel'+chat.id} avatar={chat.avatar} title={chat.name} detail={chat.description || 'Публичный канал'} onClick={()=>openChannel(chat)}/>)}
    </section>}
    {results.messages.length>0 && <section className="search-result-card"><header>Сообщения</header>{results.messages.map(message=>{
@@ -65,8 +66,8 @@ export default function GlobalSearch({open,query,tab,setTab,recent,clearRecent,r
   </div>
  </div>;
 }
-function Result({avatar,title,detail,time,onClick}) {
+function Result({avatar,title,detail,time,onClick,verified}) {
  return <button type="button" className="profile-row search-result" onClick={onClick}><Portrait src={avatar} name={title}/>
-  <span className="search-result-text">{title}<small>{detail}</small></span>{time && <time>{time}</time>}
+  <span className="search-result-text">{title}<VerifiedBadge visible={verified}/><small>{detail}</small></span>{time && <time>{time}</time>}
  </button>;
 }

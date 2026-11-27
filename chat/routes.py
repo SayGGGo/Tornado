@@ -332,6 +332,7 @@ def register_chat(app):
             "login": user.login,
             "fio": user.fio,
             "handle": public_name(user),
+            "verified": bool(user.is_verified),
             "avatar": avatar,
             "bio": (user.bio or "") if user.id == session["user_id"] or user.show_bio is not False else "",
             "online": is_online,

@@ -1,5 +1,5 @@
 import React from 'react';
-import {BellOff,CircleAlert,Download} from 'lucide-react';
+import {BadgeCheck,BellOff,CircleAlert,Download} from 'lucide-react';
 import {Archive,ArrowLeft,ArrowRight,ArrowUp,Bell,Camera,Check,CheckCheck,ChevronDown,ChevronRight, CircleCheck, DoorOpen,EllipsisVertical, ExternalLink, Eye, Folder, Forward, Globe, Heart, Info, Keyboard, LayoutGrid, Link2, Lock, LockOpen, Menu, MessageCircle, Mic, Paperclip, Pencil, Phone, Plus, QrCode, Reply, Search, Settings, Shield, ShieldCheck, Smile, Square, Trash2, UserRound, UserRoundPlus, UserRoundX, Users, Video, X, Megaphone, Copy, RefreshCw, Pin, AtSign, CircleSlash, Code2, Clock} from 'lucide-react';
 
 const icons={error:CircleAlert,archive:Archive,arrow_back:ArrowLeft,arrow_forward:ArrowRight,check:Check,checkAll:CheckCheck,close:X,
@@ -14,4 +14,7 @@ const icons={error:CircleAlert,archive:Archive,arrow_back:ArrowLeft,arrow_forwar
 export function OutlineIcon({name}) {
  const Icon=icons[name];
  return Icon?<Icon aria-hidden="true" className="outline-icon profile-symbol" size={20} strokeWidth={1.75}/>:null;
+}
+export function VerifiedBadge({visible}) {
+ return visible?<span className="verified-badge" role="img" aria-label="Подтверждённый аккаунт" title="Подтверждённый аккаунт"><BadgeCheck aria-hidden="true" size={15} strokeWidth={2.2}/></span>:null;
 }

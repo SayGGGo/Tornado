@@ -5,6 +5,7 @@ import ChatDetails,{chatDetailViews,DetailRow,MediaTabs} from './ChatDetails.jsx
 import {AvatarPicker,FloatingField,FormError,PanelFooter,PanelIcon,PanelSection,PanelSwitch,Portrait,Loader} from './panelControls.jsx';
 import DeveloperPanel from './DeveloperPanel.jsx';
 import {NotificationSettings,PrivacySettings} from './SettingsPages.jsx';
+import {VerifiedBadge} from './OutlineIcon.jsx';
 
 const titles={'new-chat':'Новое сообщение','new-group':'Добавить участников','new-channel':'Создать канал',
  invite:'Добавить участников',self:'Мой профиль',edit:'Изменить профиль',peer:'Информация',chat:'О чате',
@@ -101,7 +102,7 @@ export default function ProfilePanel({page,setPage,profile,setProfile,onOpenChat
    {showingProfile && (info || view!=='peer') && <>
     <div className={'profile-cover'+(own?' own-profile-cover':' chat-detail-cover')+(view==='settings'?' settings-cover':'')}>
      <Portrait name={info?.name || info?.fio || page.name || info?.login} src={info?.avatar || page.avatar}/>
-     <strong>{info?.name || info?.fio || page.name || info?.login}</strong><small>{own?'в сети':presenceLabel(peer)}</small>
+     <strong>{info?.name || info?.fio || page.name || info?.login}<VerifiedBadge visible={info?.verified}/></strong><small>{own?'в сети':presenceLabel(peer)}</small>
     </div>
     {info && view!=='settings' && <div className="access-settings"><PanelSection title="Данные профиля">
      <DetailRow icon="alternate_email" tone="blue" title={'@'+(info.handle || info.login)} detail="Имя пользователя" onClick={openQr}><span className="profile-qr-chip" aria-hidden="true"><PanelIcon name="qr_code_2"/></span></DetailRow>
