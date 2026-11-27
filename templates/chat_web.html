@@ -27,7 +27,10 @@
     output.textContent = detail;
     output.hidden = false;
   }
-  const slowStartup = setTimeout(() => showChatStartupError('Интерфейс не запустился за 7 секунд.'), 7000);
+  let clientLoaded = false;
+  const slowStartup = setTimeout(() => showChatStartupError(clientLoaded
+    ? 'Скрипт загружен, но React не отобразил интерфейс за 7 секунд.'
+    : 'Истекло время ожидания загрузки tornado.js (7 секунд).'), 7000);
   const chatRoot = document.getElementById('root');
   function handleStartupError(event) {
     if (chatRoot.firstElementChild) return;
@@ -35,6 +38,12 @@
     showChatStartupError(event.message || 'Ошибка выполнения JavaScript.');
   }
   window.addEventListener('error', handleStartupError);
+  window.addEventListener('unhandledrejection', event => {
+    if (chatRoot.firstElementChild) return;
+    clearTimeout(slowStartup);
+    const reason = event.reason;
+    showChatStartupError(reason?.message || (typeof reason === 'string' ? reason : 'Необработанная ошибка при запуске.'));
+  });
   chatRoot.addEventListener('tornado:render-error', handleStartupError);
   const startupObserver = new MutationObserver(() => {
     if (!chatRoot.firstElementChild) return;
@@ -45,11 +54,22 @@
   startupObserver.observe(chatRoot, {childList: true});
   const client = document.createElement('script');
   client.setAttribute('data-cfasync', 'false');
-  client.onerror = () => {
+  client.onerror = async () => {
     clearTimeout(slowStartup);
     showChatStartupError('Браузер не смог загрузить файл интерфейса.');
+    try {
+      const response = await fetch(client.src, {method:'HEAD', cache:'no-store'});
+      const type = response.headers.get('content-type') || 'не указан';
+      if (!response.ok) showChatStartupError('tornado.js: HTTP ' + response.status + '.');
+      else if (!/^(text|application)\/(javascript|ecmascript)\b/i.test(type))
+        showChatStartupError('tornado.js: неверный Content-Type (' + type + ').');
+      else showChatStartupError('tornado.js доступен (HTTP ' + response.status + '), но браузер отклонил загрузку скрипта.');
+    } catch (error) {
+      showChatStartupError('tornado.js: ' + (error.message || 'сетевая ошибка'));
+    }
   };
   client.onload = () => {
+    clientLoaded = true;
     clearTimeout(slowStartup);
     if (!chatRoot.firstElementChild && startup.querySelector('a').hidden) {
       setTimeout(() => {
