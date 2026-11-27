@@ -4,7 +4,7 @@ import ContextMenu, {reactionChoices} from './ContextMenu.jsx';
 import {FormError,PanelIcon,Portrait,Loader} from './panelControls.jsx';
 import {OutlineIcon} from './OutlineIcon.jsx';
 import ChatRemovalDialog from './ChatRemovalDialog.jsx';
-import {api,account,connectionMessage,messageFromServer,sendToChat} from './api.js';
+import {api,appPath,account,connectionMessage,messageFromServer,sendToChat} from './api.js';
 
 const chatIcons={tick:'check',check:'checkAll',clip:'paperclip',delete:'trash',close:'close',copy:'content_copy',forward:'forward',bell:'notifications'};
 function Icon({name}) {return <OutlineIcon name={chatIcons[name]}/>;}
@@ -343,7 +343,7 @@ export default function ChatContent({chat, channel, showSender, search, forwardT
   const bubble = event.currentTarget;
   const bounds = bubble.getBoundingClientRect();
   const position = {x:event.clientX || bounds.left,y:event.clientY || bounds.bottom};
-  const link = new URL('/chat',location.origin);
+  const link = new URL(appPath('/chat'),location.origin);
   link.search = new URLSearchParams({chat:name,message:message.id});
   const actions=[
    ...(canWrite?[['reply','Ответить',()=>{setReply({name,message});field.current?.focus();}]]:[]),

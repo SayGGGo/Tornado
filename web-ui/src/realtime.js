@@ -1,4 +1,4 @@
-import {api} from './api.js';
+import {api,appPath} from './api.js';
 
 export function connectRealtime({onStatus,onChange}) {
  let socket;
@@ -31,7 +31,7 @@ export function connectRealtime({onStatus,onChange}) {
   if (stopped || socket || !navigator.onLine) return;
   let candidate;
   try {
-   const url = new URL('/api/chats/socket',location.href);
+   const url = new URL(appPath('/api/chats/socket'),location.href);
    url.protocol = location.protocol==='https:'?'wss:':'ws:';
    candidate = new WebSocket(url);
   } catch {

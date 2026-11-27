@@ -1,4 +1,5 @@
 import React, {useLayoutEffect, useEffect, useRef, useState} from 'react';
+import {appPath} from './api.js';
 import {createPortal} from 'react-dom';
 
 import {PanelIcon} from './panelControls.jsx';
@@ -72,7 +73,7 @@ export default function ContextMenu({menu, close}) {
   </div>}
   <div className="context-card" role="group" aria-label={visible.label ?? 'Действия'}>
    {visible.identity && <button className="context-identity" type="button" onClick={()=>{close();visible.identity.open();}}>
-    {visible.identity.avatar?<img src={visible.identity.avatar} alt=""/>:<Icon name="profile"/>}
+    {visible.identity.avatar?<img src={appPath(visible.identity.avatar)} alt=""/>:<Icon name="profile"/>}
     <span>{visible.identity.name}</span>
    </button>}
    {visible.actions.map(([icon,label,run,current])=><button key={label} type="button" aria-current={current || undefined} className={icon==='delete'?'danger':undefined} onClick={()=>{close();run();if(root.current?.contains(document.activeElement)) visible.trigger?.focus({preventScroll:true});}}><Icon name={icon}/><span>{label}</span>{current && <span className="context-current"><Icon name="select"/></span>}</button>)}

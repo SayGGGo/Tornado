@@ -105,7 +105,7 @@ def register_chat(app):
     @app.get("/t/<handle>")
     def public_link(handle):
         if not session.get("user_id"):
-            return redirect(url_for("login", next=request.full_path.rstrip("?")))
+            return redirect(url_for("login", next=request.script_root + request.full_path.rstrip("?")))
         token = request.args.get("token")
         if handle.startswith("join-") and handle[5:].isascii() and handle[5:].isdecimal():
             return redirect(url_for("chat", join=int(handle[5:]), invite=token or ""))
@@ -124,7 +124,7 @@ def register_chat(app):
     @app.get("/t/u/<username>")
     def public_user_link(username):
         if not session.get("user_id"):
-            return redirect(url_for("login", next=request.path))
+            return redirect(url_for("login", next=request.script_root + request.path))
         from sqlalchemy import func
         user = User.query.filter_by(login=username).first()
         if not user:
@@ -149,7 +149,7 @@ def register_chat(app):
     @app.route("/chat")
     def chat():
         if "user_id" not in session:
-            return redirect(url_for("login", next=request.full_path.rstrip("?")))
+            return redirect(url_for("login", next=request.script_root + request.full_path.rstrip("?")))
 
         user = db.session.get(User, session["user_id"])
         if not user:

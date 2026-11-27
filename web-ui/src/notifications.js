@@ -1,5 +1,5 @@
 import {useEffect,useRef} from 'react';
-import {api} from './api.js';
+import {api,appPath} from './api.js';
 
 export const notificationKinds=[['personal','Личные чаты'],['group','Группы'],['channel','Каналы']];
 export function pushSupported() {
@@ -30,7 +30,7 @@ export async function switchBackground(enabled, preferences, overrides) {
  if(await Notification.requestPermission()!=='granted') throw new Error('Браузер не разрешил уведомления');
  const key=await api('/api/push/vapid-key');
  if(!key.publicKey || !key.available) throw new Error('Сервер не настроен для фоновых уведомлений');
- await navigator.serviceWorker.register('/sw.js');
+ await navigator.serviceWorker.register(appPath('/sw.js'));
  const registration=await navigator.serviceWorker.ready;
  let subscription=await registration.pushManager.getSubscription();
  if(!subscription) subscription=await registration.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:decodeKey(key.publicKey)});
@@ -79,7 +79,7 @@ export function useChatNotifications(records,preferences,overrides,selected) {
    if(document.hidden && !preferences.backgroundNotifications && globalThis.Notification?.permission==='granted'){
     try{
      const notice=new Notification(chat.name,{body:preferences['preview_'+kind]===false?'Новое сообщение':chat.last_msg,tag:'tornado-chat-'+id});
-     notice.onclick=()=>{window.focus();location.assign('/chat?chat='+encodeURIComponent(id));};
+     notice.onclick=()=>{window.focus();location.assign(appPath('/chat?chat='+encodeURIComponent(id)));};
     }catch{}
    }
   }

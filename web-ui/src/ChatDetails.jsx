@@ -1,5 +1,5 @@
 import React,{useEffect,useState} from 'react';
-import {api,account,cachedPanel,fetchPanel,participantLabel} from './api.js';
+import {api,appPath,account,cachedPanel,fetchPanel,participantLabel} from './api.js';
 import {AvatarPicker,FloatingField,FormError,PanelFooter,PanelIcon,PanelRadio,PanelSection,PanelSelect,PanelSwitch,Portrait,Loader,uploadChatAvatar} from './panelControls.jsx';
 import {reactionChoices} from './ContextMenu.jsx';
 import {FilledIcon} from './FilledIcon.jsx';
@@ -33,7 +33,7 @@ export function MediaTabs({chatId}) {
   const gif=mime==='image/gif';
   const visual=/^(image|video)\//.test(mime);
   if((tab==='Медиа' && visual && !gif) || (tab==='GIF' && gif) || (tab==='Музыка' && mime.startsWith('audio/')) || (tab==='Файлы' && !visual && !mime.startsWith('audio/')))
-   return [{url:row.file_url,title:row.file_name || 'Вложение',image:visual && mime.startsWith('image/')}];
+   return [{url:appPath(row.file_url),title:row.file_name || 'Вложение',image:visual && mime.startsWith('image/')}];
   return [];
  });
  return <>
@@ -123,8 +123,8 @@ export default function ChatDetails({page,setPage,groups,onOpenChat,onUpdated,no
   finally{setBusy(false);}
  }
  const publicHandle=data?.alias || 'chat-'+id;
- const publicPath='/t/'+encodeURIComponent(publicHandle);
- const invite=new URL('/t/join-'+encodeURIComponent(id),location.origin);
+ const publicPath=appPath('/t/'+encodeURIComponent(publicHandle));
+ const invite=new URL(appPath('/t/join-'+encodeURIComponent(id)),location.origin);
  if(data?.invite_token) invite.searchParams.set('token',data.invite_token);
  const openQr=()=>setPage({view:'qr',id,handle:publicHandle,qrUrl:'/api/chats/'+id+'/qr',back:page});
  async function copyLink() {

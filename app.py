@@ -30,7 +30,7 @@ app.config['COMPRESS_ALGORITHM'] = 'gzip'
 app.config['COMPRESS_MIN_SIZE'] = 1024
 if Config.TRUST_LOCAL_PROXY:
     from werkzeug.middleware.proxy_fix import ProxyFix
-    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1)
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_prefix=1)
     app.config["SESSION_COOKIE_SECURE"] = True
 
 try:
@@ -84,7 +84,7 @@ def service_worker():
     from flask import send_from_directory, make_response
     resp = make_response(send_from_directory('static', 'sw.js'))
     resp.headers['Content-Type'] = 'application/javascript'
-    resp.headers['Service-Worker-Allowed'] = '/'
+    resp.headers['Service-Worker-Allowed'] = request.script_root + '/'
     return resp
 
 @app.after_request

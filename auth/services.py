@@ -1,6 +1,6 @@
 from werkzeug.security import generate_password_hash, check_password_hash
 import re
-from flask import url_for, session
+from flask import request, url_for, session
 from models import User, db
 from models.public_handle import reserve_handle
 from sqlalchemy import func
@@ -93,7 +93,7 @@ class AuthService:
         if user and check_password_hash(user.password_hash, data.get("password", "")):
             session["user_id"] = user.id
             next_url = data.get("next", "")
-            if next_url and isinstance(next_url, str) and next_url.startswith("/") and not next_url.startswith("//"):
+            if isinstance(next_url, str) and next_url.startswith(request.script_root + "/") and not next_url.startswith("//") and "\\" not in next_url:
                 redirect_url = next_url
             else:
                 redirect_url = url_for("chat")

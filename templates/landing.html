@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>TORNADO — Мессенджер нового поколения</title>
-<link rel="icon" href="/static/icons/favicon.ico">
-<link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
+<link rel="icon" href="{{ request.script_root }}/static/icons/favicon.ico">
+<link rel="apple-touch-icon" href="{{ request.script_root }}/static/icons/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
@@ -250,13 +250,13 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 </div>
 
 <header class="hdr">
-  <a href="/" class="hdr-logo">
-    <div class="hdr-icon"><img src="/static/premium/1.svg" alt=""></div>
+  <a href="{{ request.script_root }}/" class="hdr-logo">
+    <div class="hdr-icon"><img src="{{ request.script_root }}/static/premium/1.svg" alt=""></div>
     <span class="hdr-name">TORNADO</span>
   </a>
   <nav class="hdr-nav">
-    <a href="/login" class="btn-ghost">Войти</a>
-    <a href="/register" class="btn-cta">Начать →</a>
+    <a href="{{ request.script_root }}/login" class="btn-ghost">Войти</a>
+    <a href="{{ request.script_root }}/register" class="btn-cta">Начать →</a>
   </nav>
 </header>
 
@@ -269,11 +269,11 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
     <div class="hero-big">в TORNADO</div>
     <p class="hero-sub">Зашифрованное хранение сообщений · Видеозвонки · Групповые чаты<br>Приватность и скорость в одном месте</p>
     <div class="hero-actions">
-      <a href="/register" class="btn-hero btn-hero-g">
+      <a href="{{ request.script_root }}/register" class="btn-hero btn-hero-g">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
         Начать бесплатно
       </a>
-      <a href="/login" class="btn-hero btn-hero-s">Войти в аккаунт</a>
+      <a href="{{ request.script_root }}/login" class="btn-hero btn-hero-s">Войти в аккаунт</a>
     </div>
   </div>
   <div class="scroll-hint"><span>Scroll</span><div class="scroll-line"></div></div>
@@ -378,7 +378,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
     <div class="prem-bg"></div>
     <div class="prem-icon-wrap">
       <div class="prem-icon-glow"></div>
-      <img src="/static/premium/1.svg" alt="TORNADO Premium">
+      <img src="{{ request.script_root }}/static/premium/1.svg" alt="TORNADO Premium">
     </div>
     <div class="prem-content">
       <div class="prem-badge">★ Эксклюзивно</div>
@@ -392,7 +392,7 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
         <div class="prem-feat">Нет ограничений на файлы</div>
         <div class="prem-feat">Поддержка в приоритете</div>
       </div>
-      <a href="/register" class="btn-download">
+      <a href="{{ request.script_root }}/register" class="btn-download">
         <svg viewBox="0 0 24 24" style="fill:none;stroke:#000;stroke-width:2.5;stroke-linecap:round;"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
         Начать с Premium
       </a>
@@ -403,13 +403,13 @@ body::before{content:'';position:fixed;inset:0;background-image:url("data:image/
 <footer class="footer">
   <div class="footer-inner">
     <div class="footer-logo">
-      <img src="/static/premium/1.svg" alt="">
+      <img src="{{ request.script_root }}/static/premium/1.svg" alt="">
       <span class="footer-logoname">TORNADO</span>
     </div>
     <div class="footer-copy">&copy; 2026 TORNADO — Все права защищены</div>
     <div class="footer-links">
-      <a href="/login">Войти</a>
-      <a href="/register">Регистрация</a>
+      <a href="{{ request.script_root }}/login">Войти</a>
+      <a href="{{ request.script_root }}/register">Регистрация</a>
       <a href="https://github.com/{{ github_repo }}" target="_blank">GitHub</a>
     </div>
   </div>
@@ -446,7 +446,7 @@ let avEls = [];
 async function initAvatars(){
   let avatars = [];
   try{
-    const r = await fetch('/api/landing/avatars');
+    const r = await fetch('{{ request.script_root }}/api/landing/avatars');
     if(r.ok){const d = await r.json(); avatars = d.avatars||[];}
   }catch{}
 
@@ -504,7 +504,7 @@ function parallax(){
 
 async function loadStats(){
   try{
-    const r = await fetch('/api/landing/stats');
+    const r = await fetch('{{ request.script_root }}/api/landing/stats');
     if(!r.ok) return;
     const d = await r.json();
     const fmt = n => n>=1000 ? (n/1000).toFixed(1)+'K' : String(n);

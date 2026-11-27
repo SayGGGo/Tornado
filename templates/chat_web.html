@@ -3,6 +3,7 @@
 <head>
  <meta charset="utf-8">
  <meta name="viewport" content="width=device-width, initial-scale=1">
+ <meta name="tornado-root" content="{{ request.script_root }}">
  <title>Tornado</title>
  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&display=swap">
  <link rel="stylesheet" href="{{ url_for('static', filename='chat-web/tornado.css', v=asset_version) }}">

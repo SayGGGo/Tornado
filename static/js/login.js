@@ -302,7 +302,7 @@
       btn.classList.add('locked');
 
       try {
-        const res = await fetch('/login' + window.location.search, {
+        const res = await fetch(window.location.pathname + window.location.search, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(data)

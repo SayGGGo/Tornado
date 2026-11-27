@@ -90,7 +90,7 @@ def register_oauth(app):
         if not user_id:
             if request.method == "POST":
                 abort(401)
-            return redirect(url_for("login", next=request.full_path.rstrip("?")))
+            return redirect(url_for("login", next=request.script_root + request.full_path.rstrip("?")))
         serializer = URLSafeTimedSerializer(current_app.secret_key, salt="tornado-oauth-consent")
         if request.method == "GET":
             client_id = request.args.get("client_id", "")

@@ -77,7 +77,7 @@
                         <input type="text" name="website" tabindex="-1" autocomplete="off">
                     </div>
                     <div class="auth-links">
-                        Уже есть аккаунт? <a href="/login">Войти</a>
+                        Уже есть аккаунт? <a href="{{ request.script_root }}/login">Войти</a>
                     </div>
                 </div>
 
@@ -245,7 +245,7 @@
                         <div class="switch-label-wrapper">
                             <label>Соглашение с условиями <span class="required">*</span></label>
                             <span class="sub-label">
-                                <a href="/terms">Условия использования</a> и <a href="/policy">политика конфиденциальности</a>
+                                <a href="{{ request.script_root }}/terms">Условия использования</a> и <a href="{{ request.script_root }}/policy">политика конфиденциальности</a>
                             </span>
                         </div>
                         <div class="switch-scaler">
@@ -262,7 +262,7 @@
                     </div>
 
                     <div class="auth-links">
-                        Уже есть аккаунт? <a href="/login">Войти</a>
+                        Уже есть аккаунт? <a href="{{ request.script_root }}/login">Войти</a>
                     </div>
 
                     <div class="action-row">

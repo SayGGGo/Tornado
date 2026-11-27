@@ -96,7 +96,7 @@ def register_auth(app):
     @app.route("/auth/<token>")
     def connect_page(token):
         if "user_id" not in session:
-            return redirect(url_for("login", next=request.path))
+            return redirect(url_for("login", next=request.script_root + request.path))
 
         user = db.session.get(User, session["user_id"])
         if not user:

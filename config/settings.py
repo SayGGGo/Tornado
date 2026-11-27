@@ -14,6 +14,8 @@ class Config:
     SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", "sqlite:///tornado.db")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     TRUST_LOCAL_PROXY = os.getenv("TRUST_LOCAL_PROXY") == "1"
+    SESSION_COOKIE_PATH = os.getenv("TORNADO_COOKIE_PATH", "/")
+    SESSION_COOKIE_NAME = os.getenv("TORNADO_COOKIE_NAME", "session")
 
     TURNSTILE_SECRET = os.getenv("TURNSTILE_SECRET", "0")
     TURNSTILE_SITEKEY = os.getenv("TURNSTILE_SITEKEY", "0")

@@ -1,5 +1,5 @@
 import React,{useEffect,useState} from 'react';
-import {api,account,presenceLabel,cachedPanel,fetchPanel} from './api.js';
+import {api,appPath,account,presenceLabel,cachedPanel,fetchPanel} from './api.js';
 import ChatSetup from './ChatSetup.jsx';
 import ChatDetails,{chatDetailViews,DetailRow,MediaTabs} from './ChatDetails.jsx';
 import {AvatarPicker,FloatingField,FormError,PanelFooter,PanelIcon,PanelSection,PanelSwitch,Portrait,Loader} from './panelControls.jsx';
@@ -49,7 +49,7 @@ export default function ProfilePanel({page,setPage,profile,setProfile,onOpenChat
  const info=own?profile:view==='peer'?peer:null;
  const showingProfile=own || view==='peer';
  const openQr=()=>setPage({view:'qr',id:own?profile.id:page.id,name:info?.login,handle:info?.handle || info?.login,back:page});
- const qrUrl=page.qrUrl || '/api/user/'+page.id+'/qr';
+ const qrUrl=appPath(page.qrUrl || '/api/user/'+page.id+'/qr');
  const previous = page.back || (view==='new-group' && page.step===2?{...page,step:1}:
   ['notifications','logout','display','shortcuts','privacy','developer'].includes(view)?{view:'settings'}:
   details && view!=='chat'?{...page,view:['chat-type','chat-discussion','chat-reactions','chat-admins','chat-blocked','chat-requests'].includes(view)?'chat-edit':'chat'}:null);
@@ -158,10 +158,10 @@ export default function ProfilePanel({page,setPage,profile,setProfile,onOpenChat
    {view==='developer' && <DeveloperPanel/>}
    {view==='notifications' && <NotificationSettings preferences={preferences} changePreference={changePreference} notifications={notifications}/>}
    {view==='privacy' && <PrivacySettings profile={profile} setProfile={setProfile} blocked={blocked} onUpdated={onUpdated}/>}
-   {view==='logout' && <div className="access-settings"><PanelSection title="Сеанс Tornado" hint="Для возвращения к чатам потребуется снова войти."><a className="access-link-action renewing" href="/logout"><PanelIcon name="logout"/>Выйти из аккаунта</a></PanelSection></div>}
+   {view==='logout' && <div className="access-settings"><PanelSection title="Сеанс Tornado" hint="Для возвращения к чатам потребуется снова войти."><a className="access-link-action renewing" href={appPath('/logout')}><PanelIcon name="logout"/>Выйти из аккаунта</a></PanelSection></div>}
    {view==='qr' && <div className="qr-view qr-enter">
     <div className="qr-card"><img src={qrUrl} alt="QR-код"/><strong>@{page.handle}</strong></div>
-    <a className="qr-profile-link" href={'/t/'+encodeURIComponent(page.handle)}>{location.host}/t/{page.handle}</a>
+    <a className="qr-profile-link" href={appPath('/t/'+encodeURIComponent(page.handle))}>{location.host}{appPath('/t/'+page.handle)}</a>
     <button type="button" onClick={async()=>{
      try{const picture=fetch(qrUrl).then(response=>{if(!response.ok) throw new Error();return response.blob();});await navigator.clipboard.write([new ClipboardItem({'image/png':picture})]);}
      catch{setError('Не удалось скопировать изображение.');}

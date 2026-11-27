@@ -1,4 +1,5 @@
 import React from 'react';
+import {appPath} from './api.js';
 import {OutlineIcon} from './OutlineIcon.jsx';
 
 export function PanelIcon({name}) {
@@ -55,7 +56,7 @@ export function FloatingField({label,multiline=false,error,formatError,onChange,
 export function Portrait({src,name='',className=''}) {
  return <span className={'panel-portrait '+className}>
   <span aria-hidden="true">{String(name ?? '').trim().split(/\s+/).slice(0,2).map(word=>word[0]).join('').toUpperCase() || 'T'}</span>
-  {src && <img src={src} alt="" onError={event=>{event.currentTarget.hidden=true;}}/>}
+  {src && <img src={appPath(src)} alt="" onError={event=>{event.currentTarget.hidden=true;}}/>}
  </span>;
 }
 export function AvatarPicker({avatar,file,onChange,label='Выбрать фото'}) {

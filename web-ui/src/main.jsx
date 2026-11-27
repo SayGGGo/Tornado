@@ -4,7 +4,7 @@ import './style.css';
 import ContextMenu from './ContextMenu.jsx';
 import ChatContent from './ChatContent.jsx';
 import ChatRemovalDialog, {removalLabels} from './ChatRemovalDialog.jsx';
-import {api,account,formatTime,presenceLabel,participantLabel,connectionMessage} from './api.js';
+import {api,appPath,account,formatTime,presenceLabel,participantLabel,connectionMessage} from './api.js';
 import {connectRealtime} from './realtime.js';
 import ProfilePanel from './ProfilePanel.jsx';
 import GlobalSearch from './GlobalSearch.jsx';
@@ -226,7 +226,7 @@ function App() {
  async function startCall() {
    try {
      const result = await api('/api/call/start',{method:'POST',json:{target_user_id:Number(currentChat.target_user_id),chat_id:Number(selected)}});
-     if (result.call_url) location.assign(result.call_url);
+     if (result.call_url) location.assign(appPath(result.call_url));
    } catch (error) { notify(error.message); }
  }
  const available = chats.filter(([name])=>!deleted.some(chat=>chat.name===name) && !hiddenChats.includes(name));
@@ -377,7 +377,7 @@ function App() {
        <header><button type="button" aria-label="Закрыть архив" onClick={()=>setFromArchive(false)}><OutlineIcon name="arrow_back"/></button>Архив</header>
        <div className="chat-list">{archiveChats.map(([name,preview,time,,image])=>
         <div className="archive-row" key={name} data-chat={name} onContextMenu={event=>openChatMenu(event,name)}>
-         <button type="button" className="chat" onClick={()=>{openChat(name,true);}}><img className="avatar" alt="" src={image}/><div className="chat-body"><div className="chat-line"><span className="chat-name">{label(name)}</span><span className="chat-time">{time}</span></div><div className="chat-preview"><span>{preview}</span>{!!unread[name] && <span className="badge">{unread[name]}</span>}</div></div></button>
+         <button type="button" className="chat" onClick={()=>{openChat(name,true);}}><img className="avatar" alt="" src={appPath(image)}/><div className="chat-body"><div className="chat-line"><span className="chat-name">{label(name)}</span><span className="chat-time">{time}</span></div><div className="chat-preview"><span>{preview}</span>{!!unread[name] && <span className="badge">{unread[name]}</span>}</div></div></button>
          
         </div>
        )}</div>
@@ -406,7 +406,7 @@ function App() {
      button.append(wave);
      wave.addEventListener('animationend',()=>wave.remove(),{once:true});
    }
- }}><img className="avatar" src={c[4]} alt=""/><div className="chat-body"><div className="chat-line"><span className="chat-name">{label(c[0])}</span><span className="chat-time">{typeof c[5]?.last_status==='boolean' && <span aria-label={c[5].last_status?'Прочитано':'Отправлено'} role="img"><OutlineIcon name={c[5].last_status?'checkAll':'check'}/></span>}{c[2]}</span></div><div className="chat-preview"><span>{c[1]}</span>{!!(unread[c[0]] ?? c[3])&&<span className={'badge'+(c[0]==='Архив'?' muted':'')}>{unread[c[0]] ?? c[3]}</span>}</div></div></button>)}</div></div><button type="button" className={'sidebar-create'+(chatMenu?.label==='Создание чата'?' is-open':'')} aria-label="Создать чат" aria-expanded={chatMenu?.label==='Создание чата'} onClick={toggleCreateMenu} inert={searchOpen}><OutlineIcon name={chatMenu?.label==='Создание чата'?'close':'edit'}/></button><div className="resize-handle" role="separator" aria-label="Изменить ширину панели" aria-orientation="vertical" aria-valuemin={0} aria-valuemax={50} tabIndex="0" onPointerDown={resize} onKeyDown={e=>{if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();setWidth(clamp(panel.current.getBoundingClientRect().width+(e.key==='ArrowRight'?10:-10)))}}}/></>}</aside>
+ }}><img className="avatar" src={appPath(c[4])} alt=""/><div className="chat-body"><div className="chat-line"><span className="chat-name">{label(c[0])}</span><span className="chat-time">{typeof c[5]?.last_status==='boolean' && <span aria-label={c[5].last_status?'Прочитано':'Отправлено'} role="img"><OutlineIcon name={c[5].last_status?'checkAll':'check'}/></span>}{c[2]}</span></div><div className="chat-preview"><span>{c[1]}</span>{!!(unread[c[0]] ?? c[3])&&<span className={'badge'+(c[0]==='Архив'?' muted':'')}>{unread[c[0]] ?? c[3]}</span>}</div></div></button>)}</div></div><button type="button" className={'sidebar-create'+(chatMenu?.label==='Создание чата'?' is-open':'')} aria-label="Создать чат" aria-expanded={chatMenu?.label==='Создание чата'} onClick={toggleCreateMenu} inert={searchOpen}><OutlineIcon name={chatMenu?.label==='Создание чата'?'close':'edit'}/></button><div className="resize-handle" role="separator" aria-label="Изменить ширину панели" aria-orientation="vertical" aria-valuemin={0} aria-valuemax={50} tabIndex="0" onPointerDown={resize} onKeyDown={e=>{if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();setWidth(clamp(panel.current.getBoundingClientRect().width+(e.key==='ArrowRight'?10:-10)))}}}/></>}</aside>
     {<section className="conversation" hidden={!currentChat} aria-label={currentChat?.name ?? "Чат"}>
       <div className="conversation-body" hidden={selected === 'Архив'}>
       <ChatContent enterToSend={preferences.enterToSend!==false} onOpenAuthor={message=>setProfilePage({view:'peer',id:message.authorId,name:message.author,avatar:message.avatar})} focus={messageFocus} pickRequest={pickRequest} revision={chatRevision} notify={notify} onUpdated={loadChats} canWrite={profile.can_message && !currentChat?.blocked && (!channels.includes(selected) || currentChat?.permissions?.includes('post') || Number(currentChat?.owner_id)===profile.id)} chat={chats.find(chat=>chat[0]===selected) ?? chats[0]} channel={channels.includes(selected)} showSender={groups.includes(selected)} forwardTargets={available.filter(([name])=>name!=='Архив' && !channels.includes(name))} notificationsEnabled={notificationEnabled(selected)} onToggleNotifications={()=>toggleNotifications(selected)} search={messageSearch && messageSearch.chat===selected ? messageSearch.value : ''} header={<>
@@ -414,7 +414,7 @@ function App() {
        <button type="button" className="composer-action back-button" aria-label="Назад к списку чатов" onClick={()=>setSelected(null)}>
         <OutlineIcon name="arrow_back"/>
        </button>
-       <button type="button" className="chat-profile-button" aria-label="Открыть сведения о чате" onClick={openChatProfile}><img className="header-avatar" src={currentChat?.target_user_id===profile.id?profile.avatar:currentChat?.avatar} alt=""/>
+       <button type="button" className="chat-profile-button" aria-label="Открыть сведения о чате" onClick={openChatProfile}><img className="header-avatar" src={appPath(currentChat?.target_user_id===profile.id?profile.avatar:currentChat?.avatar)} alt=""/>
        <span className="header-identity"><strong>{currentChat?.name}</strong><small>{currentChat?.target_user_id?presenceLabel(currentChat):members[selected]!==undefined?participantLabel(members[selected],channels.includes(selected)):''}</small></span></button>
        <div className="header-actions">
         <HeaderAction icon="search" label="Поиск по сообщениям" onClick={()=>setMessageSearch(current=>current?.chat===selected?null:{chat:selected,value:''})}/>

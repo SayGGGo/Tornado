@@ -1,3 +1,8 @@
+const appRoot = document.querySelector('meta[name="tornado-root"]')?.content || '';
+export function appPath(path) {
+ return typeof path==='string' && path.startsWith('/') && !path.startsWith('//') &&
+  !(appRoot && (path===appRoot || path.startsWith(appRoot+'/')))?appRoot+path:path;
+}
 const panelCache = new Map();
 export function cachedPanel(path) {
  const entry=panelCache.get(path);
@@ -24,7 +29,7 @@ export async function api(path, options={}) {
  }
  let response;
  try {
-  response = await fetch(path,request);
+  response = await fetch(appPath(path),request);
  } catch (error) {
   if (request.signal?.aborted) throw error;
   window.dispatchEvent(new Event('tornado:connection-lost'));
@@ -35,7 +40,7 @@ export async function api(path, options={}) {
   throw new Error(connectionMessage);
  }
  if (response.status===401) {
-  location.assign('/login');
+  location.assign(appPath('/login'));
   throw new Error('Сеанс завершён');
  }
  let result;
@@ -85,8 +90,8 @@ export function messageFromServer(row, group) {
  return {
   id:row.id, text:row.content, own:row.user_id===account.id, at:Date.parse(row.sent_at),
   sender:group && row.user_id!==account.id?(row.author_name || row.login):null, author:row.author_name || row.login, authorId:row.user_id, avatar:row.avatar, reactions:row.reactions || [],
-  read:row.is_read, edited:row.is_edited, keyboard:row.reply_markup?.inline_keyboard, quote:row.reply?.text, audio:row.file_type?.startsWith('audio/')?row.file_url:null,
-  file:row.file_url && !row.file_type?.startsWith('audio/')?{name:row.file_name,url:row.file_url}:null,
+  read:row.is_read, edited:row.is_edited, keyboard:row.reply_markup?.inline_keyboard, quote:row.reply?.text, audio:row.file_type?.startsWith('audio/')?appPath(row.file_url):null,
+  file:row.file_url && !row.file_type?.startsWith('audio/')?{name:row.file_name,url:appPath(row.file_url)}:null,
  };
 }
 export async function sendToChat(chatId, values) {
