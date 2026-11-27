@@ -15,26 +15,34 @@ const titles={'new-chat':'Новое сообщение','new-group':'Добав
 const setupViews=['new-chat','new-group','new-channel','invite'];
 function UsernameDialog({name,collectible,onClose}) {
  const dialog=React.useRef(null);
+ const timer=React.useRef(null);
+ const [closing,setClosing]=useState(false);
  const [copied,setCopied]=useState(false);
  const [copyError,setCopyError]=useState('');
  const link=new URL(appPath('/t/'+encodeURIComponent(name)),location.origin).href;
  useEffect(()=>{
   const element=dialog.current;
   element.showModal();
-  return ()=>element.close();
+  return ()=>{clearTimeout(timer.current);element.close();};
  },[]);
- return <dialog ref={dialog} className="username-dialog" aria-labelledby="username-title" onCancel={event=>{event.preventDefault();onClose();}} onClick={event=>{if(event.target===event.currentTarget)onClose();}}>
+ function close() {
+  if(timer.current!==null)return;
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches){onClose();return;}
+  setClosing(true);
+  timer.current=setTimeout(onClose,180);
+ }
+ return <dialog ref={dialog} className={'username-dialog'+(closing?' closing':'')} aria-labelledby="username-title" onCancel={event=>{event.preventDefault();close();}} onClick={event=>{if(event.target===event.currentTarget)close();}}>
   <div className="username-dialog-body">
-   <button type="button" className="header-action username-close" aria-label="Закрыть" onClick={onClose}><PanelIcon name="close"/></button>
-   <span className={'username-emblem'+(collectible?' collectible':'')}><PanelIcon name={collectible?'favorite':'alternate_email'}/></span>
-   <h2 id="username-title">@{name}</h2>
-   <strong>{collectible?'Коллекционное имя пользователя':'Имя пользователя'}</strong>
-   <p>{collectible?'Это короткое имя закреплено за ботом «3D Печать». Его нельзя выбрать при регистрации или в настройках профиля.':'По этой ссылке можно открыть переписку в Tornado.'}</p>
-   <input aria-label="Публичная ссылка" readOnly value={link} onFocus={event=>event.currentTarget.select()}/>
+   <button type="button" className="header-action username-close" aria-label="Закрыть" onClick={close}><PanelIcon name="close"/></button>
+   <div className="username-heading">
+    <span className="username-emblem"><PanelIcon name={collectible?'favorite':'alternate_email'}/></span>
+    <div><h2 id="username-title">@{name}</h2><span>{collectible?'Коллекционное имя':'Имя пользователя'}</span></div>
+   </div>
+   <p>{collectible?'Это короткое имя закреплено за ботом «3D Печать». Коллекционные имена недоступны при регистрации и смене имени.':'По имени пользователя можно найти профиль и открыть переписку в Tornado.'}</p>
    <FormError message={copyError}/>
    <button type="button" className="access-save" onClick={async()=>{
     try {await navigator.clipboard.writeText(link);setCopied(true);setCopyError('');}
-    catch {setCopyError('Не удалось скопировать. Ссылку можно выделить в поле выше.');}
+    catch {setCopyError('Не удалось скопировать ссылку. Проверьте разрешения браузера.');}
    }}><PanelIcon name={copied?'check':'content_copy'}/>{copied?'Ссылка скопирована':'Копировать ссылку'}</button>
   </div>
  </dialog>;
@@ -137,7 +145,7 @@ export default function ProfilePanel({page,setPage,profile,setProfile,onOpenChat
      <strong>{info?.name || info?.fio || page.name || info?.login}<VerifiedBadge visible={info?.verified}/></strong><small>{own?'в сети':presenceLabel(peer)}</small>
     </div>
     {info && view!=='settings' && <div className="access-settings"><PanelSection title="Данные профиля">
-     <DetailRow icon="alternate_email" tone="blue" title={<button type="button" className={'profile-username'+(info.collectible_handle?' collectible':'')} onClick={()=>setUsernameDialog({name:info.handle || info.login,collectible:info.collectible_handle})}>@{info.handle || info.login}</button>} detail={info.alias?'Имя пользователя · также @'+info.alias:'Имя пользователя'}><button type="button" className="header-action profile-qr-action" aria-label="Открыть QR-код" onClick={openQr}><PanelIcon name="qr_code_2"/></button></DetailRow>
+     <DetailRow icon="alternate_email" tone="blue" title={<button type="button" className="profile-username" onClick={()=>setUsernameDialog({name:info.handle || info.login,collectible:info.collectible_handle})}>@{info.handle || info.login}</button>} detail={info.alias?'Имя пользователя · также @'+info.alias:'Имя пользователя'}><button type="button" className="header-action profile-qr-action" aria-label="Открыть QR-код" onClick={openQr}><PanelIcon name="qr_code_2"/></button></DetailRow>
      {info.bio && <DetailRow icon="info" title={info.bio} detail="О себе"/>}
      {view==='peer' && page.chatId && <DetailRow icon="notifications" tone="coral" title="Уведомления" onClick={()=>onToggleNotifications(page.chatId)}><span className={'panel-switch'+(notificationEnabled(page.chatId)?' enabled':'')}/></DetailRow>}
      {view==='peer' && <DetailRow icon="chat_bubble" tone="green" title="Написать сообщение" onClick={async()=>{

@@ -1109,20 +1109,27 @@ button.profile-row:hover { background:#ffffff0b; }
 .file-upload-progress small { white-space:nowrap; color:#d2e6da; font-size:11px; }
 .profile-username { padding:0; border:0; background:none; color:inherit; font:inherit; text-align:start; cursor:pointer; }
 .profile-username:hover { text-decoration:underline; }
-.profile-username.collectible { color:#d6efd9; text-shadow:0 0 10px #9cdda258; }
-.username-dialog { width:min(380px,calc(100% - 28px)); max-height:calc(100dvh - 28px); padding:0; border:0; border-radius:23px; background:#202725; color:#edf6f0; }
-.username-dialog::backdrop { background:#060908a6; backdrop-filter:blur(6px); }
-.username-dialog[open] { animation:username-enter .22s ease-out both; }
-.username-dialog-body { position:relative; display:grid; justify-items:center; gap:9px; padding:24px 20px 20px; text-align:center; }
-.username-dialog-body .username-close { position:absolute; inset:8px 8px auto auto; }
-.username-emblem { display:grid; place-items:center; width:48px; height:48px; border-radius:16px; background:#34483d; color:#b2e2c7; }
-.username-emblem.collectible { background:linear-gradient(145deg,#554a35,#393b2f); color:#f0d49a; }
+.username-dialog { width:min(370px,calc(100% - 28px)); max-height:calc(100dvh - 28px); padding:0; border:0; border-radius:22px; background:#222525; color:#edf6f0; box-shadow:0 18px 56px #0008; }
+.username-dialog::backdrop { background:#060908a6; backdrop-filter:blur(5px); animation:username-backdrop .3s ease-out both; }
+.username-dialog[open] { animation:username-enter .31s cubic-bezier(.21,1,.32,1) both; }
+.username-dialog.closing { pointer-events:none; animation:username-exit .18s ease-in both; }
+.username-dialog.closing::backdrop { animation:username-backdrop .18s ease-in reverse both; }
+.username-dialog-body { position:relative; display:grid; gap:14px; padding:20px; user-select:none; }
+.username-dialog-body .username-close { position:absolute; inset:9px 9px auto auto; }
+.username-heading { display:flex; align-items:center; gap:12px; padding-inline-end:31px; }
+.username-heading > div { min-width:0; }
+.username-heading h2 { font-size:21px; overflow-wrap:anywhere; }
+.username-heading > div > span { color:#b1bdb6; font-size:13px; }
+.username-emblem { display:grid; place-items:center; flex:none; width:42px; height:42px; border-radius:13px; background:#303a34; color:#b2d7c2; }
 .username-dialog h2,.username-dialog p { margin:0; }
 .username-dialog p { color:#b9c8bf; font-size:14px; line-height:1.45; }
-.username-dialog input { width:100%; margin:4px 0; padding:10px 11px; border:1px solid #45574d; border-radius:12px; background:#161d19; color:#e2f0e7; font:inherit; font-size:13px; }
-.username-dialog .access-save { background:#9ad4b6; }
-@keyframes username-enter { from { opacity:0; transform:translateY(5px) scale(.97); } }
-@media(prefers-reduced-motion:reduce) { .username-dialog[open] { animation:none; } }
+.username-dialog .access-save { width:100%; background:#344b3e; color:#e5f4eb; }
+.username-dialog .access-save:hover { background:#41604e; }
+.username-dialog .form-error { margin:0; }
+@keyframes username-enter { from { opacity:0; transform:translateY(9px) scale(.975); } }
+@keyframes username-exit { to { opacity:0; transform:translateY(6px) scale(.98); } }
+@keyframes username-backdrop { from { opacity:0; } }
+@media(prefers-reduced-motion:reduce) { .username-dialog[open],.username-dialog::backdrop { animation:none; } }
 .global-search .search-result,.global-search .search-contacts > button { animation:search-result-reveal .17s ease-out both; }
 @keyframes search-result-reveal { from { opacity:0; translate:0 3px; } }
 @media(prefers-reduced-motion:reduce) { .global-search .search-result,.global-search .search-contacts > button { animation:none; } }
