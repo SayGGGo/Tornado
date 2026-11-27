@@ -16,6 +16,7 @@ const setupViews=['new-chat','new-group','new-channel','invite'];
 function UsernameDialog({name,collectible,source,onClose}) {
  const dialog=React.useRef(null);
  const timer=React.useRef(null);
+ const flight=React.useRef(null);
  const [closing,setClosing]=useState(false);
  const [copied,setCopied]=useState(false);
  const [copyError,setCopyError]=useState('');
@@ -29,15 +30,21 @@ function UsernameDialog({name,collectible,source,onClose}) {
   const animate=from && from.width && !matchMedia('(prefers-reduced-motion: reduce)').matches;
   if(animate){
    source.classList.add('username-in-flight');
-   title.animate([{transform:'translate('+(from.left-to.left)+'px,'+(from.top-to.top)+'px) scale('+Math.max(.5,from.width/to.width)+')'},{transform:'none'}],{duration:430,easing:'cubic-bezier(.22,1,.36,1)'});
+   flight.current=title.animate([{transform:'translate('+(from.left-to.left)+'px,'+(from.top-to.top)+'px) scale('+Math.max(.5,from.width/to.width)+')'},{transform:'none'}],{duration:430,easing:'cubic-bezier(.22,1,.36,1)'});
   }
   return ()=>{clearTimeout(timer.current);source?.classList.remove('username-in-flight');element.close();};
  },[]);
  function close() {
   if(timer.current!==null)return;
   if(matchMedia('(prefers-reduced-motion: reduce)').matches){onClose();return;}
+  if(flight.current){
+   const animation=flight.current;
+   if(animation.playState==='finished')animation.currentTime=430;
+   animation.updatePlaybackRate(-Math.max(1,animation.currentTime/290));
+   animation.play();
+  }
   setClosing(true);
-  timer.current=setTimeout(onClose,180);
+  timer.current=setTimeout(onClose,flight.current?300:180);
  }
  return <dialog ref={dialog} className={'username-dialog'+(source?' username-flight':'')+(closing?' closing':'')} aria-labelledby="username-title" onCancel={event=>{event.preventDefault();close();}} onClick={event=>{if(event.target===event.currentTarget)close();}}>
   <div className="username-dialog-body">
@@ -57,7 +64,10 @@ function UsernameDialog({name,collectible,source,onClose}) {
 }
 function editDraft(profile) {
  const [first,...rest]=(profile.name || '').trim().split(/\s+/);
- return {first,last:rest.join(' '),bio:profile.bio || '',login:profile.login};
+ const names=profile.usernames || [{name:profile.handle || profile.login,collectible:false}];
+ const primary=names.find(entry=>entry.name===(profile.handle || profile.login));
+ const ordinaryAlias=names.find(entry=>entry.name!==primary?.name && !entry.collectible);
+ return {first,last:rest.join(' '),bio:profile.bio || '',login:profile.login,names,ordinaryAlias:ordinaryAlias?.name,primaryCollectible:!!primary?.collectible};
 }
 export default function ProfilePanel({page,setPage,profile,setProfile,onOpenChat,onUpdated,groups,notifications,notificationEnabled,onToggleNotifications,preferences,changePreference,blocked}) {
  const [draft,setDraft]=useState(null);
@@ -67,7 +77,6 @@ export default function ProfilePanel({page,setPage,profile,setProfile,onOpenChat
  const [peer,setPeer]=useState(null);
  const [portraitOpen,setPortraitOpen]=useState(false);
  const [usernameDialog,setUsernameDialog]=useState(null);
- const [ordering,setOrdering]=useState(false);
  const [qrReady,setQrReady]=useState(false);
  const view=page?.view;
  useEffect(()=>{
@@ -108,7 +117,7 @@ export default function ProfilePanel({page,setPage,profile,setProfile,onOpenChat
   ({chat:'О канале','chat-type':'Тип канала','chat-members':'Подписчики'}[view] || titles[view]):view==='chat'?'О группе':titles[view];
  function update(key,value) {
   setDraft(current=>({...current,[key]:value}));
-  const field=['first','last'].includes(key)?'fio':key;
+  const field=['first','last'].includes(key)?'fio':key==='ordinaryAlias'?'ordinary_alias':key;
   setFieldError(current=>current?.field===field?null:current);
  }
  function edit() {setDraft(editDraft(profile));setPage({view:'edit',back:page});}
@@ -118,20 +127,27 @@ export default function ProfilePanel({page,setPage,profile,setProfile,onOpenChat
   if(!draft.first.trim()){setFieldError({field:'fio',message:'Введите имя.'});return;}
   setSaving(true);
   try {
-   const result=await api('/api/user/profile',{method:'POST',json:{fio:[draft.first,draft.last].map(value=>value.trim()).filter(Boolean).join(' '),login:draft.login.trim(),bio:draft.bio,...(draft.avatar?{avatar:draft.avatar}:{})}});
+   const result=await api('/api/user/profile',{method:'POST',json:{
+    fio:[draft.first,draft.last].map(value=>value.trim()).filter(Boolean).join(' '),bio:draft.bio,
+    username_order:draft.names.map(entry=>entry.name),
+    ...(!draft.primaryCollectible?{login:draft.login.trim()}:{}),
+    ...(draft.ordinaryAlias!==undefined?{ordinary_alias:draft.ordinaryAlias.trim()}:{}),
+    ...(draft.avatar?{avatar:draft.avatar}:{})
+   }});
    setProfile({...profile,name:result.fio,login:result.login,handle:result.handle,usernames:result.usernames,bio:result.bio,avatar:result.avatar});
    setPage(previous || {view:'self'});
   } catch(reason){if(reason.field)setFieldError(reason);else setError(reason.message);}
   finally{setSaving(false);}
  }
- async function moveUsername(index,direction) {
-  if(ordering)return;
-  const order=usernames.map(entry=>entry.name);
-  [order[index],order[index+direction]]=[order[index+direction],order[index]];
-  setOrdering(true);
-  try {const result=await api('/api/user/profile/username-order',{method:'PUT',json:{order}});setProfile(current=>({...current,usernames:result.usernames}));}
-  catch(reason){setError(reason.message);}
-  finally{setOrdering(false);}
+ function moveUsername(index,direction) {
+  setDraft(current=>{
+   const names=[...current.names];
+   [names[index],names[index+direction]]=[names[index+direction],names[index]];
+   return {...current,names};
+  });
+ }
+ function renderUsername({name,collectible}) {
+  return collectible?<button type="button" className="profile-username" onClick={event=>setUsernameDialog({name,collectible,source:event.currentTarget})}>@{name}</button>:<span>@{name}</span>;
  }
  async function changeAvatar(file) {
   if(file.size>10*1024*1024 || !['image/jpeg','image/png','image/webp','image/gif'].includes(file.type)){setFieldError({field:'avatar',message:'Выберите фото JPG, PNG, WebP или GIF размером до 10 МБ.'});return;}
@@ -177,13 +193,9 @@ export default function ProfilePanel({page,setPage,profile,setProfile,onOpenChat
      <strong>{info?.name || info?.fio || page.name || info?.login}<VerifiedBadge visible={info?.verified}/></strong><small>{own?'в сети':presenceLabel(peer)}</small>
     </div>
     {info && view!=='settings' && <div className="access-settings"><PanelSection title="Данные профиля">
-     {usernames.map(({name,collectible},index)=><DetailRow key={name} icon="alternate_email" tone="blue" title={<button type="button" className="profile-username" onClick={event=>setUsernameDialog({name,collectible,source:event.currentTarget})}>@{name}</button>} detail={collectible?'Коллекционное имя':'Имя пользователя'}>
-      {index===0 && <button type="button" className="header-action profile-qr-action" aria-label="Открыть QR-код профиля" onClick={openQr}><PanelIcon name="qr_code_2"/></button>}
-      {own && usernames.length>1 && <div className="username-order">
-       <button type="button" className="header-action" aria-label={'Поднять @'+name} disabled={ordering || index===0} onClick={()=>moveUsername(index,-1)}><PanelIcon name="send"/></button>
-       <button type="button" className="header-action" aria-label={'Опустить @'+name} disabled={ordering || index===usernames.length-1} onClick={()=>moveUsername(index,1)}><PanelIcon name="down"/></button>
-      </div>}
-     </DetailRow>)}
+     {usernames.length>0 && <DetailRow icon="alternate_email" tone="blue" title={renderUsername(usernames[0])} detail={<>Имя пользователя{usernames.length>1 && <> · также {usernames.slice(1).map((entry,index)=><React.Fragment key={entry.name}>{index>0?', ':''}{renderUsername(entry)}</React.Fragment>)}</>}</>}>
+      <button type="button" className="header-action profile-qr-action" aria-label="Открыть QR-код профиля" onClick={openQr}><PanelIcon name="qr_code_2"/></button>
+     </DetailRow>}
      {info.bio && <DetailRow icon="info" title={info.bio} detail="О себе"/>}
      {view==='peer' && page.chatId && <DetailRow icon="notifications" tone="coral" title="Уведомления" onClick={()=>onToggleNotifications(page.chatId)}><span className={'panel-switch'+(notificationEnabled(page.chatId)?' enabled':'')}/></DetailRow>}
      {view==='peer' && <DetailRow icon="chat_bubble" tone="green" title="Написать сообщение" onClick={async()=>{
@@ -206,7 +218,17 @@ export default function ProfilePanel({page,setPage,profile,setProfile,onOpenChat
      <FloatingField label="Фамилия" maxLength={100} value={draft.last} onChange={event=>update('last',event.target.value)}/>
      <FloatingField label="О себе" multiline maxLength={200} rows={2} error={fieldError?.field==='bio'?fieldError.message:''} value={draft.bio} onChange={event=>update('bio',event.target.value)}/>
     </div></PanelSection>
-    <PanelSection title="Публичный профиль" hint="Это имя используется в поиске и для входа в Tornado."><div className="panel-fields"><FloatingField label="Имя пользователя" required pattern={draft.login===profile.login?undefined:"[A-Za-z][A-Za-z0-9_]{2,49}"} autoCapitalize="none" spellCheck={false} formatError="Начните с латинской буквы. Далее — латинские буквы, цифры или подчёркивания. От 3 до 50 символов." error={fieldError?.field==='login'?fieldError.message:''} value={draft.login} maxLength={50} onChange={event=>update('login',event.target.value)}/></div></PanelSection>
+    <PanelSection title="Публичный профиль"><div className="panel-fields">
+     {!draft.primaryCollectible && <FloatingField label="Имя пользователя" required pattern={draft.login===profile.login?undefined:"[A-Za-z][A-Za-z0-9_]{2,49}"} autoCapitalize="none" spellCheck={false} formatError="Начните с латинской буквы. От 3 до 50 символов." error={fieldError?.field==='login'?fieldError.message:''} value={draft.login} maxLength={50} onChange={event=>update('login',event.target.value)}/>}
+     {draft.ordinaryAlias!==undefined && <FloatingField label="Обычное имя пользователя" required pattern="[A-Za-z][A-Za-z0-9_]{2,49}" autoCapitalize="none" spellCheck={false} formatError="Начните с латинской буквы. От 3 до 50 символов." error={fieldError?.field==='ordinary_alias'?fieldError.message:''} value={draft.ordinaryAlias} maxLength={50} onChange={event=>update('ordinaryAlias',event.target.value)}/>}
+     {draft.names.length>1 && <div className="username-order-list" aria-label="Порядок имён в профиле">{draft.names.map(({name,collectible},index)=><div key={name} className="profile-row">
+      <span>@{name}<small>{index===0?'Основное · ':''}{collectible?'Коллекционное':'Обычное'}</small></span>
+      <div className="username-order">
+       <button type="button" className="header-action" aria-label={'Поднять @'+name} disabled={index===0} onClick={()=>moveUsername(index,-1)}><PanelIcon name="send"/></button>
+       <button type="button" className="header-action" aria-label={'Опустить @'+name} disabled={index===draft.names.length-1} onClick={()=>moveUsername(index,1)}><PanelIcon name="down"/></button>
+      </div>
+     </div>)}</div>}
+    </div></PanelSection>
     </div>
     <PanelFooter disabled={saving}>{saving?'Сохраняем…':'Сохранить'}</PanelFooter>
    </form>}

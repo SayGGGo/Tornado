@@ -1147,3 +1147,8 @@ button.profile-row:hover { background:#ffffff0b; }
 @media(prefers-reduced-motion:reduce) {
  .username-dialog.username-flight[open]:not(.closing),.username-dialog.username-flight[open]:not(.closing) .username-dialog-body :is(.username-emblem,.username-close,p,.access-save,.username-heading > div > span) { animation:none; }
 }
+.username-order-list .profile-row { justify-content:space-between; gap:8px; }
+.username-order-list .profile-row > span { min-width:0; overflow-wrap:anywhere; }
+.username-dialog.username-flight.closing { overflow:visible; animation:username-flight-exit .29s ease-in both; }
+.username-dialog.username-flight.closing::backdrop { animation-duration:.29s; }
+@keyframes username-flight-exit { to { opacity:0; } }

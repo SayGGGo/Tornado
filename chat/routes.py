@@ -990,6 +990,14 @@ def register_chat(app):
         data = request.json or {}
         changed = False
         original_login = user.login
+        original_names = profile_names(user)
+        order = data.get("username_order")
+        if "username_order" in data and (
+            not isinstance(order, list) or any(not isinstance(name, str) for name in order)
+            or sorted(order) != sorted(entry["name"] for entry in original_names)
+        ):
+            return jsonify(error="Список имён изменился. Откройте профиль заново."), 400
+        renamed = {}
         old_avatar = user.avatar
         new_avatar_path = None
 
@@ -1014,6 +1022,23 @@ def register_chat(app):
             if login != user.login and User.query.filter(func.lower(User.login) == login.lower(), User.id != user.id).first():
                 return jsonify(error="Это имя уже занято. Выберите другое.", field="login"), 409
             user.login = login
+            renamed[original_login] = login
+            changed = True
+
+        alias_name = None
+        if "ordinary_alias" in data:
+            alias = PublicHandle.query.filter_by(kind="user_alias", owner_id=user.id).first()
+            alias_name = data["ordinary_alias"]
+            if not alias or any(entry["name"] == alias.name and entry["collectible"] for entry in original_names):
+                return jsonify(error="Обычное имя недоступно для изменения.", field="ordinary_alias"), 400
+            if not isinstance(alias_name, str) or not re.fullmatch(r"[A-Za-z][A-Za-z0-9_]{2,49}", alias_name):
+                return jsonify(error="Начните с латинской буквы. Допустимы буквы, цифры и подчёркивания.", field="ordinary_alias"), 400
+            alias_name = alias_name.lower()
+            renamed[alias.name] = alias_name
+            changed = True
+
+        if order is not None or renamed:
+            user.public_name_order = json.dumps([renamed.get(name, name) for name in (order if order is not None else [entry["name"] for entry in original_names])])
             changed = True
 
         if "bio" in data:
@@ -1066,6 +1091,8 @@ def register_chat(app):
                     reserve_handle("user", user.id, user.login)
                 elif "login" in data and login != original_login:
                     reserve_handle("user", user.id, user.login)
+                if alias_name is not None:
+                    reserve_handle("user_alias", user.id, alias_name)
                 db.session.commit()
             except (IntegrityError, ValueError):
                 db.session.rollback()
@@ -1074,7 +1101,7 @@ def register_chat(app):
                         os.remove(new_avatar_path)
                     except OSError:
                         pass
-                return jsonify(error="Это имя уже занято. Выберите другое.", field="login"), 409
+                return jsonify(error="Это имя уже занято. Выберите другое.", field="ordinary_alias" if alias_name is not None else "login"), 409
             if new_avatar_path and old_avatar:
                 old_name = re.fullmatch(r"/api/files/([a-f0-9]{32}\.[a-z0-9]{1,10})\?sig=[a-f0-9]+", old_avatar)
                 if old_name:
