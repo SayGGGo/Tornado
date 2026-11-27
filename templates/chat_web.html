@@ -14,7 +14,7 @@
  #chat-startup a{color:#a7d9bf}
  @keyframes tornado-intro{from{opacity:0;transform:scale(.92)}}
  @keyframes tornado-progress{to{transform:translateX(40px)}}
- @media(prefers-reduced-motion:reduce){#chat-startup .startup-brand,#chat-startup .startup-progress::before{animation:none}}
+ @media(prefers-reduced-motion:reduce){ #chat-startup .startup-brand,#chat-startup .startup-progress::before{animation:none}}
  </style>
  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'">
  <link rel="stylesheet" href="{{ url_for('static', filename='chat-web/tornado.css', v=asset_version) }}">
