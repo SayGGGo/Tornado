@@ -7,19 +7,19 @@
  <title>Tornado</title>
  <style>
  body > #chat-startup:not([hidden]){position:fixed;inset:0;z-index:50;background:#080808;color:#f2f7f4;display:grid;place-content:center;justify-items:center;gap:12px;text-align:center;font:15px system-ui,sans-serif}
- #chat-startup .startup-brand{display:flex;align-items:center;gap:12px;font:400 30px "Golos Text",system-ui,sans-serif}
- #chat-startup .startup-brand svg{width:64px;height:auto;filter:drop-shadow(0 0 10px #ddffeb38);animation:tornado-logo 460ms cubic-bezier(.16,1,.3,1) both}
+ #chat-startup .startup-brand{display:flex;align-items:center;gap:clamp(12px,3vw,20px);font:400 clamp(34px,9vw,50px)/1 "Golos Text",system-ui,sans-serif}
+ #chat-startup .startup-brand svg{width:clamp(74px,19vw,108px);height:auto;filter:drop-shadow(0 0 14px #ddffeb38);animation:tornado-logo 850ms cubic-bezier(.22,1,.36,1) both}
  #chat-startup .startup-word{display:flex}
- #chat-startup .startup-word span{animation:tornado-letter 260ms cubic-bezier(.16,1,.3,1) both;animation-delay:calc(115ms + var(--letter) * 28ms)}
- #chat-startup.startup-leaving{pointer-events:none;animation:tornado-dismiss 230ms ease-out both}
- #chat-startup .startup-progress{height:2px;width:76px;overflow:hidden;border-radius:8px;background:#263630}
- #chat-startup .startup-progress::before{content:'';display:block;width:36px;height:100%;border-radius:8px;background:#91cbb0;animation:tornado-progress .9s ease-in-out infinite alternate}
+ #chat-startup .startup-word span{animation:tornado-letter 520ms cubic-bezier(.22,1,.36,1) both;animation-delay:calc(240ms + var(--letter) * 46ms)}
+ #chat-startup.startup-leaving{pointer-events:none;animation:tornado-dismiss 440ms ease-in-out both}
+ #chat-startup .startup-progress{position:absolute;top:calc(50% + clamp(60px,11vw,78px));justify-self:center;height:3px;width:112px;overflow:hidden;border-radius:8px;background:#263630;animation:tornado-letter 400ms 450ms ease-out both}
+ #chat-startup .startup-progress::before{content:'';display:block;width:56px;height:100%;border-radius:8px;background:linear-gradient(90deg,#4e8b71,#a3dfbd);animation:tornado-progress 1.4s ease-in-out infinite alternate}
  #chat-startup a{color:#a7d9bf}
- @keyframes tornado-logo{from{opacity:0;transform:translateX(44px) scale(.78)}to{opacity:1;transform:translateX(0) scale(1)}}
- @keyframes tornado-letter{from{opacity:0;transform:translateX(-6px)}to{opacity:1;transform:translateX(0)}}
+ @keyframes tornado-logo{from{opacity:0;transform:translateX(64px) scale(.72)}32%{opacity:1;transform:translateX(50px) scale(1.08)}to{opacity:1;transform:translateX(0) scale(1)}}
+ @keyframes tornado-letter{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}
  @keyframes tornado-dismiss{to{opacity:0}}
- @keyframes tornado-progress{to{transform:translateX(40px)}}
- @media(prefers-reduced-motion:reduce){ #chat-startup .startup-brand svg,#chat-startup .startup-word span,#chat-startup .startup-progress::before,#chat-startup.startup-leaving{animation:none}}
+ @keyframes tornado-progress{to{transform:translateX(56px)}}
+ @media(prefers-reduced-motion:reduce){ #chat-startup .startup-brand svg,#chat-startup .startup-word span,#chat-startup .startup-progress,#chat-startup .startup-progress::before,#chat-startup.startup-leaving{animation:none}}
  </style>
  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'">
  <link rel="stylesheet" href="{{ url_for('static', filename='chat-web/tornado.css', v=asset_version) }}">
