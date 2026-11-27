@@ -1,5 +1,8 @@
 import time
 import json
+import base64
+import re
+from pathlib import Path
 from datetime import datetime
 
 from flask import jsonify, request
@@ -7,6 +10,7 @@ from sqlalchemy import or_
 
 from models import Chat, ChatParticipant, Message, User, db
 from chat.events import current_revision, notify_chat_users, wait_for_revision
+from models.public_handle import PublicHandle
 
 
 def _json_message(message):
@@ -20,6 +24,7 @@ def _json_message(message):
         "edit_date": int(message.timestamp.timestamp()) if message.is_edited and message.timestamp else None,
         "reply_to_message": _json_message(message.reply_to) if message.reply_to else None,
         "reply_markup": json.loads(message.reply_markup) if getattr(message, "reply_markup", None) else None,
+        "file_name": message.file_name,
     }
 
 
@@ -38,6 +43,20 @@ class TornBotAPI:
             return {"ok": False, "error_code": 401, "description": "Unauthorized"}, 401
         if method == "getMe":
             return {"ok": True, "result": {"id": owner.id, "is_bot": True, "first_name": owner.fio, "username": owner.login}}
+        if method == "getPrintAttachment" and owner.login == "bot_print_queue":
+            from chat.services import FileService
+            message = db.session.get(Message, int(data.get("message_id", 0) or 0))
+            member = ChatParticipant.query.filter_by(chat_id=message.chat_id, user_id=owner.id, blocked=False).first() if message else None
+            if not member or not message.chat.personal or message.is_deleted or message.user_id == owner.id:
+                return {"ok": False, "description": "Файл не найден."}, 404
+            match = re.fullmatch(r"/api/files/([a-f0-9]{32}\.[a-z0-9]{1,10})\?sig=([a-f0-9]+)", message.file_url or "")
+            if not match or not FileService.verify_signature(*match.groups()):
+                return {"ok": False, "description": "Файл недоступен."}, 404
+            root = Path(FileService.UPLOAD_DIR).resolve()
+            path = (root / match[1]).resolve()
+            if path.parent != root or not path.is_file() or path.stat().st_size > 20 * 1024 * 1024:
+                return {"ok": False, "description": "Файл недоступен или превышает 20 МБ."}, 400
+            return {"ok": True, "result": {"name": message.file_name, "data": base64.b64encode(path.read_bytes()).decode("ascii")}}
         if method in ("getUser", "getChatMember"):
             chat_id = int(data.get("chat_id", 0) or 0)
             user_id = int(data.get("user_id", 0) or 0)
@@ -51,7 +70,9 @@ class TornBotAPI:
             if not member:
                 return {"ok": False, "error_code": 400, "description": "user not found in bot chats"}, 400
             user = member.user
-            result = {"id": user.id, "is_bot": bool(user.is_bot), "first_name": user.fio, "username": user.login}
+            handle = PublicHandle.query.filter_by(kind="user", owner_id=user.id).first()
+            result = {"id": user.id, "is_bot": bool(user.is_bot), "first_name": user.fio, "username": user.login,
+                      "group": user.group_id or "", "handle": handle.name if handle else user.login}
             if method == "getChatMember":
                 result = {"user": result, "status": member.role or "member", "is_blocked": bool(member.blocked)}
             return {"ok": True, "result": result}

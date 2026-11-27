@@ -1079,3 +1079,18 @@ button.profile-row:hover { background:#ffffff0b; }
 .verified-badge { display:inline-flex; margin-inline-start:5px; vertical-align:-2px; color:#85becf; white-space:nowrap; }
 .verified-badge svg { display:block; fill:#416e7d; stroke:#bcecff; }
 .profile-cover .verified-badge svg { width:17px; height:17px; }
+.portrait-preview { display:grid; place-items:center; padding:0; border:0; background:none; color:inherit; cursor:zoom-in; }
+.settings-cover .portrait-preview { grid-row:span 2; }
+.portrait-overlay { position:absolute; inset:0; z-index:3; display:grid; place-content:center; background:#060808e8; border-radius:inherit; animation:content-fade .2s ease both; }
+.portrait-overlay .header-action { position:absolute; inset:10px 10px auto auto; }
+.portrait-overlay .panel-portrait { width:min(70vw,270px); height:min(70vw,270px); font-size:52px; }
+.profile-loading { display:grid; justify-items:center; gap:11px; padding:38px 18px; }
+.profile-loading i { width:85%; height:44px; border-radius:12px; background:#ffffff12; animation:chat-skeleton-pulse 1.2s ease-in-out infinite alternate; }
+.profile-loading i:first-child { width:87px; height:87px; border-radius:50%; }
+.qr-card img { opacity:0; aspect-ratio:1; transition:opacity .24s ease; }
+.qr-card.qr-ready img { opacity:1; }
+#root .sidebar-create { width:39px; height:39px; }
+#root .sidebar-create .outline-icon { width:20px; height:20px; }
+#root .composer.standard-composer:not(.channel-readonly) { padding-inline:7px; }
+#root .composer.standard-composer :is(.attachment,.primary-action) { margin-inline:0; align-self:flex-end; }
+@media(prefers-reduced-motion:reduce) { .portrait-overlay,.profile-loading i { animation:none; } .qr-card img { transition:none; } }

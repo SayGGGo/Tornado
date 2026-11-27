@@ -17,6 +17,8 @@ class User:
     is_bot: bool = False
     first_name: str = ""
     username: str = ""
+    group: str = ""
+    handle: str = ""
 
 
 @dataclass
@@ -36,6 +38,7 @@ class Message:
     reply_to_message: object = None
     edit_date: int = None
     reply_markup: dict = None
+    file_name: str = None
 
 
 @dataclass
@@ -107,7 +110,7 @@ class Bot:
     def _message(raw):
         if not raw:
             return None
-        return Message(raw["message_id"], raw.get("date", 0), Chat(**raw["chat"]), User(**raw["from"]), raw.get("text", ""), reply_to_message=Bot._message(raw.get("reply_to_message")), edit_date=raw.get("edit_date"), reply_markup=raw.get("reply_markup"))
+        return Message(raw["message_id"], raw.get("date", 0), Chat(**raw["chat"]), User(**raw["from"]), raw.get("text", ""), reply_to_message=Bot._message(raw.get("reply_to_message")), edit_date=raw.get("edit_date"), reply_markup=raw.get("reply_markup"), file_name=raw.get("file_name"))
 
     def get_me(self):
         raw = self._call("getMe")

@@ -23,9 +23,13 @@ export default function ProfilePanel({page,setPage,profile,setProfile,onOpenChat
  const [fieldError,setFieldError]=useState(null);
  const [saving,setSaving]=useState(false);
  const [peer,setPeer]=useState(null);
+ const [portraitOpen,setPortraitOpen]=useState(false);
+ const [qrReady,setQrReady]=useState(false);
  const view=page?.view;
  useEffect(()=>{
   setError('');
+  setPortraitOpen(false);
+  setQrReady(false);
   setFieldError(null);
   if(view!=='peer') return;
   const controller=new AbortController();
@@ -98,10 +102,10 @@ export default function ProfilePanel({page,setPage,profile,setProfile,onOpenChat
    {view==='chat' && (page.owner || page.manage) && <button className="header-action" type="button" aria-label="Изменить чат" onClick={()=>setPage({...page,view:'chat-edit',back:page})}><PanelIcon name="edit"/></button>}
   </header>
   <div key={view+':'+(page.id || '')} className={'profile-sheet-scroll'+(editing?'':' panel-section-enter')}>
-   {view==='peer' && !info && !error && <Loader/>}
+   {view==='peer' && !info && !error && <div className="profile-loading" role="status" aria-label="Загрузка профиля"><i/><i/><i/></div>}
    {showingProfile && (info || view!=='peer') && <>
     <div className={'profile-cover'+(own?' own-profile-cover':' chat-detail-cover')+(view==='settings'?' settings-cover':'')}>
-     <Portrait name={info?.name || info?.fio || page.name || info?.login} src={info?.avatar || page.avatar}/>
+     <button type="button" className="portrait-preview" aria-label="Увеличить фото профиля" onClick={()=>setPortraitOpen(true)}><Portrait name={info?.name || info?.fio || page.name || info?.login} src={info?.avatar || page.avatar}/></button>
      <strong>{info?.name || info?.fio || page.name || info?.login}<VerifiedBadge visible={info?.verified}/></strong><small>{own?'в сети':presenceLabel(peer)}</small>
     </div>
     {info && view!=='settings' && <div className="access-settings"><PanelSection title="Данные профиля">
@@ -161,7 +165,7 @@ export default function ProfilePanel({page,setPage,profile,setProfile,onOpenChat
    {view==='privacy' && <PrivacySettings profile={profile} setProfile={setProfile} blocked={blocked} onUpdated={onUpdated}/>}
    {view==='logout' && <div className="access-settings"><PanelSection title="Сеанс Tornado" hint="Для возвращения к чатам потребуется снова войти."><a className="access-link-action renewing" href={appPath('/logout')}><PanelIcon name="logout"/>Выйти из аккаунта</a></PanelSection></div>}
    {view==='qr' && <div className="qr-view qr-enter">
-    <div className="qr-card"><img src={qrUrl} alt="QR-код"/><strong>@{page.handle}</strong></div>
+    <div className={'qr-card'+(qrReady?' qr-ready':'')}><img src={qrUrl} alt="QR-код" onLoad={()=>setQrReady(true)} onError={()=>setError('Не удалось загрузить QR-код.')}/><strong>@{page.handle}</strong></div>
     <a className="qr-profile-link" href={appPath('/t/'+encodeURIComponent(page.handle))}>{location.host}{appPath('/t/'+page.handle)}</a>
     <button type="button" onClick={async()=>{
      try{const picture=fetch(qrUrl).then(response=>{if(!response.ok) throw new Error();return response.blob();});await navigator.clipboard.write([new ClipboardItem({'image/png':picture})]);}
@@ -174,5 +178,9 @@ export default function ProfilePanel({page,setPage,profile,setProfile,onOpenChat
     {page.pending?<p className="access-hint">Заявка отправлена владельцу.</p>:<button className="access-save" type="button" disabled={saving || !page.id} onClick={join}><PanelIcon name="person_add"/>{saving?'Вступаем…':'Вступить'}</button>}</div>
    </PanelSection></div>}
   </div>
+  {portraitOpen && <div className="portrait-overlay" role="dialog" aria-modal="true" aria-label="Фото профиля" onClick={()=>setPortraitOpen(false)} onKeyDown={event=>{if(event.key==='Escape')setPortraitOpen(false);}}>
+   <button autoFocus type="button" className="header-action" aria-label="Закрыть фото"><PanelIcon name="close"/></button>
+   <Portrait name={info?.name || info?.fio || page.name} src={info?.avatar || page.avatar}/>
+  </div>}
  </section>;
 }

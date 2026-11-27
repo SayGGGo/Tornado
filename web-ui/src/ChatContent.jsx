@@ -21,6 +21,7 @@ function readHistoryCache() {
 }
 export default function ChatContent({chat, channel, showSender, search, forwardTargets, notificationsEnabled, onToggleNotifications, notify, header, onUpdated, canWrite, revision, focus, pickRequest, onOpenAuthor, enterToSend}) {
  const [messages, setMessages] = useState(readHistoryCache);
+ const [outbox,setOutbox]=useState({});
  const [historyReady,setHistoryReady]=useState({});
  const [historyError,setHistoryError]=useState(null);
  const [canLoadEarlier,setCanLoadEarlier] = useState({});
@@ -268,13 +269,22 @@ export default function ChatContent({chat, channel, showSender, search, forwardT
    ...(previous[target] ?? []).filter(message=>message.id<(rows[0]?.id ?? 0)),...rows,
   ]}));
   onUpdated();
+  return created;
  }
  async function send() {
   if (!canWrite || recording || sending.current || (!text.trim() && !file)) return;
   sending.current = true;
   patch({error:''});
+  const localId='pending-'+crypto.randomUUID();
+  const pending={id:localId,own:true,at:Date.now(),text:text.trim(),file:file?{name:file.name}:null,pending:true};
+  const isEdit=editing?.name===name;
+  if(!isEdit){
+   scrollOnAppend.current=name;
+   setOutbox(current=>({...current,[name]:pending}));
+   patch({text:'',file:null});
+  }
   try {
-   if (editing?.name===name) {
+   if (isEdit) {
     await api('/api/messages/'+editing.message.id,{method:'PUT',json:{content:text.trim()}});
     setMessages(previous=>({...previous,[name]:history.map(message=>message.id===editing.message.id?{...message,text:text.trim(),edited:true}:message)}));
     setEditing(null);
@@ -283,11 +293,12 @@ export default function ChatContent({chat, channel, showSender, search, forwardT
     await append({text:text.trim(),file,replyId:reply?.name===name?reply.message.id:null});
    }
    setReply(null);
-   patch({text:'',file:null});
+   if(isEdit)patch({text:'',file:null});
    field.current?.focus();
   } catch (error) {
-   patch({error:error.message});
+   setDrafts(current=>({...current,[name]:{...current[name],...(!isEdit && !current[name]?.text && !current[name]?.file?{text,file}:{}),error:error.message}}));
   } finally {
+   if(!isEdit)setOutbox(current=>{const next={...current};delete next[name];return next;});
    sending.current = false;
   }
  }
@@ -485,13 +496,13 @@ export default function ChatContent({chat, channel, showSender, search, forwardT
    {!rows.length && historyError?.name===name && <FormError className="history-error" message={historyError.message===connectionMessage?historyError.message:'Не удалось загрузить сообщения. '+historyError.message}/>}
    {record && !historyReady[name] && !rows.length && historyError?.name!==name && <div className="chat-skeleton" role="status" aria-label="Загрузка сообщений…"><i/><i/><i/></div>}
    {historyReady[name] && !rows.length && historyError?.name!==name && <div className="message-date">{query?'Ничего не найдено':'Нет сообщений'}</div>}
-   {rows.map((message,index)=>{
+   {(outbox[name] && !query?[...rows,outbox[name]]:rows).map((message,index)=>{
     const key = reactionKey(message);
     const isSelected = marked.includes(key);
     const effect = dissolving?.get(key);
     const reactions = visibleReactions(message);
     const compact = !!message.text && !message.text.includes('\n') && !message.file && !message.audio && !reactions.length;
-    const metadata = <footer><time dateTime={new Date(message.at).toISOString()}>{clock.format(message.at)}</time>{message.edited && <span className="message-edited" title="Сообщение изменено" aria-label="Сообщение изменено"><PanelIcon name="edit"/></span>}{message.own && <Icon name={message.read?'check':'tick'}/>}</footer>;
+    const metadata = <footer><time dateTime={new Date(message.at).toISOString()}>{clock.format(message.at)}</time>{message.edited && <span className="message-edited" title="Сообщение изменено" aria-label="Сообщение изменено"><PanelIcon name="edit"/></span>}{message.pending?<span aria-label="Отправляется"><PanelIcon name="schedule"/></span>:message.own && <Icon name={message.read?'check':'tick'}/>}</footer>;
     const newDay=!index || dayKey.format(message.at)!==dayKey.format(rows[index-1].at);
     const onlyMessageToday = newDay && (!rows[index+1] || dayKey.format(message.at)!==dayKey.format(rows[index+1].at));
     const date = <div className="message-date">{dayKey.format(message.at)===dayKey.format(Date.now())?'Сегодня':dateLabel.format(message.at)}</div>;
@@ -503,7 +514,7 @@ export default function ChatContent({chat, channel, showSender, search, forwardT
       onClick={selectionMode?event=>{if(!event.target.closest('button,audio,a')) toggleMarked(key);}:undefined}>
      <button type="button" className="message-selection" inert={!selectionMode} aria-hidden={!selectionMode || undefined} aria-pressed={isSelected} aria-label={isSelected?'Снять выделение сообщения':'Выбрать сообщение'} onClick={()=>toggleMarked(key)}><Icon name="tick"/></button>
      {message.sender && <button className="sender-avatar sender-link" type="button" aria-label={'Профиль '+message.sender} onClick={()=>onOpenAuthor(message)}><Portrait src={message.avatar} name={message.sender}/></button>}
-     <article data-message-id={message.id} className={'bubble'+(message.own?' own':'')+(effect?' dissolving':'')+(enteringMessage===message.id?' entering':'')} onContextMenu={event=>openMessageMenu(event,message)}
+     <article data-message-id={message.id} className={'bubble'+(message.own?' own':'')+(effect?' dissolving':'')+(enteringMessage===message.id || message.pending?' entering':'')} onContextMenu={message.pending?undefined:event=>openMessageMenu(event,message)}
       onAnimationEnd={event=>{if(event.target===event.currentTarget && event.animationName==='message-arrive') setEnteringMessage(current=>current===message.id?null:current);}}>
       {message.forwarded && <div className="forwarded-label">Переслано из «{message.forwarded}»</div>}
       {message.quote && <blockquote>{message.quote}</blockquote>}
