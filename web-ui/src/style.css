@@ -1036,3 +1036,8 @@ button.profile-row:hover { background:#ffffff0b; }
  .profile-sheet-header { min-height:56px; }
  .chat-detail-cover { min-height:228px; }
 }
+#chat-startup:not([hidden]) {
+ position:fixed; inset:0; z-index:5; display:grid; place-content:center;
+ gap:10px; text-align:center; color:#eaf2ee; font:15px system-ui,sans-serif;
+}
+#chat-startup a { color:#a7d9bf; }

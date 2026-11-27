@@ -14651,7 +14651,7 @@ function Hy() {
   }, []);
   const et = (f) => yl !== "folder" || tl.includes(f), Ne = ([f], [U]) => Number(ul.includes(U)) - Number(ul.includes(f)), Ge = ia.filter(([f]) => x.includes(f)).sort(Ne), Ke = ia.filter(([f]) => (f !== "Архив" || Il) && !x.includes(f) && et(f)).sort((f, U) => +(U[0] === "Архив") - +(f[0] === "Архив") || Ne(f, U));
   _.useEffect(() => {
-    const f = setTimeout(() => d(!1), 2200);
+    const f = setTimeout(() => d(!1), 700);
     return () => clearTimeout(f);
   }, []);
   const $e = (f) => Math.max(Math.min(window.innerWidth <= 1100 ? 76 : 280, window.innerWidth * 0.5), Math.min(window.innerWidth * 0.5, 480, f));

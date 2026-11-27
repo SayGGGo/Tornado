@@ -5,12 +5,32 @@
  <meta name="viewport" content="width=device-width, initial-scale=1">
  <meta name="tornado-root" content="{{ request.script_root }}">
  <title>Tornado</title>
- <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&display=swap">
+ <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'">
  <link rel="stylesheet" href="{{ url_for('static', filename='chat-web/tornado.css', v=asset_version) }}">
 </head>
 <body>
  <div id="root"></div>
+ <div id="chat-startup" role="status">
+  <span>Открываем чаты…</span>
+  <a hidden href="{{ url_for('chat') }}">Обновить страницу</a>
+  <noscript>Включите JavaScript, чтобы открыть чаты.</noscript>
+ </div>
  <script type="application/json" id="tornado-session">{{ account | tojson }}</script>
- <script type="module" src="{{ url_for('static', filename='chat-web/tornado.js', v=asset_version) }}"></script>
+ <script data-cfasync="false">
+  const startup = document.getElementById('chat-startup');
+  const slowStartup = setTimeout(() => {
+    startup.querySelector('span').textContent = 'Чат не загрузился.';
+    startup.querySelector('a').hidden = false;
+  }, 7000);
+  const chatRoot = document.getElementById('root');
+  const startupObserver = new MutationObserver(() => {
+    if (!chatRoot.firstElementChild) return;
+    clearTimeout(slowStartup);
+    startup.hidden = true;
+    startupObserver.disconnect();
+  });
+  startupObserver.observe(chatRoot, {childList: true});
+ </script>
+ <script data-cfasync="false" type="module" src="{{ url_for('static', filename='chat-web/tornado.js', v=asset_version) }}"></script>
 </body>
 </html>

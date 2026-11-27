@@ -369,7 +369,7 @@ function App() {
  const byPinned = ([a],[b]) => Number(pinnedChats.includes(b))-Number(pinnedChats.includes(a));
  const archiveChats = available.filter(([name])=>archive.includes(name)).sort(byPinned);
  const mainChats = available.filter(([name])=>(name!=='Архив' || hasArchivedChats) && !archive.includes(name) && matchesTab(name)).sort((a,b)=>Number(b[0]==='Архив')-Number(a[0]==='Архив') || byPinned(a,b));
- useEffect(()=>{const t=setTimeout(()=>setLoading(false),2200);return()=>clearTimeout(t)},[]);
+ useEffect(()=>{const t=setTimeout(()=>setLoading(false),700);return()=>clearTimeout(t)},[]);
  const clamp=v=>Math.max(Math.min(window.innerWidth<=1100?76:280,window.innerWidth*.5),Math.min(window.innerWidth*.5,480,v));
  useEffect(()=>{const fn=()=>setWidth(w=>w===null?null:clamp(w));window.addEventListener('resize',fn);return()=>window.removeEventListener('resize',fn)},[]);
  function resize(e){e.preventDefault();e.currentTarget.setPointerCapture(e.pointerId);const x=e.clientX,w=panel.current.getBoundingClientRect().width,t=e.currentTarget;const move=a=>setWidth(clamp(w+a.clientX-x));const stop=()=>{t.removeEventListener('pointermove',move);t.removeEventListener('pointerup',stop);t.removeEventListener('pointercancel',stop)};t.addEventListener('pointermove',move);t.addEventListener('pointerup',stop);t.addEventListener('pointercancel',stop)}
