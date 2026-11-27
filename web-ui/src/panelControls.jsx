@@ -53,13 +53,51 @@ export function FloatingField({label,multiline=false,error,formatError,onChange,
   <FormError id={errorId} className="field-error" message={message}/>
  </div>;
 }
-export function Portrait({src,name='',className=''}) {
+export function AvatarImage({src,className='',onDecoded,priority}) {
+ const [ready,setReady]=React.useState(false);
+ const imageRef=React.useRef(null);
+ async function reveal(image) {
+  try { await image.decode?.(); } catch { return; }
+  if(imageRef.current!==image)return;
+  setReady(true);
+  onDecoded?.(image);
+ }
+ const generated=src?.match(/^https:\/\/ui-avatars\.com\/api\/\?name=([^&]+)/i);
+ if(generated){
+  const initials=new URL(src).searchParams.get('name').trim().split(/\s+/).slice(0,2).map(word=>word[0]).join('').toUpperCase();
+  return <span className={className+' avatar-initials'} aria-hidden="true">{initials}</span>;
+ }
+ return src && <img ref={imageRef} src={appPath(src)} alt="" decoding="async" fetchPriority={priority}
+  className={className+' avatar-image'+(ready?' is-ready':'')} onLoad={event=>reveal(event.currentTarget)}/>;
+}
+export function Portrait({src,name='',className='',onDecoded}) {
  return <span className={'panel-portrait '+className}>
   <span aria-hidden="true">{String(name ?? '').trim().split(/\s+/).slice(0,2).map(word=>word[0]).join('').toUpperCase() || 'T'}</span>
-  {src && <img src={appPath(src)} alt="" onError={event=>{event.currentTarget.hidden=true;}}/>}
+  {src && <AvatarImage key={src} src={src} onDecoded={onDecoded}/>}
  </span>;
 }
-export function AvatarPicker({avatar,file,onChange,label='Выбрать фото'}) {
+export function avatarTint(image) {
+ try {
+  const canvas=document.createElement('canvas');
+  canvas.width=canvas.height=16;
+  const context=canvas.getContext('2d',{willReadFrequently:true});
+  const size=Math.min(image.naturalWidth,image.naturalHeight);
+  context.drawImage(image,(image.naturalWidth-size)/2,(image.naturalHeight-size)*.35,size,size,0,0,16,16);
+  const {data}=context.getImageData(0,0,16,16);
+  const color=[0,0,0];
+  let total=0;
+  for(let i=0;i<data.length;i+=4){
+   const [r,g,b,a]=data.subarray(i,i+4);
+   const weight=(a/255)*(.25+(Math.max(r,g,b)-Math.min(r,g,b))/255);
+   color[0]+=r*weight;
+   color[1]+=g*weight;
+   color[2]+=b*weight;
+   total+=weight;
+  }
+  return total?color.map(channel=>Math.round(channel/total)).join(' '):null;
+ } catch {return null;}
+}
+export function AvatarPicker({avatar,file,onChange,busy=false,label='Выбрать фото'}) {
  const [preview,setPreview] = React.useState('');
  React.useEffect(()=>{
   if (!file) {setPreview('');return;}
@@ -69,8 +107,8 @@ export function AvatarPicker({avatar,file,onChange,label='Выбрать фот�
  },[file]);
  return <label className="panel-avatar-picker" aria-label={label}>
   {(preview || avatar) && <Portrait src={preview || avatar}/>}
-  <OutlineIcon name="add_a_photo"/>
-  <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" aria-label={label} onChange={event=>{const value=event.target.files[0];if(value) onChange(value);}}/>
+  {busy?<span className="avatar-picker-progress" role="status" aria-label="Загрузка фото"><span className="loader-wheel"/></span>:<OutlineIcon name="add_a_photo"/>}
+  <input type="file" disabled={busy} accept="image/jpeg,image/png,image/webp,image/gif" aria-label={label} onChange={event=>{const value=event.target.files[0];event.target.value='';if(value) onChange(value);}}/>
  </label>;
 }
 export async function uploadChatAvatar(api,id,file) {

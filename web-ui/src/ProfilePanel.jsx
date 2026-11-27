@@ -1,8 +1,9 @@
 import React,{useEffect,useState} from 'react';
 import {api,appPath,account,presenceLabel,cachedPanel,fetchPanel} from './api.js';
 import ChatSetup from './ChatSetup.jsx';
+import UsernameDialog from './UsernameDialog.jsx';
 import ChatDetails,{chatDetailViews,DetailRow,MediaTabs} from './ChatDetails.jsx';
-import {AvatarPicker,FloatingField,FormError,PanelFooter,PanelIcon,PanelSection,PanelSwitch,Portrait,Loader} from './panelControls.jsx';
+import {AvatarPicker,avatarTint,FloatingField,FormError,PanelFooter,PanelIcon,PanelSection,PanelSwitch,Portrait,Loader} from './panelControls.jsx';
 import DeveloperPanel from './DeveloperPanel.jsx';
 import {NotificationSettings,PrivacySettings} from './SettingsPages.jsx';
 import {VerifiedBadge} from './OutlineIcon.jsx';
@@ -13,40 +14,7 @@ const titles={'new-chat':'Новое сообщение','new-group':'Добав
  'chat-members':'Участники','chat-admin-pick':'Выбрать администратора','chat-admin-rights':'Права администратора','chat-admin-review':'Проверить права','chat-admins':'Администраторы','chat-blocked':'Чёрный список','chat-requests':'Заявки на вступление',
  settings:'Настройки',developer:'API-кабинет',display:'Отображение',privacy:'Конфиденциальность',shortcuts:'Набор сообщений',notifications:'Уведомления',logout:'Выход из аккаунта',qr:'QR-код',join:'Вступить в канал'};
 const setupViews=['new-chat','new-group','new-channel','invite'];
-function UsernameDialog({name,collectible,onClose}) {
- const dialog=React.useRef(null);
- const timer=React.useRef(null);
- const [closing,setClosing]=useState(false);
- const [copied,setCopied]=useState(false);
- const [copyError,setCopyError]=useState('');
- const link=new URL(appPath('/t/'+encodeURIComponent(name)),location.origin).href;
- React.useLayoutEffect(()=>{
-  const element=dialog.current;
-  element.showModal();
-  return ()=>{clearTimeout(timer.current);element.close();};
- },[]);
- function close() {
-  if(timer.current!==null)return;
-  if(matchMedia('(prefers-reduced-motion: reduce)').matches){onClose();return;}
-  setClosing(true);
-  timer.current=setTimeout(onClose,180);
- }
- return <dialog ref={dialog} className={'username-dialog'+(closing?' closing':'')} aria-labelledby="username-title" onCancel={event=>{event.preventDefault();close();}} onClick={event=>{if(event.target===event.currentTarget)close();}}>
-  <div className="username-dialog-body">
-   <button type="button" className="header-action username-close" aria-label="Закрыть" onClick={close}><PanelIcon name="close"/></button>
-   <div className="username-heading">
-    <span className="username-emblem"><PanelIcon name={collectible?'favorite':'alternate_email'}/></span>
-    <div><h2 id="username-title">@{name}</h2><span>{collectible?'Коллекционное имя':'Имя пользователя'}</span></div>
-   </div>
-   <p>{collectible?'Это имя закреплено за владельцем. Коллекционные имена недоступны при регистрации и смене обычного имени.':'По имени пользователя можно найти профиль и открыть переписку в Tornado.'}</p>
-   <FormError message={copyError}/>
-   <button type="button" className="access-save" onClick={async()=>{
-    try {await navigator.clipboard.writeText(link);setCopied(true);setCopyError('');}
-    catch {setCopyError('Не удалось скопировать ссылку. Проверьте разрешения браузера.');}
-   }}><PanelIcon name={copied?'check':'content_copy'}/>{copied?'Ссылка скопирована':'Копировать ссылку'}</button>
-  </div>
- </dialog>;
-}
+
 function editDraft(profile) {
  const [first,...rest]=(profile.name || '').trim().split(/\s+/);
  const names=profile.usernames || [{name:profile.handle || profile.login,collectible:false}];
@@ -74,6 +42,8 @@ export default function ProfilePanel({page,setPage,profile,setProfile,onOpenChat
  const [error,setError]=useState('');
  const [fieldError,setFieldError]=useState(null);
  const [saving,setSaving]=useState(false);
+ const [preparingAvatar,setPreparingAvatar]=useState(false);
+ const [coverTint,setCoverTint]=useState(null);
  const [peer,setPeer]=useState(null);
  const [portraitOpen,setPortraitOpen]=useState(false);
  const [usernameDialog,setUsernameDialog]=useState(null);
@@ -123,6 +93,7 @@ export default function ProfilePanel({page,setPage,profile,setProfile,onOpenChat
  function edit() {setDraft(editDraft(profile));setPage({view:'edit',back:page});}
  async function save(event) {
   event.preventDefault();
+  if(preparingAvatar || saving)return;
   setError('');setFieldError(null);
   if(!draft.first.trim()){setFieldError({field:'fio',message:'Введите имя.'});return;}
   setSaving(true);
@@ -160,6 +131,9 @@ export default function ProfilePanel({page,setPage,profile,setProfile,onOpenChat
  }
  async function changeAvatar(file) {
   if(file.size>10*1024*1024 || !['image/jpeg','image/png','image/webp','image/gif'].includes(file.type)){setFieldError({field:'avatar',message:'Выберите фото JPG, PNG, WebP или GIF размером до 10 МБ.'});return;}
+  setPreparingAvatar(true);
+  setFieldError(null);
+  try{
   if(file.type!=='image/gif' && typeof createImageBitmap==='function'){
    try{
     const image=await createImageBitmap(file);
@@ -173,9 +147,15 @@ export default function ProfilePanel({page,setPage,profile,setProfile,onOpenChat
     if(preview.length<file.size*4/3){update('avatar',preview);return;}
    }catch{}
   }
-  const reader=new FileReader();
-  reader.addEventListener('load',()=>update('avatar',reader.result));
-  reader.readAsDataURL(file);
+   const preview=await new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=()=>resolve(reader.result);
+    reader.onerror=()=>reject(reader.error);
+    reader.readAsDataURL(file);
+   });
+   update('avatar',preview);
+  }catch{setFieldError({field:'avatar',message:'Не удалось прочитать фото. Выберите другой файл.'});}
+  finally{setPreparingAvatar(false);}
  }
  async function join() {
   setSaving(true);setError('');
@@ -197,8 +177,8 @@ export default function ProfilePanel({page,setPage,profile,setProfile,onOpenChat
   <div key={view+':'+(page.id || '')} className={'profile-sheet-scroll'+(editing?'':' panel-section-enter')}>
    {view==='peer' && !info && !error && <div className="profile-loading" role="status" aria-label="Загрузка профиля"><i/><i/><i/></div>}
    {showingProfile && (info || view!=='peer') && <>
-    <div className={'profile-cover'+(own?' own-profile-cover':' chat-detail-cover')+(view==='settings'?' settings-cover':'')}>
-     <button type="button" className="portrait-preview" aria-label="Увеличить фото профиля" onClick={()=>setPortraitOpen(true)}><Portrait name={info?.name || info?.fio || page.name || info?.login} src={info?.avatar || page.avatar}/></button>
+    <div className={'profile-cover'+(own?' own-profile-cover':' chat-detail-cover')+(view==='settings'?' settings-cover':'')} style={coverTint?.src===(info?.avatar || page.avatar) && coverTint?.value?{'--avatar-tint':coverTint.value}:undefined}>
+     <button type="button" className="portrait-preview" aria-label="Увеличить фото профиля" onClick={()=>setPortraitOpen(true)}><Portrait name={info?.name || info?.fio || page.name || info?.login} src={info?.avatar || page.avatar} onDecoded={image=>setCoverTint({src:info?.avatar || page.avatar,value:avatarTint(image)})}/></button>
      <strong>{info?.name || info?.fio || page.name || info?.login}<VerifiedBadge visible={info?.verified}/></strong><small>{own?'в сети':presenceLabel(peer)}</small>
     </div>
     {info && view!=='settings' && <div className="access-settings"><PanelSection title="Данные профиля">
@@ -219,7 +199,7 @@ export default function ProfilePanel({page,setPage,profile,setProfile,onOpenChat
    <FormError message={error}/>
    {setup && <ChatSetup page={page} setPage={setPage} onDone={onOpenChat}/>}
    {editing && draft && <form className="profile-editor panel-flow" onSubmit={save}>
-    <AvatarPicker avatar={draft.avatar || profile.avatar} onChange={changeAvatar}/>
+    <AvatarPicker avatar={draft.avatar || profile.avatar} onChange={changeAvatar} busy={preparingAvatar || Boolean(saving && draft.avatar)}/>
     <FormError message={fieldError?.field==='avatar'?fieldError.message:''}/>
     <div className="access-settings">
     <PanelSection title="Личные данные" hint="Описание видно тем, кто открывает ваш профиль."><div className="panel-fields">
@@ -239,7 +219,7 @@ export default function ProfilePanel({page,setPage,profile,setProfile,onOpenChat
      </div>)}</div>}
     </div></PanelSection>
     </div>
-    <PanelFooter disabled={saving}>{saving?'Сохраняем…':'Сохранить'}</PanelFooter>
+    <PanelFooter disabled={saving || preparingAvatar}>{saving?'Сохраняем…':'Сохранить'}</PanelFooter>
    </form>}
    {details && <ChatDetails page={page} setPage={setPage} groups={groups} onOpenChat={onOpenChat} onUpdated={onUpdated} notifications={notificationEnabled(page.id)} onToggleNotifications={()=>onToggleNotifications(page.id)}/>}
    {view==='settings' && <div className="access-settings">

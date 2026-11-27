@@ -18,7 +18,7 @@ from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from config import Config
 from .events import notify_chat_users, notify_user
-from models.public_handle import PublicHandle, reserve_handle
+from models.public_handle import CHAT_HANDLE_KINDS, PublicHandle, reserve_handle
 from .permissions import member_rights, has_right
 from agora_token_builder import RtcTokenBuilder
 from werkzeug.utils import secure_filename
@@ -785,7 +785,8 @@ class ChatService:
             notify_user(user_id)
             return {"success": True}
         recipients = [item.user_id for item in chat.participants]
-        reserve_handle("chat", chat.id, None)
+        for kind in CHAT_HANDLE_KINDS:
+            reserve_handle(kind, chat.id, None)
         db.session.delete(chat)
         db.session.commit()
         for recipient in recipients:

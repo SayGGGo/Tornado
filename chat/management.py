@@ -13,13 +13,19 @@ from models.message import MessageReaction
 from .events import notify_chat_users, notify_user
 from .services import ChatService, EncryptionService, FileService
 from .permissions import RIGHTS, has_right
-from models.public_handle import reserve_handle
+from models.public_handle import CHAT_HANDLE_KINDS, CollectibleHandle, PublicHandle, reserve_handle
 
 EMOJI = ("👍", "🌚", "🔥", "😢", "🏆", "😡", "❤️", "👏", "😂", "🤔", "🎉", "👎")
 
 
 def chat_fields(chat):
+    handles = (db.session.query(PublicHandle.name, CollectibleHandle.name.isnot(None))
+               .outerjoin(CollectibleHandle, CollectibleHandle.name == PublicHandle.name)
+               .filter(PublicHandle.owner_id == chat.id, PublicHandle.kind.in_(CHAT_HANDLE_KINDS))
+               .order_by(case((PublicHandle.kind == "chat", 0), (PublicHandle.kind == "chat_collect", 1), else_=2)).all()
+               if chat.visibility == "public" else [])
     return dict(name=chat.name, avatar=chat.avatar, description=chat.description or "", alias=chat.alias or "",
+                usernames=[dict(name=name, collectible=collectible) for name, collectible in handles],
                 visibility=chat.visibility or "public", approval_required=bool(chat.approval_required),
                 protected=bool(chat.protected), discussion_chat_id=chat.discussion_chat_id,
                 reactions_mode=chat.reactions_mode or "all", reaction_limit=chat.reaction_limit or 11,
@@ -62,7 +68,9 @@ def register_chat_management(app):
     def resolve_chat_alias(alias):
         if not session.get("user_id"):
             return jsonify(error="Требуется вход"), 401
-        chat = Chat.query.filter_by(alias=alias.lower(), visibility="public", personal=False).first()
+        handle = db.session.get(PublicHandle, alias.lower())
+        chat = (Chat.query.filter_by(id=handle.owner_id, visibility="public", personal=False).first()
+                if handle and handle.kind in CHAT_HANDLE_KINDS else None)
         if not chat:
             return jsonify(error="Публичная ссылка недоступна"), 404
         return jsonify(id=chat.id, name=chat.name, avatar=chat.avatar, description=chat.description or "")
@@ -104,9 +112,12 @@ def register_chat_management(app):
             people = [item for item in people if item["id"] in bots]
         channels = []
         if kind in ("all", "channels") and not cursor:
+            matching_handles = db.session.query(PublicHandle.owner_id).filter(
+                PublicHandle.kind.in_(CHAT_HANDLE_KINDS), PublicHandle.name.icontains(query.lstrip("@"), autoescape=True)
+            )
             matched = Chat.query.filter(
                 Chat.personal.is_(False), Chat.chat_type == "channel", Chat.visibility == "public",
-                or_(Chat.name.icontains(query, autoescape=True), Chat.description.icontains(query, autoescape=True), Chat.alias.icontains(query.lstrip("@"), autoescape=True)),
+                or_(Chat.name.icontains(query, autoescape=True), Chat.description.icontains(query, autoescape=True), Chat.id.in_(matching_handles)),
             ).order_by(Chat.name).limit(20)
             channels = [dict(id=item.id, name=item.name, avatar=item.avatar, description=item.description) for item in matched]
         if kind in ("users", "bots", "channels"):
@@ -179,15 +190,18 @@ def register_chat_management(app):
             if not isinstance(allowed, list) or any(emoji not in EMOJI for emoji in allowed):
                 return jsonify(error="Недопустимая реакция"), 400
             chat.allowed_reactions = json.dumps(list(dict.fromkeys(allowed)), ensure_ascii=False)
+        collectible_alias = chat.alias and db.session.get(CollectibleHandle, chat.alias)
         if "alias" in data:
             alias = data["alias"]
             if not isinstance(alias, str):
                 return jsonify(error="Введите короткое имя.", field="alias"), 400
             alias = alias.strip().lower().lstrip("@")
+            if collectible_alias and alias != chat.alias:
+                return jsonify(error="Коллекционное имя закреплено за каналом.", field="alias"), 400
             if alias and not re.fullmatch(r"[a-z][a-z0-9_]{2,31}", alias):
                 return jsonify(error="Введите от 3 до 32 символов, начиная с латинской буквы. Допустимы буквы, цифры и подчёркивания.", field="alias"), 400
             chat.alias = alias or None
-        if chat.visibility != "public":
+        if chat.visibility != "public" and not collectible_alias:
             chat.alias = None
         if "discussion_chat_id" in data:
             target_id = data["discussion_chat_id"]

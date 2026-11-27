@@ -8,7 +8,7 @@ from urllib.parse import urlsplit
 from datetime import datetime, timedelta
 from flask import render_template, jsonify, session, request, redirect, url_for, send_from_directory, abort, make_response
 from models import db, User, Chat, ChatParticipant, Message, PublicHandle
-from models.public_handle import CollectibleHandle, reserve_handle
+from models.public_handle import CHAT_HANDLE_KINDS, CollectibleHandle, reserve_handle
 from .services import ChatService, AgoraService, FileService, EncryptionService, flood_control
 from config import Config
 import uuid
@@ -153,7 +153,7 @@ def register_chat(app):
             entry = db.session.get(PublicHandle, handle.lower())
             if entry and entry.kind in ("user", "user_alias", "collectible") and db.session.get(User, entry.owner_id):
                 return redirect(url_for("chat", start_peer=entry.owner_id))
-            chat = db.session.get(Chat, entry.owner_id) if entry and entry.kind == "chat" else None
+            chat = db.session.get(Chat, entry.owner_id) if entry and entry.kind in CHAT_HANDLE_KINDS else None
         if chat and not chat.personal and chat.visibility == "public":
             member = ChatParticipant.query.filter_by(chat_id=chat.id, user_id=session["user_id"], blocked=False).first()
             return redirect(url_for("chat", chat=chat.id) if member else url_for("chat", join=chat.id))

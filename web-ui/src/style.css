@@ -617,6 +617,16 @@ button.profile-row:hover { background:#ffffff0b; }
 }
 .panel-portrait img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:50% 35%; border-radius:inherit; }
 .panel-portrait img[hidden] { display:none; }
+.avatar-image { opacity:0; }
+.avatar-image.is-ready { opacity:1; transition:opacity 160ms ease-out; }
+.avatar-initials { display:inline-grid; place-items:center; flex:none; font-size:14px; font-weight:650; color:#edf8f1; background:linear-gradient(145deg,#527b67,#325343); }
+.panel-portrait > .avatar-initials { position:absolute; inset:0; }
+.chat-profile-button .header-avatar.avatar-initials { display:grid; }
+.profile-cover[style*="--avatar-tint"] {
+ background:radial-gradient(ellipse at 50% 27%,rgb(var(--avatar-tint) / .58),transparent 78%),#181a1a;
+}
+.avatar-picker-progress { position:absolute; inset:0; display:grid; place-items:center; border-radius:inherit; background:#12161475; }
+@media(prefers-reduced-motion:reduce) { .avatar-image.is-ready { transition:none; } }
 .floating-field { display:block; position:relative; min-width:0; --floating-surface:#222525; }
 .floating-field :is(input,textarea) {
  display:block; width:100%; min-height:47px; padding:11px 14px; border-radius:14px;

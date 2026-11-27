@@ -1,5 +1,7 @@
 from . import db
 
+CHAT_HANDLE_KINDS = ("chat", "chat_collect", "chat_alias")
+
 
 class PublicHandle(db.Model):
     __tablename__ = "public_handle"

@@ -3,6 +3,7 @@ import {api,appPath,account,cachedPanel,fetchPanel,participantLabel} from './api
 import {AvatarPicker,FloatingField,FormError,PanelFooter,PanelIcon,PanelRadio,PanelSection,PanelSelect,PanelSwitch,Portrait,Loader,uploadChatAvatar} from './panelControls.jsx';
 import {reactionChoices} from './ContextMenu.jsx';
 import {FilledIcon} from './FilledIcon.jsx';
+import UsernameDialog from './UsernameDialog.jsx';
 
 export const chatDetailViews = ['chat','chat-edit','chat-type','chat-reactions','chat-discussion','chat-members','chat-admins','chat-admin-pick','chat-admin-rights','chat-admin-review','chat-blocked','chat-requests'];
 export function DetailRow({icon,tone='slate',title,detail,onClick,children,expanded}) {
@@ -52,6 +53,7 @@ export default function ChatDetails({page,setPage,groups,onOpenChat,onUpdated,no
  const [busy,setBusy]=useState(false);
  const [requests,setRequests]=useState(null);
  const [copied,setCopied]=useState(false);
+ const [usernameDialog,setUsernameDialog]=useState(null);
  const [inviteBusy,setInviteBusy]=useState(false);
  const [inviteError,setInviteError]=useState('');
  const inviteInput=React.useRef(null);
@@ -123,7 +125,10 @@ export default function ChatDetails({page,setPage,groups,onOpenChat,onUpdated,no
   finally{setBusy(false);}
  }
  const publicHandle=data?.alias || 'chat-'+id;
- const publicPath=appPath('/t/'+encodeURIComponent(publicHandle));
+ const usernames=data?.usernames?.length?data.usernames:[{name:publicHandle,collectible:false}];
+ const renderUsername=entry=>entry.collectible
+  ?<button type="button" className="profile-username" onClick={()=>setUsernameDialog(entry)}>@{entry.name}</button>
+  :<span>@{entry.name}</span>;
  const invite=new URL(appPath('/t/join-'+encodeURIComponent(id)),location.origin);
  if(data?.invite_token) invite.searchParams.set('token',data.invite_token);
  const openQr=()=>setPage({view:'qr',id,handle:publicHandle,qrUrl:'/api/chats/'+id+'/qr',back:page});
@@ -176,9 +181,10 @@ export default function ChatDetails({page,setPage,groups,onOpenChat,onUpdated,no
    <div className="profile-cover chat-detail-cover"><Portrait src={data.avatar || page.avatar} name={data.name || page.name}/><strong>{data.name || page.name}</strong><small>{participantLabel(displayed.length,channel)}</small></div>
    <div className="access-settings"><PanelSection title={channel?'Информация о канале':'Информация о группе'}>
     {data.description && <DetailRow icon="info" title={data.description} detail="Информация"/>}
-    {data.visibility==='public' ? <DetailRow icon="alternate_email" tone="blue" title={<a className="detail-public-handle" href={publicPath}>@{publicHandle}</a>} detail="Имя пользователя">
+    {data.visibility==='public' ? <DetailRow icon="alternate_email" tone="blue" title={renderUsername(usernames[0])} detail={<>Имя пользователя{usernames.length>1 && <> · также {usernames.slice(1).map((entry,index)=><React.Fragment key={entry.name}>{index>0?', ':''}{renderUsername(entry)}</React.Fragment>)}</>}</>}>
      <button type="button" className="header-action profile-qr-action" aria-label="Открыть QR-код" title="QR-код" onClick={openQr}><PanelIcon name="qr_code_2"/></button>
     </DetailRow> : data.invite_token && <DetailRow icon="link" tone="amber" title={invite.href} detail="Ссылка-приглашение" onClick={copyLink}><PanelIcon name={copied?'check':'content_copy'}/></DetailRow>}
+    {usernameDialog && <UsernameDialog {...usernameDialog} onClose={()=>setUsernameDialog(null)}/>}
     <DetailRow icon="notifications" tone="coral" title="Уведомления" onClick={onToggleNotifications}><span className={'panel-switch'+(notifications?' enabled':'')} role="switch" aria-checked={notifications} aria-label="Уведомления"/></DetailRow>
     <DetailRow icon="groups" tone="green" title={label} detail={displayed.length} onClick={()=>go('chat-members')}/>
     {data.discussion_chat_id && <DetailRow icon="forum" title="Обсуждение" onClick={()=>onOpenChat(data.discussion_chat_id)}/>}
