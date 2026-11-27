@@ -55,6 +55,21 @@ function editDraft(profile) {
  return {first,last:rest.join(' '),bio:profile.bio || '',login:profile.login,names,ordinaryAlias:ordinaryAlias?.name,primaryCollectible:!!primary?.collectible};
 }
 export default function ProfilePanel({page,setPage,profile,setProfile,onOpenChat,onUpdated,groups,notifications,notificationEnabled,onToggleNotifications,preferences,changePreference,blocked}) {
+ const usernameOrderList=React.useRef(null);
+ const previousUsernamePositions=React.useRef(null);
+ React.useLayoutEffect(()=>{
+  const positions=previousUsernamePositions.current;
+  if(!positions)return;
+  previousUsernamePositions.current=null;
+  const moves=Array.from(positions,([row,top])=>[row,top-row.getBoundingClientRect().top]);
+  for(const [row,distance] of moves){
+   if(!distance)continue;
+   const animation=row.animate([{transform:'translateY('+distance+'px)'},{transform:'translateY(0)'}],{
+    duration:280,easing:'cubic-bezier(.22,1,.36,1)'
+   });
+   animation.id='username-reorder';
+  }
+ });
  const [draft,setDraft]=useState(null);
  const [error,setError]=useState('');
  const [fieldError,setFieldError]=useState(null);
@@ -125,6 +140,15 @@ export default function ProfilePanel({page,setPage,profile,setProfile,onOpenChat
   finally{setSaving(false);}
  }
  function moveUsername(index,direction) {
+  const rows=Array.from(usernameOrderList.current.children);
+  if(!matchMedia('(prefers-reduced-motion: reduce)').matches){
+   previousUsernamePositions.current=new Map(rows.map(row=>[row,row.getBoundingClientRect().top]));
+  }
+  for(const row of rows){
+   for(const animation of row.getAnimations()){
+    if(animation.id==='username-reorder')animation.cancel();
+   }
+  }
   setDraft(current=>{
    const names=[...current.names];
    [names[index],names[index+direction]]=[names[index+direction],names[index]];
@@ -206,7 +230,7 @@ export default function ProfilePanel({page,setPage,profile,setProfile,onOpenChat
     <PanelSection title="Публичный профиль"><div className="panel-fields">
      {!draft.primaryCollectible && <FloatingField label="Имя пользователя" required pattern={draft.login===profile.login?undefined:"[A-Za-z][A-Za-z0-9_]{2,49}"} autoCapitalize="none" spellCheck={false} formatError="Начните с латинской буквы. От 3 до 50 символов." error={fieldError?.field==='login'?fieldError.message:''} value={draft.login} maxLength={50} onChange={event=>update('login',event.target.value)}/>}
      {draft.ordinaryAlias!==undefined && <FloatingField label={draft.names.some(entry=>entry.collectible)?'Обычное имя пользователя':'Имя пользователя'} required pattern="[A-Za-z][A-Za-z0-9_]{2,49}" autoCapitalize="none" spellCheck={false} formatError="Начните с латинской буквы. От 3 до 50 символов." error={fieldError?.field==='ordinary_alias'?fieldError.message:''} value={draft.ordinaryAlias} maxLength={50} onChange={event=>update('ordinaryAlias',event.target.value)}/>}
-     {draft.names.length>1 && <div className="username-order-list" aria-label="Порядок имён в профиле">{draft.names.map(({name,collectible},index)=><div key={name} className="profile-row">
+     {draft.names.length>1 && <div ref={usernameOrderList} className="username-order-list" aria-label="Порядок имён в профиле">{draft.names.map(({name,collectible},index)=><div key={name} className="profile-row">
       <span>@{name}<small>{index===0?'Основное · ':''}{collectible?'Коллекционное':'Обычное'}</small></span>
       <div className="username-order">
        <button type="button" className="header-action username-order-up" aria-label={'Поднять @'+name} disabled={index===0} onClick={()=>moveUsername(index,-1)}><PanelIcon name="down"/></button>
