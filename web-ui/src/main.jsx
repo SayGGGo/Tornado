@@ -40,7 +40,7 @@ function initialPage() {
  return null;
 }
 function App() {
- const [loading,setLoading]=useState(true), [query,setQuery]=useState(''), [selected,setSelected]=useState(/^\d+$/.test(initialChat ?? '')?initialChat:null), [width,setWidth]=useState(null); const panel=useRef(null);
+ const [query,setQuery]=useState(''), [selected,setSelected]=useState(/^\d+$/.test(initialChat ?? '')?initialChat:null), [width,setWidth]=useState(null); const panel=useRef(null);
  const [archive, setArchive] = usePreference('archive',[]);
  const [profile,setProfile] = useState(account);
  const [preferences,setPreferences]=usePreference('interface-settings',{enterToSend:true,compact:false,previews:true,motion:true});
@@ -96,7 +96,9 @@ function App() {
      const all = {};
      let offset = 0;
      for (;;) {
-       const result = await api('/api/chats?limit=50&offset='+offset,{cache:'no-store'});
+       const initial=offset===0?window.tornadoFirstChats:null;
+       if(initial) delete window.tornadoFirstChats;
+       const result = (initial && await initial) || await api('/api/chats?limit=50&offset='+offset,{cache:'no-store'});
        Object.assign(all,result.items);
        if (!result.has_more || !Object.keys(result.items ?? {}).length) break;
        offset += 50;
@@ -111,14 +113,20 @@ function App() {
    }
  }
  useEffect(()=>{
+   let firstLoadDone=false;
+   let refreshAfterLoad=false;
+   loadChats().finally(()=>{
+     firstLoadDone=true;
+     if(refreshAfterLoad) loadChats();
+   });
    const disconnect = connectRealtime({
      onStatus:setConnected,
      onChange:()=>{
-       loadChats();
+       if(firstLoadDone) loadChats();
+       else refreshAfterLoad=true;
        setChatRevision(revision=>revision+1);
      },
    });
-   loadChats();
    const online = () => api('/api/user/update_status',{method:'POST'}).catch(()=>{});
    online();
    const heartbeat = setInterval(online,30000);
@@ -373,11 +381,11 @@ function App() {
  const byPinned = ([a],[b]) => Number(pinnedChats.includes(b))-Number(pinnedChats.includes(a));
  const archiveChats = available.filter(([name])=>archive.includes(name)).sort(byPinned);
  const mainChats = available.filter(([name])=>(name!=='Архив' || hasArchivedChats) && !archive.includes(name) && matchesTab(name)).sort((a,b)=>Number(b[0]==='Архив')-Number(a[0]==='Архив') || byPinned(a,b));
- useEffect(()=>{const t=setTimeout(()=>setLoading(false),700);return()=>clearTimeout(t)},[]);
+ useEffect(()=>{if(recordsReady || recordsError)document.dispatchEvent(new Event('tornado:chat-ready'));},[recordsReady,recordsError]);
  const clamp=v=>Math.max(Math.min(window.innerWidth<=1100?76:280,window.innerWidth*.5),Math.min(window.innerWidth*.5,480,v));
  useEffect(()=>{const fn=()=>setWidth(w=>w===null?null:clamp(w));window.addEventListener('resize',fn);return()=>window.removeEventListener('resize',fn)},[]);
  function resize(e){e.preventDefault();e.currentTarget.setPointerCapture(e.pointerId);const x=e.clientX,w=panel.current.getBoundingClientRect().width,t=e.currentTarget;const move=a=>setWidth(clamp(w+a.clientX-x));const stop=()=>{t.removeEventListener('pointermove',move);t.removeEventListener('pointerup',stop);t.removeEventListener('pointercancel',stop)};t.addEventListener('pointermove',move);t.addEventListener('pointerup',stop);t.addEventListener('pointercancel',stop)}
- return <><div className={'preloader'+(loading?'':' is-hidden')} role="status" aria-label="Загрузка"><div className="brand"><svg className="logo" viewBox="0 0 1132 642" aria-hidden="true"><path d="M442.493 592L687.802 384.673L687.802 235.834L811.937 235.834L1082 50L334.072 50L50 235.834L442.493 235.834L442.493 592Z" fill="#fff"/></svg><div className="word" aria-label="Tornado">{'Tornado'.split('').map((c,i)=><span key={i} style={{'--i':i}}>{c}</span>)}</div></div></div><div className="pattern-light" aria-hidden="true"/><main className={'interface'+(selected && selected !== 'Архив' ? ' has-chat' : '')+(profilePage?' has-profile':'')+(searchOpen?' has-search':'')+(preferences.compact?' compact-chat':'')+(preferences.motion===false?' motion-disabled':'')+(preferences.previews===false?' hide-previews':'')}><aside className="sidebar" ref={panel} style={width===null?undefined:{width}} aria-label="Боковая панель">{archiveOpen ? <div className="archive-page">
+ return <><div className="pattern-light" aria-hidden="true"/><main className={'interface'+(selected && selected !== 'Архив' ? ' has-chat' : '')+(profilePage?' has-profile':'')+(searchOpen?' has-search':'')+(preferences.compact?' compact-chat':'')+(preferences.motion===false?' motion-disabled':'')+(preferences.previews===false?' hide-previews':'')}><aside className="sidebar" ref={panel} style={width===null?undefined:{width}} aria-label="Боковая панель">{archiveOpen ? <div className="archive-page">
        <header><button type="button" aria-label="Закрыть архив" onClick={()=>setFromArchive(false)}><OutlineIcon name="arrow_back"/></button>Архив</header>
        <div className="chat-list">{archiveChats.map(([name,preview,time,,image])=>
         <div className="archive-row" key={name} data-chat={name} onContextMenu={event=>openChatMenu(event,name)}>

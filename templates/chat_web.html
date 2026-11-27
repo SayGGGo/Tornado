@@ -5,13 +5,26 @@
  <meta name="viewport" content="width=device-width, initial-scale=1">
  <meta name="tornado-root" content="{{ request.script_root }}">
  <title>Tornado</title>
+ <style>
+ #chat-startup:not([hidden]){position:fixed;inset:0;z-index:50;background:#080808;color:#f2f7f4;display:grid;place-content:center;justify-items:center;gap:12px;text-align:center;font:15px system-ui,sans-serif}
+ #chat-startup .startup-brand{display:flex;align-items:center;gap:12px;font-size:30px;animation:tornado-intro .36s ease-out both}
+ #chat-startup .startup-brand svg{width:64px;height:auto}
+ #chat-startup .startup-progress{height:2px;width:76px;overflow:hidden;border-radius:8px;background:#263630}
+ #chat-startup .startup-progress::before{content:'';display:block;width:36px;height:100%;border-radius:8px;background:#91cbb0;animation:tornado-progress .9s ease-in-out infinite alternate}
+ #chat-startup a{color:#a7d9bf}
+ @keyframes tornado-intro{from{opacity:0;transform:scale(.92)}}
+ @keyframes tornado-progress{to{transform:translateX(40px)}}
+ @media(prefers-reduced-motion:reduce){#chat-startup .startup-brand,#chat-startup .startup-progress::before{animation:none}}
+ </style>
  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'">
  <link rel="stylesheet" href="{{ url_for('static', filename='chat-web/tornado.css', v=asset_version) }}">
 </head>
 <body>
  <div id="root"></div>
  <div id="chat-startup" role="status">
-  <span>Открываем чаты…</span>
+  <div class="startup-brand"><svg viewBox="0 0 1132 642" aria-hidden="true"><path fill="currentColor" d="M442.493 592L687.802 384.673L687.802 235.834L811.937 235.834L1082 50L334.072 50L50 235.834L442.493 235.834L442.493 592Z"/></svg>Tornado</div>
+  <div class="startup-progress" aria-label="Загрузка"></div>
+  <span class="startup-message" hidden></span>
   <small hidden class="startup-detail"></small>
   <a hidden href="{{ url_for('chat') }}">Обновить страницу</a>
   <noscript>Включите JavaScript, чтобы открыть чаты.</noscript>
@@ -19,9 +32,14 @@
  <script type="application/json" id="tornado-session">{{ account | tojson }}</script>
  <script data-cfasync="false">
   const startup = document.getElementById('chat-startup');
+  window.tornadoFirstChats = fetch({{ (request.script_root ~ '/api/chats?limit=50&offset=0') | tojson }},
+    {cache:'no-store', signal:AbortSignal.timeout(7000)}).then(response => response.ok ? response.json() : null).catch(() => null);
   function showChatStartupError(detail) {
     startup.hidden = false;
-    startup.querySelector('span').textContent = 'Чат не загрузился.';
+    const message = startup.querySelector('.startup-message');
+    message.textContent = 'Чат не загрузился.';
+    message.hidden = false;
+    startup.querySelector('.startup-progress').hidden = true;
     startup.querySelector('a').hidden = false;
     const output = startup.querySelector('.startup-detail');
     output.textContent = detail;
@@ -49,10 +67,13 @@
   const startupObserver = new MutationObserver(() => {
     if (!chatRoot.firstElementChild) return;
     clearTimeout(slowStartup);
-    startup.hidden = true;
     startupObserver.disconnect();
   });
   startupObserver.observe(chatRoot, {childList: true});
+  document.addEventListener('tornado:chat-ready', () => {
+    clearTimeout(slowStartup);
+    startup.hidden = true;
+  }, {once:true});
   const client = document.createElement('script');
   client.setAttribute('data-cfasync', 'false');
   client.onerror = async () => {
@@ -107,7 +128,7 @@
           if (!blocks[index]) throw new Error('Часть ' + (index + 1) + ': HTTP ' + result?.status);
         }
       }
-      await Promise.all(Array.from({length:4}, download));
+      await Promise.all(Array.from({length:6}, download));
       const blob = new Blob(blocks, {type:'application/javascript'});
       const hash = await crypto.subtle.digest('SHA-256', await blob.arrayBuffer());
       const hex = Array.from(new Uint8Array(hash), value => value.toString(16).padStart(2, '0')).join('');
