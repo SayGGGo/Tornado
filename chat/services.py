@@ -366,7 +366,8 @@ class ChatService:
                     "premium": "1" if getattr(pu, 'premium', False) else "",
                     "target_user_id": pu.id, "online": is_online, "typing": is_typing, "blocked": is_blocked,
                     "last_seen": pu.last_seen.isoformat() + "Z" if pu.show_last_seen is not False and pu.last_seen else None,
-                    "is_bot": bool(getattr(pu, 'is_bot', False)), "peer_blocked": bool(pp.blocked)
+                    "is_bot": bool(getattr(pu, 'is_bot', False)), "peer_blocked": bool(pp.blocked),
+                    "bot_started": bool(my_part and my_part.bot_started)
                 }
             else:
                 chats_data[str(chat_id_key)] = {
@@ -482,6 +483,8 @@ class ChatService:
             sender_user = db.session.get(User, user_id)
             other_participant = next((p for p in chat.participants if p.user_id != user_id), None)
             if other_participant:
+                if other_participant.blocked:
+                    return {"error": "Снимите блокировку, чтобы снова писать."}
                 recipient = db.session.get(User, other_participant.user_id)
                 if recipient and getattr(recipient, 'premium_only_inbox', False):
                     if not (sender_user and getattr(sender_user, 'premium', False)):
@@ -713,7 +716,7 @@ class ChatService:
         chat = db.session.get(Chat, chat_id)
         if not chat:
             return {"error": "Not found"}
-        if target_user_id in (requester_id, chat.owner_id):
+        if target_user_id == requester_id or (not chat.personal and target_user_id == chat.owner_id):
             return {"error": "Denied"}
         if not self._can_block_in_chat(chat, requester_id):
             return {"error": "Denied"}

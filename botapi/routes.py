@@ -100,6 +100,28 @@ def register_bot_api(app):
         db.session.commit()
         return jsonify({"ok": True, "result": {"token": item.token}})
 
+    @app.post('/api/bot/start/<int:chat_id>')
+    def start_chat_bot(chat_id):
+        user_id = session.get("user_id")
+        if not user_id:
+            return jsonify(error="Войдите в аккаунт."), 401
+        chat = db.session.get(Chat, chat_id)
+        member = ChatParticipant.query.filter_by(chat_id=chat_id, user_id=user_id, blocked=False).first()
+        peer = next((row for row in chat.participants if row.user_id != user_id), None) if chat and chat.personal else None
+        if not member or not peer or not peer.user.is_bot or peer.blocked:
+            return jsonify(error="Бот недоступен в этом чате."), 403
+        if not BotToken.query.filter_by(user_id=peer.user_id, active=True).first():
+            return jsonify(error="Бот сейчас выключен."), 409
+        changed = ChatParticipant.query.filter_by(id=member.id, bot_started=False, blocked=False).update({"bot_started": True})
+        if not changed:
+            db.session.rollback()
+            return jsonify(ok=True)
+        result = ChatService().post_message(user_id, chat_id, "/start")
+        if "error" in result:
+            db.session.rollback()
+            return jsonify(error="Не удалось запустить бота."), 400
+        return jsonify(ok=True, ids=result["ids"])
+
     @app.route('/api/bot/callback', methods=['POST'])
     def bot_callback():
         user_id = session.get("user_id")
@@ -112,7 +134,7 @@ def register_bot_api(app):
         message = db.session.get(Message, message_id)
         if not user_id or not message or message.chat_id != chat_id or message.is_deleted:
             return jsonify({"ok": False, "description": "callback target not found"}), 404
-        if not ChatParticipant.query.filter_by(user_id=user_id, chat_id=chat_id).first():
+        if not ChatParticipant.query.filter_by(user_id=user_id, chat_id=chat_id, blocked=False).first():
             return jsonify({"ok": False, "description": "not a chat participant"}), 403
         if not message.reply_markup or not message.author.is_bot or message.user_id == user_id:
             return jsonify({"ok": False, "description": "callback is unavailable"}), 400

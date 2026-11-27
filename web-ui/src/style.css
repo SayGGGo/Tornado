@@ -1041,3 +1041,33 @@ button.profile-row:hover { background:#ffffff0b; }
  gap:10px; text-align:center; color:#eaf2ee; font:15px system-ui,sans-serif;
 }
 #chat-startup a { color:#a7d9bf; }
+#root .composer .attachment > .outline-icon { width:18px; height:18px; stroke-width:1.9; }
+#root .composer .primary-action.send .outline-icon { width:19px; height:19px; transform:none; stroke-width:2.2; }
+#root .composer .compose-placeholder { inset-block-start:6px; }
+#root .composer .message-input { padding-block:6px; }
+.bubble-copy { line-height:1.4; white-space:pre-wrap; overflow-wrap:anywhere; }
+.bubble-inline { align-items:baseline; }
+.bubble-inline footer { align-self:end; margin:0; }
+.bot-start { justify-content:center; gap:7px; background:transparent; font-weight:600; }
+.bot-start:disabled { opacity:.65; cursor:wait; }
+.bot-start .outline-icon { width:16px; height:16px; }
+.bot-actions { margin-top:8px; gap:4px; }
+.bot-actions > div { gap:4px; }
+.bot-actions :is(button,a) {
+ display:grid; place-items:center; padding:7px 10px; min-height:33px; min-width:min(100%,82px);
+ border-radius:10px; background:#34463c; color:#e1f1e8; font-size:13px;
+ transition:background-color .15s, opacity .15s; overflow-wrap:anywhere;
+}
+.bot-actions :is(button,a):hover { background:#405749; }
+.bot-actions button:disabled { opacity:.55; cursor:wait; }
+.chat-skeleton { display:grid; gap:10px; margin:auto 0 0; padding:10px 15px; }
+.chat-skeleton i { display:block; width:clamp(120px,38%,270px); height:34px; border-radius:14px; background:#ffffff12; animation:chat-skeleton-pulse 1.2s ease-in-out infinite alternate; }
+.chat-skeleton i:nth-child(2) { width:clamp(90px,26%,200px); justify-self:end; animation-delay:.12s; }
+.chat-skeleton i:nth-child(3) { width:clamp(130px,45%,310px); animation-delay:.24s; }
+.message-slot:not(.collapsing) { animation:chat-content-appear .18s ease-out both; }
+@keyframes chat-content-appear { from { opacity:0; translate:0 3px; } to { opacity:1; translate:0; } }
+@keyframes chat-skeleton-pulse { to { opacity:.45; } }
+@media(prefers-reduced-motion:reduce) {
+ .chat-skeleton i,.message-slot:not(.collapsing) { animation:none; }
+}
+.motion-disabled :is(.chat-skeleton i,.message-slot:not(.collapsing)) { animation:none; }

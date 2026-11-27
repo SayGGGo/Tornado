@@ -36,6 +36,7 @@ class ChatParticipant(db.Model):
     blocked = db.Column(db.Boolean, default=False)
     history_after_id = db.Column(db.Integer, default=0)
     history_hidden = db.Column(db.Boolean, default=False)
+    bot_started = db.Column(db.Boolean, nullable=False, default=False)
 
     user = db.relationship("User", back_populates="chat_memberships")
     chat = db.relationship("Chat", back_populates="participants")

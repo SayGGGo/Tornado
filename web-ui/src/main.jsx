@@ -323,12 +323,12 @@ function App() {
    const actions=[];
    if(!personal && (owner || currentChat.permissions?.includes('manage'))) actions.push(['edit','Изменить',()=>setProfilePage({view:'chat-edit',id:selected,name:currentChat.name,avatar:currentChat.avatar,kind:currentChat.chat_type,owner})]);
    else actions.push(['profile',personal?'Профиль собеседника':channel?'О канале':'О группе',openChatProfile]);
-   if(personal) actions.push(['video','Видеозвонок',startCall]);
+   if(personal && !currentChat.is_bot) actions.push(['video','Видеозвонок',startCall]);
    const muted=!notificationEnabled(selected);
    actions.push([muted?'bell':'bellOff',muted?'Включить уведомления':'Выключить уведомления',()=>toggleNotifications(selected)]);
    if(channel && currentChat.discussion_chat_id) actions.push(['chats','Открыть обсуждение',()=>openDiscussion(currentChat.discussion_chat_id)]);
    actions.push(['select','Выбрать сообщения',()=>setPickRequest({chatId:selected})]);
-   if(personal && !currentChat.is_bot) actions.push(['block',currentChat.peer_blocked?'Разблокировать':'Заблокировать',async()=>{
+   if(personal) actions.push(['block',currentChat.peer_blocked?'Разблокировать':currentChat.is_bot?'Заблокировать бота':'Заблокировать',async()=>{
      try{
        await api('/api/chats/'+selected+'/'+(currentChat.peer_blocked?'unblock':'block')+'/'+currentChat.target_user_id,{method:'POST'});
        await loadChats();
@@ -413,7 +413,7 @@ function App() {
  }}><img className="avatar" src={appPath(c[4])} alt=""/><div className="chat-body"><div className="chat-line"><span className="chat-name">{label(c[0])}</span><span className="chat-time">{typeof c[5]?.last_status==='boolean' && <span aria-label={c[5].last_status?'Прочитано':'Отправлено'} role="img"><OutlineIcon name={c[5].last_status?'checkAll':'check'}/></span>}{c[2]}</span></div><div className="chat-preview"><span>{c[1]}</span>{!!(unread[c[0]] ?? c[3])&&<span className={'badge'+(c[0]==='Архив'?' muted':'')}>{unread[c[0]] ?? c[3]}</span>}</div></div></button>)}</div></div><button type="button" className={'sidebar-create'+(chatMenu?.label==='Создание чата'?' is-open':'')} aria-label="Создать чат" aria-expanded={chatMenu?.label==='Создание чата'} onClick={toggleCreateMenu} inert={searchOpen}><OutlineIcon name={chatMenu?.label==='Создание чата'?'close':'edit'}/></button><div className="resize-handle" role="separator" aria-label="Изменить ширину панели" aria-orientation="vertical" aria-valuemin={0} aria-valuemax={50} tabIndex="0" onPointerDown={resize} onKeyDown={e=>{if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();setWidth(clamp(panel.current.getBoundingClientRect().width+(e.key==='ArrowRight'?10:-10)))}}}/></>}</aside>
     {<section className="conversation" hidden={!currentChat} aria-label={currentChat?.name ?? "Чат"}>
       <div className="conversation-body" hidden={selected === 'Архив'}>
-      <ChatContent enterToSend={preferences.enterToSend!==false} onOpenAuthor={message=>setProfilePage({view:'peer',id:message.authorId,name:message.author,avatar:message.avatar})} focus={messageFocus} pickRequest={pickRequest} revision={chatRevision} notify={notify} onUpdated={loadChats} canWrite={profile.can_message && !currentChat?.blocked && (!channels.includes(selected) || currentChat?.permissions?.includes('post') || Number(currentChat?.owner_id)===profile.id)} chat={chats.find(chat=>chat[0]===selected) ?? chats[0]} channel={channels.includes(selected)} showSender={groups.includes(selected)} forwardTargets={available.filter(([name])=>name!=='Архив' && !channels.includes(name))} notificationsEnabled={notificationEnabled(selected)} onToggleNotifications={()=>toggleNotifications(selected)} search={messageSearch && messageSearch.chat===selected ? messageSearch.value : ''} header={<>
+      <ChatContent enterToSend={preferences.enterToSend!==false} onOpenAuthor={message=>setProfilePage({view:'peer',id:message.authorId,name:message.author,avatar:message.avatar})} focus={messageFocus} pickRequest={pickRequest} revision={chatRevision} notify={notify} onUpdated={loadChats} canWrite={profile.can_message && !currentChat?.blocked && !currentChat?.peer_blocked && (!channels.includes(selected) || currentChat?.permissions?.includes('post') || Number(currentChat?.owner_id)===profile.id)} chat={chats.find(chat=>chat[0]===selected) ?? chats[0]} channel={channels.includes(selected)} showSender={groups.includes(selected)} forwardTargets={available.filter(([name])=>name!=='Архив' && !channels.includes(name))} notificationsEnabled={notificationEnabled(selected)} onToggleNotifications={()=>toggleNotifications(selected)} search={messageSearch && messageSearch.chat===selected ? messageSearch.value : ''} header={<>
       <header key={selected} className="conversation-header" onClick={event=>{if(!event.target.closest('button'))openChatProfile();}}>
        <button type="button" className="composer-action back-button" aria-label="Назад к списку чатов" onClick={()=>setSelected(null)}>
         <OutlineIcon name="arrow_back"/>
@@ -422,7 +422,7 @@ function App() {
        <span className="header-identity"><strong>{currentChat?.name}</strong><small>{currentChat?.target_user_id?presenceLabel(currentChat):members[selected]!==undefined?participantLabel(members[selected],channels.includes(selected)):''}</small></span></button>
        <div className="header-actions">
         <HeaderAction icon="search" label="Поиск по сообщениям" onClick={()=>setMessageSearch(current=>current?.chat===selected?null:{chat:selected,value:''})}/>
-        {!channels.includes(selected) && !groups.includes(selected) && <HeaderAction icon="phone" label="Позвонить" onClick={startCall}/>}
+        {!channels.includes(selected) && !groups.includes(selected) && !currentChat?.is_bot && <HeaderAction icon="phone" label="Позвонить" onClick={startCall}/>}
         <HeaderAction icon="more" label="Действия чата" expanded={chatMenu?.label==='Действия чата'} onClick={showHeaderMenu}/>
        </div>
       </header>

@@ -1,7 +1,7 @@
 import React, {useEffect, useLayoutEffect, useRef, useState} from 'react';
 
 import ContextMenu, {reactionChoices} from './ContextMenu.jsx';
-import {FormError,PanelIcon,Portrait,Loader} from './panelControls.jsx';
+import {FormError,PanelIcon,Portrait} from './panelControls.jsx';
 import {OutlineIcon} from './OutlineIcon.jsx';
 import ChatRemovalDialog from './ChatRemovalDialog.jsx';
 import {api,appPath,account,connectionMessage,messageFromServer,sendToChat} from './api.js';
@@ -12,8 +12,15 @@ const clock = new Intl.DateTimeFormat('ru', {hour:'2-digit', minute:'2-digit'});
 const dayKey = new Intl.DateTimeFormat('ru', {year:'numeric', month:'numeric', day:'numeric'});
 const dateLabel = new Intl.DateTimeFormat('ru', {day:'numeric', month:'long'});
 const emptyHistory = [];
+const historyCacheKey='tornado:'+account.id+':recent-message-history';
+function readHistoryCache() {
+ try {
+  const entries=JSON.parse(sessionStorage.getItem(historyCacheKey));
+  return Object.fromEntries(Object.entries(entries || {}).filter(([,rows])=>Array.isArray(rows) && rows.every(row=>Number.isFinite(row?.at) && Number.isInteger(row?.id))));
+ } catch {return {};}
+}
 export default function ChatContent({chat, channel, showSender, search, forwardTargets, notificationsEnabled, onToggleNotifications, notify, header, onUpdated, canWrite, revision, focus, pickRequest, onOpenAuthor, enterToSend}) {
- const [messages, setMessages] = useState({});
+ const [messages, setMessages] = useState(readHistoryCache);
  const [historyReady,setHistoryReady]=useState({});
  const [historyError,setHistoryError]=useState(null);
  const [canLoadEarlier,setCanLoadEarlier] = useState({});
@@ -112,6 +119,9 @@ export default function ChatContent({chat, channel, showSender, search, forwardT
  const sending = useRef(false);
  const [enteringMessage, setEnteringMessage] = useState(null);
  const [name,,,,,record] = chat;
+ const [startedBots,setStartedBots]=useState({});
+ const [startingBots,setStartingBots]=useState({});
+ const showBotStart=record?.is_bot && !record.bot_started && !startedBots[name] && canWrite;
  const historyCutoff = record?.history_after_id ?? 0;
  const [editing, setEditing] = useState(null);
  const [armed,setArmed]=useState(null);
@@ -160,6 +170,15 @@ export default function ChatContent({chat, channel, showSender, search, forwardT
   load();
   return ()=>controller.abort();
  },[name,showSender,revision,historyCutoff]);
+ useEffect(()=>{
+  if (!record || !historyReady[name]) return;
+  try {
+   const cache=readHistoryCache();
+   delete cache[name];
+   cache[name]=(messages[name] || []).filter(message=>message.id>historyCutoff).slice(-30);
+   sessionStorage.setItem(historyCacheKey,JSON.stringify(Object.fromEntries(Object.entries(cache).slice(-8))));
+  } catch {}
+ },[name,messages,historyReady,historyCutoff,Boolean(record)]);
  const reactionKey = message => JSON.stringify([name,message.id]);
  const {text='',file=null,error:composeError=''} = drafts[name] ?? {};
  const history = historyCutoff ? (messages[name] ?? emptyHistory).filter(message=>message.id>historyCutoff) : messages[name] ?? emptyHistory;
@@ -202,6 +221,17 @@ export default function ChatContent({chat, channel, showSender, search, forwardT
  const query = search.trim().toLocaleLowerCase('ru');
  const rows = query ? history.filter(message=>[message.text,message.file?.name].some(value=>value?.toLocaleLowerCase('ru').includes(query))) : history;
  function patch(values) { setDrafts(previous=>({...previous,[name]:{...previous[name],error:'',...values}})); }
+ async function startBot() {
+  if (startingBots[name]) return;
+  setStartingBots(current=>({...current,[name]:true}));
+  patch({error:''});
+  try {
+   await api('/api/bot/start/'+encodeURIComponent(name),{method:'POST'});
+   setStartedBots(current=>({...current,[name]:true}));
+   await onUpdated();
+  } catch(reason) {patch({error:reason.message});}
+  finally {setStartingBots(current=>({...current,[name]:false}));}
+ }
  async function append(values, destination=chat) {
   const [target,,,,,targetChat] = destination;
   const created = await sendToChat(target,values);
@@ -430,7 +460,7 @@ export default function ChatContent({chat, channel, showSender, search, forwardT
   <div key={name} ref={historyPanel} data-history-chat={name} className="message-history" onScroll={updateLatest} aria-label="История сообщений">
    {!query && canLoadEarlier[name] && <button className="chat-note history-load-more" type="button" disabled={loadingEarlier} onClick={loadEarlier}>{loadingEarlier?'Загрузка…':'Загрузить предыдущие сообщения'}</button>}
    {!rows.length && historyError?.name===name && <FormError className="history-error" message={historyError.message===connectionMessage?historyError.message:'Не удалось загрузить сообщения. '+historyError.message}/>}
-   {record && !historyReady[name] && !rows.length && historyError?.name!==name && <Loader label="Загрузка сообщений…" className="history-loader"/>}
+   {record && !historyReady[name] && !rows.length && historyError?.name!==name && <div className="chat-skeleton" role="status" aria-label="Загрузка сообщений…"><i/><i/><i/></div>}
    {historyReady[name] && !rows.length && historyError?.name!==name && <div className="message-date">{query?'Ничего не найдено':'Нет сообщений'}</div>}
    {rows.map((message,index)=>{
     const key = reactionKey(message);
@@ -455,7 +485,7 @@ export default function ChatContent({chat, channel, showSender, search, forwardT
       {message.forwarded && <div className="forwarded-label">Переслано из «{message.forwarded}»</div>}
       {message.quote && <blockquote>{message.quote}</blockquote>}
       {showSender && !message.own && <button type="button" className="sender-name sender-link" onClick={()=>onOpenAuthor(message)}>{message.sender || message.author}</button>}
-      {compact ? <div className="bubble-inline"><span>{message.text}</span>{metadata}</div> : message.text && <div>{message.text}</div>}
+      {compact ? <div className="bubble-inline"><span className="bubble-copy">{message.text}</span>{metadata}</div> : message.text && <div className="bubble-copy">{message.text}</div>}
       {message.file && <div className="bubble-file"><Icon name="clip"/>{message.file.url?<a href={message.file.url} download>{message.file.name}</a>:message.file.name}</div>}
       {message.audio && <audio controls src={message.audio}/>}
       {Array.isArray(message.keyboard) && <div className="bot-actions">{message.keyboard.map((row,rowIndex)=>Array.isArray(row) && <div key={rowIndex}>{row.map((item,index)=>{
@@ -505,7 +535,7 @@ export default function ChatContent({chat, channel, showSender, search, forwardT
    {showLatest && <button type="button" className="scroll-latest" aria-label="К последнему сообщению" onClick={()=>scrollLatest(true)}>
     <OutlineIcon name="down"/>
    </button>}
-   {!canWrite && !channel ? <p className="composer-restricted">Отправка сообщений недоступна</p> : !canWrite && channel ? <button type="button" className="channel-alert" aria-pressed={notificationsEnabled} onClick={onToggleNotifications}><span className="bell-state" aria-hidden="true"><Icon name="bell"/><i/></span><span className="alert-label"><span className="label-enable">Включить уведомления</span><span className="label-disable">Выключить уведомления</span></span></button> : <>
+   {showBotStart ? <button type="button" className="channel-alert bot-start" disabled={startingBots[name]} onClick={startBot}><PanelIcon name="arrow_forward"/>{startingBots[name]?'Запускаем…':'Запустить бота'}</button> : !canWrite && !channel ? <p className="composer-restricted">{record?.peer_blocked?'Снимите блокировку, чтобы снова писать.':'Отправка сообщений недоступна'}</p> : !canWrite && channel ? <button type="button" className="channel-alert" aria-pressed={notificationsEnabled} onClick={onToggleNotifications}><span className="bell-state" aria-hidden="true"><Icon name="bell"/><i/></span><span className="alert-label"><span className="label-enable">Включить уведомления</span><span className="label-disable">Выключить уведомления</span></span></button> : <>
     <label className="composer-action attachment"><OutlineIcon name="paperclip"/><input type="file" aria-label="Прикрепить файл" onChange={event=>{const file=event.target.files[0]; if(file) patch({file});event.target.value='';}}/></label>
     <div className="compose-field"><span aria-hidden="true" className={'compose-placeholder'+(text?' faded':'')}>{recording?'Идёт запись…':'Сообщение'}</span><textarea ref={field} className="message-input" rows={1} aria-label="Сообщение" aria-describedby={composeError?composeErrorId:undefined} value={text} onChange={event=>patch({text:event.target.value})} onKeyDown={event=>{if(event.key==='Enter'&&!event.shiftKey&&!event.nativeEvent.isComposing && (enterToSend || event.ctrlKey || event.metaKey)){event.preventDefault();if(!recording)send();}}}/></div>
     {file && <button type="button" className="attached-file" title="Убрать файл" onClick={()=>patch({file:null})}>{file.name} ×</button>}

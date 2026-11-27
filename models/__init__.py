@@ -32,7 +32,7 @@ def _automigrate(engine):
             if col.default is not None and col.default.is_scalar:
                 val = col.default.arg
                 if isinstance(val, bool):
-                    default = f" DEFAULT {1 if val else 0}"
+                    default = " DEFAULT TRUE" if val else " DEFAULT FALSE"
                 elif isinstance(val, str):
                     default = f" DEFAULT '{val}'"
                 else:
