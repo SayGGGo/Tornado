@@ -71,10 +71,6 @@ python examples/tornbot_echo.py
 
 HTTP API: `POST /api/bot<TOKEN>/<METHOD>` с JSON телом, например `{"chat_id": 1, "text": "Привет"}`. `getUpdates` принимает `offset`, `limit` и `timeout`.
 
-### Однофайловый бот очереди 3D-печати
-
-`tornbot_print_queue.py` переносит административные команды и inline-кнопки бота из зеркала. Он использует Tornado Bot API; если заданы `PORTAL_URL` и `PORTAL_SERVICE_TOKEN`, бот подключится к внешнему Print Portal. Без них работает локальная демонстрационная очередь с примерами заявок. Скопируйте `.env.example` в `.env`, создайте бота в меню Tornado «Боты и токены» и задайте его Tornado-токен как `TORNBOT_TOKEN`. Администраторов укажите их внутренними ID Tornado в `ADMIN_CHAT_IDS`. Этот токен не является Telegram BotFather токеном. Запуск: `python tornbot_print_queue.py`.
-
 ## Стек проджекта
 * **Ядро**: Python 3.12 (поддержка 3.10 - 3.14)
 * **Веб-фреймворк**: Flask
